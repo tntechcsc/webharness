@@ -8,6 +8,12 @@ struct Message {
     message: String,
 }
 
+#[derive(Serialize, Deserialize)]
+struct InputData {
+	name: String,
+	age: u32,
+}
+
 #[get("/")]
 async fn index() -> Option<NamedFile> {
     NamedFile::open(PathBuf::from("static/index.html")).await.ok()
@@ -24,15 +30,15 @@ fn goodbye(name: &str, age: u8) -> String {
     format!("Hello, {} year old named {}!", age, name)
 }
 
-#[post("/submit")]
-fn submit() -> String {
-    "HEY".to_string()
+#[post("/submit", format="json", data="<data>")]
+fn submit(data: Json<InputData>) -> String {
+    format!("Received: Name - {}, Age - {}", data.name, data.age)
 }
 
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-    .mount("/", routes![index, goodbye, greetings])
+    .mount("/", routes![index, goodbye, greetings, submit])
     .mount("/static", FileServer::from("static"))
     .configure(rocket::Config {
         port: 80,
