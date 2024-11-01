@@ -26,7 +26,7 @@ fn goodbye(name: &str, age: u8) -> String {
 
 #[post("/submit")]
 fn submit() -> String {
-    
+    "HEY".to_string()
 }
 
 #[launch]
