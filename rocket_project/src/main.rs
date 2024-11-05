@@ -27,6 +27,12 @@ struct InputData {
 	age: u32,
 }
 
+#[derive(Serialize, Deserialize)]
+struct user {
+    name: String,
+    age: String,
+}
+
 #[get("/")]
 async fn index() -> Option<NamedFile> {
     NamedFile::open(PathBuf::from("static/index.html")).await.ok()
@@ -63,6 +69,7 @@ fn user_search(name: String, db: &rocket::State<Arc<DB>>) -> Json<Message> {
     }
 }
 
+
 #[get("/greetings")]
 fn greetings() -> Json<Message> {
     let message = "Hello, Rocket!".to_string();
@@ -79,13 +86,35 @@ fn submit(data: Json<InputData>) -> String {
     format!("Received: Name - {}, Age - {}", data.name, data.age)
 }
 
+
+#[post("/user/register", data = "<user_data>")]
+fn user_register(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> Json<Message> {
+    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+
+    // Prepare the SQL INSERT query
+    let query = "INSERT INTO users (name, age) VALUES (?1, ?2)";
+
+    // Execute the query with the correct types
+    let result = conn.execute(query, &[&user_data.name, &user_data.age]); // Use user_data.name and user_data.age
+
+    match result {
+        Ok(_) => Json(Message {
+            message: "Successfully added user to the database.".to_string(),
+        }),
+        Err(_) => Json(Message {
+            message: "Error inserting into the database.".to_string(),
+        }),
+    }
+}
+
+
 #[launch]
 fn rocket() -> _ {
     let db = Arc::new(DB::new().expect("Failed to initialize database")); // rust requires thread safety
 
     rocket::build()
     .manage(db)
-    .mount("/", routes![index, goodbye, greetings, submit, user_search])
+    .mount("/", routes![index, goodbye, greetings, submit, user_search, user_register])
     .mount("/static", FileServer::from("static"))
     .configure(rocket::Config {
         port: 80,
