@@ -33,6 +33,28 @@ struct user {
     age: String,
 }
 
+
+fn user_verify(name: String, db: &rocket::State<Arc<DB>>) -> u32 {
+    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+
+    let mut stmt = conn.prepare("SELECT * FROM users WHERE name = ?1").unwrap(); // Prepare your query
+    let mut rows = stmt.query(&[&name]).unwrap(); // Execute the query
+
+    match rows.next() { // Use match to handle the Option returned by next()
+        Ok(Some(unwrapped_row)) => { // If there is a row
+            let user_name: String = unwrapped_row.get(0).unwrap();
+            let user_age: i32 = unwrapped_row.get(1).unwrap();
+            return 201;
+        }
+        Ok(None) => { // If no rows were returned
+            return 404;
+        }
+        Err(_) => { // Handle any potential errors from querying
+            return 500;
+        }
+    }
+}
+
 #[get("/")]
 async fn index() -> Option<NamedFile> {
     NamedFile::open(PathBuf::from("static/index.html")).await.ok()
@@ -46,6 +68,7 @@ async fn index() -> Option<NamedFile> {
         a pointer to our database connection that is managed by rocket. We have to manage its state and shared pointer counter.
     Purpose: To search for a user in our database
 */
+
 #[get("/user/search?<name>")]
 fn user_search(name: String, db: &rocket::State<Arc<DB>>) -> Json<Message> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
@@ -68,7 +91,6 @@ fn user_search(name: String, db: &rocket::State<Arc<DB>>) -> Json<Message> {
         }
     }
 }
-
 
 #[get("/greetings")]
 fn greetings() -> Json<Message> {
@@ -107,6 +129,25 @@ fn user_register(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> Json<Mes
     }
 }
 
+#[put("/user/update", data = "<user_data>")]
+fn user_update(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> Json<Message> {
+    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+
+    // Prepare the SQL INSERT query
+    let query = "UPDATE users SET age = ?1 where name = ?2";
+
+    // Execute the query with the correct types
+    let result = conn.execute(query, &[&user_data.age, &user_data.name]); // Use user_data.name and user_data.age
+
+    match result {
+        Ok(_) => Json(Message {
+            message: "Successfully updated user info.".to_string(),
+        }),
+        Err(_) => Json(Message {
+            message: "Error updating user info.".to_string(),
+        }),
+    }
+}
 
 #[launch]
 fn rocket() -> _ {
@@ -114,7 +155,7 @@ fn rocket() -> _ {
 
     rocket::build()
     .manage(db)
-    .mount("/", routes![index, goodbye, greetings, submit, user_search, user_register])
+    .mount("/", routes![index, goodbye, greetings, submit, user_search, user_register, user_update])
     .mount("/static", FileServer::from("static"))
     .configure(rocket::Config {
         port: 80,
