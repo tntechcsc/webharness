@@ -5,6 +5,10 @@ use rocket::fs::{FileServer, NamedFile}; // for serving a file
 use std::path::PathBuf; // for accessing a folder
 use rusqlite::{Connection, Result}; // for our sqlite connection
 use std::sync::{Arc, Mutex}; // for thread-safe access
+use utoipa::{OpenApi, ToSchema};
+use utoipa_swagger_ui::SwaggerUi;
+
+struct ApiDoc;
 
 struct DB {
     conn: Mutex<Connection>, // rust complains if there is no thread safety with our connection
@@ -17,23 +21,22 @@ impl DB {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ToSchema)]
 struct Message {
     message: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ToSchema)]
 struct InputData {
 	name: String,
 	age: u32,
 }
 
-#[derive(Serialize, Deserialize)]
-struct user {
+#[derive(Serialize, Deserialize, ToSchema)]
+struct User {
     name: String,
     age: String,
 }
-
 
 fn user_exists(name: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> u32 {
     let mut stmt = conn.prepare("SELECT COUNT(*) FROM users WHERE name = ?1").unwrap(); // Prepare your query
@@ -65,7 +68,15 @@ fn user_exists(name: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connect
     */
 }
 
-
+#[utoipa::path(
+get,
+path = "/",
+responses(
+    (status = 200, description = "Page loaded",),
+          (status = 404, description = "Not Found")
+),
+params()
+)]
 #[get("/")]
 async fn index() -> Option<NamedFile> {
     NamedFile::open(PathBuf::from("static/index.html")).await.ok()
@@ -121,7 +132,7 @@ fn submit(data: Json<InputData>) -> String {
 
 
 #[post("/user/register", data = "<user_data>")]
-fn user_register(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
+fn user_register(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let result = user_exists(&user_data.name, &conn);
     let http_code: Status;
@@ -155,7 +166,7 @@ fn user_register(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> (Status,
 }
 
 #[put("/user/update", data = "<user_data>")]
-fn user_update(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
+fn user_update(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let result = user_exists(&user_data.name, &conn);
     let http_code: Status;
@@ -226,8 +237,15 @@ fn user_delete(name: String, db: &rocket::State<Arc<DB>>) -> (Status, String) {
 fn rocket() -> _ {
     let db = Arc::new(DB::new().expect("Failed to initialize database")); // rust requires thread safety
 
+    #[derive(OpenApi)]
+    #[openapi(paths(index))]
+    struct ApiDoc;
+
     rocket::build()
     .manage(db)
+    .mount("/",
+           SwaggerUi::new("/docs/swagger-ui/<_..>").url("/swagger/openapi.json", ApiDoc::openapi()),
+    )
     .mount("/", routes![index, goodbye, greetings, submit, user_search, user_register, user_update, user_delete])
     .mount("/static", FileServer::from("static"))
     .configure(rocket::Config {
