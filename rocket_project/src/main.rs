@@ -1,4 +1,5 @@
 #[macro_use] extern crate rocket;
+use rocket::http::Status;
 use rocket::serde::{Serialize, Deserialize, json::Json}; // for handling jsons
 use rocket::fs::{FileServer, NamedFile}; // for serving a file
 use std::path::PathBuf; // for accessing a folder
@@ -34,12 +35,20 @@ struct user {
 }
 
 
-fn user_verify(name: String, db: &rocket::State<Arc<DB>>) -> u32 {
-    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
-
-    let mut stmt = conn.prepare("SELECT * FROM users WHERE name = ?1").unwrap(); // Prepare your query
-    let mut rows = stmt.query(&[&name]).unwrap(); // Execute the query
-
+fn user_exists(name: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> u32 {
+    let mut stmt = conn.prepare("SELECT COUNT(*) FROM users WHERE name = ?1").unwrap(); // Prepare your query
+    let mut result = stmt.query(&[&name]).unwrap(); // Execute the query
+    let mut count = 0;
+    if let Some(row) = result.next().unwrap() { // Unwrap the first row
+        count = row.get(0).unwrap(); // Get the first column (COUNT(*) result)
+    }
+    if count >= 1 {
+        return 200;
+    }
+    else {
+        return 404;
+    }
+    /*
     match rows.next() { // Use match to handle the Option returned by next()
         Ok(Some(unwrapped_row)) => { // If there is a row
             let user_name: String = unwrapped_row.get(0).unwrap();
@@ -53,6 +62,7 @@ fn user_verify(name: String, db: &rocket::State<Arc<DB>>) -> u32 {
             return 500;
         }
     }
+    */
 }
 
 #[get("/")]
@@ -112,6 +122,7 @@ fn submit(data: Json<InputData>) -> String {
 #[post("/user/register", data = "<user_data>")]
 fn user_register(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> Json<Message> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    user_exists(&user_data.name, &conn);
 
     // Prepare the SQL INSERT query
     let query = "INSERT INTO users (name, age) VALUES (?1, ?2)";
@@ -130,8 +141,18 @@ fn user_register(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> Json<Mes
 }
 
 #[put("/user/update", data = "<user_data>")]
-fn user_update(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> Json<Message> {
+fn user_update(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let result = user_exists(&user_data.name, &conn);
+    let http_code: Status;
+    let message: String;
+
+    if result == 404 {
+        //returning user not found
+        http_code = Status::NotFound;
+        message = "User not found".to_string();
+        return (http_code, message);
+    }
 
     // Prepare the SQL INSERT query
     let query = "UPDATE users SET age = ?1 where name = ?2";
@@ -140,12 +161,16 @@ fn user_update(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> Json<Messa
     let result = conn.execute(query, &[&user_data.age, &user_data.name]); // Use user_data.name and user_data.age
 
     match result {
-        Ok(_) => Json(Message {
-            message: "Successfully updated user info.".to_string(),
-        }),
-        Err(_) => Json(Message {
-            message: "Error updating user info.".to_string(),
-        }),
+        Ok(_) => {
+            http_code = Status::Ok;
+            message = "Changes made".to_string();
+            return (http_code, message);
+        }
+        Err(_) => {
+            http_code = Status::BadRequest;
+            message = "Bad request".to_string();
+            return (http_code, message);
+        }
     }
 }
 
