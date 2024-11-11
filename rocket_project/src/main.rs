@@ -65,6 +65,7 @@ fn user_exists(name: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connect
     */
 }
 
+
 #[get("/")]
 async fn index() -> Option<NamedFile> {
     NamedFile::open(PathBuf::from("static/index.html")).await.ok()
@@ -120,9 +121,18 @@ fn submit(data: Json<InputData>) -> String {
 
 
 #[post("/user/register", data = "<user_data>")]
-fn user_register(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> Json<Message> {
+fn user_register(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
-    user_exists(&user_data.name, &conn);
+    let result = user_exists(&user_data.name, &conn);
+    let http_code: Status;
+    let message: String;
+
+    if result == 200 {
+        //returning user not found
+        http_code = Status::BadRequest;
+        message = "User already exists".to_string();
+        return (http_code, message);
+    }
 
     // Prepare the SQL INSERT query
     let query = "INSERT INTO users (name, age) VALUES (?1, ?2)";
@@ -131,12 +141,16 @@ fn user_register(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> Json<Mes
     let result = conn.execute(query, &[&user_data.name, &user_data.age]); // Use user_data.name and user_data.age
 
     match result {
-        Ok(_) => Json(Message {
-            message: "Successfully added user to the database.".to_string(),
-        }),
-        Err(_) => Json(Message {
-            message: "Error inserting into the database.".to_string(),
-        }),
+        Ok(_) => {
+            http_code = Status::Ok;
+            message = "User added".to_string();
+            return (http_code, message);
+        }
+        Err(_) => {
+            http_code = Status::BadRequest;
+            message = "Bad Request".to_string();
+            return (http_code, message);
+        }
     }
 }
 
@@ -174,13 +188,47 @@ fn user_update(user_data: Json<user>, db: &rocket::State<Arc<DB>>) -> (Status, S
     }
 }
 
+#[delete("/user/delete?<name>")]
+fn user_delete(name: String, db: &rocket::State<Arc<DB>>) -> (Status, String) {
+    let conn = db.conn.lock().unwrap();
+    let result = user_exists(&name, &conn);
+    let http_code: Status;
+    let message: String;
+
+    if result == 404 {
+        //returning user not found
+        http_code = Status::NotFound;
+        message = "User not found".to_string();
+        return (http_code, message);
+    }
+
+    // Prepare the SQL INSERT query
+    let query = "DELETE FROM users WHERE name = ?1";
+
+    // Execute the query with the correct types
+    let result = conn.execute(query, &[&name]); // Use user_data.name and user_data.age
+
+    match result {
+        Ok(_) => {
+            http_code = Status::Ok;
+            message = "Changes made".to_string();
+            return (http_code, message);
+        }
+        Err(_) => {
+            http_code = Status::BadRequest;
+            message = "Bad request".to_string();
+            return (http_code, message);
+        }
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
     let db = Arc::new(DB::new().expect("Failed to initialize database")); // rust requires thread safety
 
     rocket::build()
     .manage(db)
-    .mount("/", routes![index, goodbye, greetings, submit, user_search, user_register, user_update])
+    .mount("/", routes![index, goodbye, greetings, submit, user_search, user_register, user_update, user_delete])
     .mount("/static", FileServer::from("static"))
     .configure(rocket::Config {
         port: 80,
