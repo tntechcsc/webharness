@@ -5,7 +5,7 @@ use rocket::fs::{FileServer, NamedFile}; // for serving a file
 use std::path::PathBuf; // for accessing a folder
 use rusqlite::{Connection, Result}; // for our sqlite connection
 use std::sync::{Arc, Mutex}; // for thread-safe access
-use utoipa::{OpenApi, ToSchema};
+use utoipa::{OpenApi, ToSchema, IntoParams};
 use utoipa_swagger_ui::SwaggerUi;
 
 struct DB {
@@ -25,9 +25,11 @@ struct Message {
     message: String,
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct InputData {
+    #[schema(example = "Tim")]
 	name: String,
+    #[schema(example = "21")]
 	age: u32,
 }
 
@@ -83,7 +85,7 @@ async fn index() -> Option<NamedFile> {
 
 #[utoipa::path(
     get,
-    path = "/user/search?",
+    path = "/user/search/{name}",
     tag = "User Management",
     responses(
         (status = 200, description = "User found"),
@@ -93,7 +95,7 @@ async fn index() -> Option<NamedFile> {
         ("name", description = "String of a name")
     )
     )]
-#[get("/user/search?<name>")]
+#[get("/user/search/<name>")]
 fn user_search(name: String, db: &rocket::State<Arc<DB>>) -> Json<Message> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
@@ -133,12 +135,15 @@ fn greetings() -> Json<Message> {
 
 #[utoipa::path(
     get,
-    path = "/<name>/<age>",
+    path = "/{name}/{age}",
     tag = "Alive",
     responses(
         (status = 200, description = "Hello, <age> year old named <name>!")
     ),
-    params()
+    params(
+        ("name", description = "name of person"),
+        ("age", description = "age of person")
+    )
     )]
 #[get("/<name>/<age>")]
 fn goodbye(name: &str, age: u8) -> String {
@@ -152,7 +157,7 @@ fn goodbye(name: &str, age: u8) -> String {
     responses(
         (status = 200, description = "Received: Name - <name>, Age - <age>")
     ),
-    params()
+    request_body = InputData,
     )]
 #[post("/submit", format="json", data="<data>")]
 fn submit(data: Json<InputData>) -> String {
@@ -166,7 +171,7 @@ fn submit(data: Json<InputData>) -> String {
     responses(
         (status = 200, description = "Creates a user in our database")
     ),
-    params()
+    request_body = User
     )]
 #[post("/user/register", data = "<user_data>")]
 fn user_register(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
@@ -210,7 +215,7 @@ fn user_register(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status,
         (status = 200, description = "Updates user info"),
         (status = 404, description = "User not found")
     ),
-    params()
+    request_body = User
     )]
 #[put("/user/update", data = "<user_data>")]
 fn user_update(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
@@ -248,15 +253,17 @@ fn user_update(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status, S
 
 #[utoipa::path(
     delete,
-    path = "/user/delete?<name>",
+    path = "/user/delete/{name}",
     tag = "User Management",
     responses(
         (status = 200, description = "Deletes a user"),
         (status = 404, description = "User not found")
     ),
-    params()
+    params(
+        ("name", description = "name of person you want to delete")
+    )
     )]
-#[delete("/user/delete?<name>")]
+#[delete("/user/delete/<name>")]
 fn user_delete(name: String, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap();
     let result = user_exists(&name, &conn);
