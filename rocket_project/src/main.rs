@@ -8,8 +8,6 @@ use std::sync::{Arc, Mutex}; // for thread-safe access
 use utoipa::{OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
 
-struct ApiDoc;
-
 struct DB {
     conn: Mutex<Connection>, // rust complains if there is no thread safety with our connection
 }
@@ -23,6 +21,7 @@ impl DB {
 
 #[derive(Serialize, Deserialize, ToSchema)]
 struct Message {
+    #[schema(example = "Hello World")]
     message: String,
 }
 
@@ -69,28 +68,31 @@ fn user_exists(name: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connect
 }
 
 #[utoipa::path(
-get,
-path = "/",
-responses(
-    (status = 200, description = "Page loaded",),
-          (status = 404, description = "Not Found")
-),
-params()
-)]
+    get,
+    path = "/",
+    tag = "Page Management",
+    responses(
+        (status = 200, description = "Page loaded"),
+        (status = 404, description = "Not Found")
+    )
+    )]
 #[get("/")]
 async fn index() -> Option<NamedFile> {
     NamedFile::open(PathBuf::from("static/index.html")).await.ok()
 }
 
-/*
-    Endpoint: /user/search?<name>
-    Type: GET
-    Parameters: name: str, db: &rocket::State<Arc<DB>>
-    Parameter Explanation: We are having the user pass a name that they want to search in the database. We are passing the
-        a pointer to our database connection that is managed by rocket. We have to manage its state and shared pointer counter.
-    Purpose: To search for a user in our database
-*/
-
+#[utoipa::path(
+    get,
+    path = "/user/search?",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "User found"),
+        (status = 404, description = "User not found")
+    ),
+    params(
+        ("name", description = "String of a name")
+    )
+    )]
 #[get("/user/search?<name>")]
 fn user_search(name: String, db: &rocket::State<Arc<DB>>) -> Json<Message> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
@@ -114,23 +116,58 @@ fn user_search(name: String, db: &rocket::State<Arc<DB>>) -> Json<Message> {
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/greetings",
+    tag = "Alive",
+    responses(
+        (status = 200, description = "Greetings")
+    ),
+    params()
+    )]
 #[get("/greetings")]
 fn greetings() -> Json<Message> {
     let message = "Hello, Rocket!".to_string();
     Json(Message { message })
 }
 
+#[utoipa::path(
+    get,
+    path = "/<name>/<age>",
+    tag = "Alive",
+    responses(
+        (status = 200, description = "Hello, <age> year old named <name>!")
+    ),
+    params()
+    )]
 #[get("/<name>/<age>")]
 fn goodbye(name: &str, age: u8) -> String {
     format!("Hello, {} year old named {}!", age, name)
 }
 
+#[utoipa::path(
+    post,
+    path = "/submit",
+    tag = "Alive",
+    responses(
+        (status = 200, description = "Received: Name - <name>, Age - <age>")
+    ),
+    params()
+    )]
 #[post("/submit", format="json", data="<data>")]
 fn submit(data: Json<InputData>) -> String {
     format!("Received: Name - {}, Age - {}", data.name, data.age)
 }
 
-
+#[utoipa::path(
+    post,
+    path = "/user/register",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "Creates a user in our database")
+    ),
+    params()
+    )]
 #[post("/user/register", data = "<user_data>")]
 fn user_register(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
@@ -165,6 +202,16 @@ fn user_register(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status,
     }
 }
 
+#[utoipa::path(
+    put,
+    path = "/user/update",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "Updates user info"),
+        (status = 404, description = "User not found")
+    ),
+    params()
+    )]
 #[put("/user/update", data = "<user_data>")]
 fn user_update(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
@@ -199,6 +246,16 @@ fn user_update(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status, S
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "/user/delete?<name>",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "Deletes a user"),
+        (status = 404, description = "User not found")
+    ),
+    params()
+    )]
 #[delete("/user/delete?<name>")]
 fn user_delete(name: String, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap();
@@ -235,11 +292,18 @@ fn user_delete(name: String, db: &rocket::State<Arc<DB>>) -> (Status, String) {
 
 #[launch]
 fn rocket() -> _ {
-    let db = Arc::new(DB::new().expect("Failed to initialize database")); // rust requires thread safety
-
     #[derive(OpenApi)]
-    #[openapi(paths(index))]
-    struct ApiDoc;
+    #[openapi(
+        tags(
+            (name = "User Management", description = "User management endpoints."),
+            (name = "Alive", description = "Endpoints to see if the rocket server is live."),
+            (name = "Page Mangement", description = "Endpoints to open pages")
+        ),
+        paths(user_search, user_register, user_update, user_delete, greetings, goodbye, submit, index)
+    )]
+    pub struct ApiDoc;
+    
+    let db = Arc::new(DB::new().expect("Failed to initialize database")); // rust requires thread safety
 
     rocket::build()
     .manage(db)
