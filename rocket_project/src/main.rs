@@ -3,12 +3,14 @@
 use rocket::http::Status;
 use rocket::serde::{Serialize, Deserialize, json::Json}; // for handling jsons
 use rocket::fs::{FileServer, NamedFile}; // for serving a file
+use serde_json::json;
 use std::path::PathBuf; // for accessing a folder
 use rusqlite::{Connection, Result}; // for our sqlite connection
 use std::sync::{Arc, Mutex}; // for thread-safe access
 use utoipa::{OpenApi, ToSchema, IntoParams};
 use utoipa_swagger_ui::SwaggerUi;
 use bcrypt::{DEFAULT_COST, hash, verify};
+use uuid::Uuid;
 
 struct DB {
     conn: Mutex<Connection>, // rust complains if there is no thread safety with our connection
@@ -43,11 +45,20 @@ struct Person {
 
 #[derive(Serialize, Deserialize, ToSchema)]
 struct User {
+    #[schema(example = "95dcd4e0-7e1f-4686-bc90-b010ff98213e")]
     id: String,
+    #[schema(example = "gbus")]
     username: String,
+    #[schema(example = "$2b$12$mhH1Yx.SoK3Jhl.PJkvi1OpMY0GL6wh79K0MIRosiZrTXM2ThTpIq")] // obviously the front end is not expected to send a hashed password. 
     pass_hash: String,
-    pass_salt: String,
-    name: String.
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+struct UserInit {
+    #[schema(example = "gbus")]
+    username: String,
+    #[schema(example = "password123")]
+    password: String,
 }
 
 fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> u32 {
@@ -92,42 +103,6 @@ fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Con
 #[get("/")]
 async fn index() -> Option<NamedFile> {
     NamedFile::open(PathBuf::from("static/index.html")).await.ok()
-}
-
-#[utoipa::path(
-    get,
-    path = "/user/search/{name}",
-    tag = "User Management",
-    responses(
-        (status = 200, description = "User found"),
-        (status = 404, description = "User not found")
-    ),
-    params(
-        ("username", description = "A user's username")
-    )
-    )]
-#[get("/user/search/<name>")]
-fn user_search(username: String, db: &rocket::State<Arc<DB>>) -> Json<Message> {
-    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
-
-    let mut stmt = conn.prepare("SELECT * FROM users WHERE username = ?1").unwrap(); // Prepare your query
-    let mut rows = stmt.query(&[&username]).unwrap(); // Execute the query
-    
-    //**CHANGEME
-    match rows.next() { // Use match to handle the Option returned by next()
-        Ok(Some(unwrapped_row)) => { // If there is a row
-            let user_name: String = unwrapped_row.get(0).unwrap();
-            let user_age: i32 = unwrapped_row.get(1).unwrap();
-            let user = format!("Name: {} Age: {}", user_name, user_age);
-            Json(Message { message: user }) // Return the formatted message
-        }
-        Ok(None) => { // If no rows were returned
-            Json(Message { message: "No users found.".to_string() }) // Return no users found message
-        }
-        Err(_) => { // Handle any potential errors from querying
-            Json(Message { message: "Error querying the database.".to_string() })
-        }
-    }
 }
 
 #[utoipa::path(
@@ -177,18 +152,60 @@ fn submit(data: Json<InputData>) -> String {
 }
 
 #[utoipa::path(
+    get,
+    path = "/user/search/{username}",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "User found"),
+        (status = 404, description = "User not found")
+    ),
+    params(
+        ("username", description = "A user's username")
+    )
+    )]
+#[get("/user/search/<username>")]
+fn user_search(username: String, db: &rocket::State<Arc<DB>>) -> Json<serde_json::Value> {
+    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+
+    let mut stmt = conn.prepare("SELECT username FROM Users WHERE username = ?1").unwrap(); // Prepare your query
+    let mut rows = stmt.query(&[&username]).unwrap(); // Execute the query
+    
+    match rows.next() { // Use match to handle the Option returned by next()
+        Ok(Some(unwrapped_row)) => { // If there is a row
+            let username: String = unwrapped_row.get(0).unwrap();
+            Json(json!({
+                "status": "success",
+                "message": format!("Found {}", username)
+            })) // Return the formatted message
+        }
+        Ok(None) => { // If no rows were returned
+            Json(json!({
+                "status": "error",
+                "message": "No user found" //to_string()???
+            })) // Return no users found message
+        }
+        Err(_) => { // Handle any potential errors from querying
+            Json(json!({
+                "status": "error",
+                "message": "Error querying the database"
+            }))
+        }
+    }
+}
+
+#[utoipa::path(
     post,
     path = "/user/register",
     tag = "User Management",
     responses(
         (status = 200, description = "Creates a user in our database")
     ),
-    request_body = User
+    request_body = UserInit
     )]
 #[post("/user/register", data = "<user_data>")]
-fn user_register(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
+fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
-    let result = user_exists(&user_data.name, &conn);
+    let result = user_exists(&user_data.username, &conn);
     let http_code: Status;
     let message: String;
 
@@ -199,12 +216,15 @@ fn user_register(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status,
         return (http_code, message);
     }
 
-    //**CHANGEME
+    let id = Uuid::new_v4().to_string(); //setting the user's id to a guid generate from the Uuid's library function new_v4()
+
+    let pass_hash = hash(user_data.password.clone(), DEFAULT_COST).unwrap(); //hashing the password with the salt. The front end is not expected to pass the salt, we should generate here. 
+
     // Prepare the SQL INSERT query
-    let query = "INSERT INTO users (name, age) VALUES (?1, ?2)";
+    let query = "INSERT INTO users (id, username, pass_hash) VALUES (?1, ?2, ?3)";
 
     // Execute the query with the correct types
-    let result = conn.execute(query, &[&user_data.name, &user_data.age]); // Use user_data.name and user_data.age
+    let result = conn.execute(query, &[&id, &user_data.username, &pass_hash]); // Use user_data.name and user_data.age
 
     match result {
         Ok(_) => {
@@ -231,7 +251,7 @@ fn user_register(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status,
     request_body = User
     )]
 #[put("/user/update", data = "<user_data>")]
-fn user_update(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
+fn user_update(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let result = user_exists(&user_data.username, &conn);
     let http_code: Status;
@@ -244,9 +264,14 @@ fn user_update(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status, S
         return (http_code, message);
     }
 
+    http_code = Status::Ok;
+
+    message = "Hey there is nothing to be changed yet".to_string();
+
     //**CHANGEME
+    /*
     // Prepare the SQL INSERT query
-    let query = "UPDATE users SET age = ?1 where name = ?2";
+    let query = "UPDATE users SET DETAIL = ?1 where username = ?2";
 
     // Execute the query with the correct types
     let result = conn.execute(query, &[&user_data.age, &user_data.name]); // Use user_data.name and user_data.age
@@ -263,21 +288,23 @@ fn user_update(user_data: Json<User>, db: &rocket::State<Arc<DB>>) -> (Status, S
             return (http_code, message);
         }
     }
+    */
+    return (http_code, message);
 }
 
 #[utoipa::path(
     delete,
-    path = "/user/delete/{name}",
+    path = "/user/delete/{username}",
     tag = "User Management",
     responses(
         (status = 200, description = "Deletes a user"),
         (status = 404, description = "User not found")
     ),
     params(
-        ("name", description = "name of person you want to delete")
+        ("username", description = "name of person you want to delete")
     )
     )]
-#[delete("/user/delete/<name>")]
+#[delete("/user/delete/<username>")]
 fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap();
     let result = user_exists(&username, &conn);
@@ -291,12 +318,11 @@ fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> (Status, String
         return (http_code, message);
     }
 
-    //CHANGEME
     // Prepare the SQL INSERT query
-    let query = "DELETE FROM users WHERE name = ?1";
+    let query = "DELETE FROM Users WHERE username = ?1";
 
     // Execute the query with the correct types
-    let result = conn.execute(query, &[&name]); // Use user_data.name and user_data.age
+    let result = conn.execute(query, &[&username]); // Use user_data.name and user_data.age
 
     match result {
         Ok(_) => {
