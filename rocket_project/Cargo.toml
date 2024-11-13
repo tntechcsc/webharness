@@ -11,3 +11,4 @@ rusqlite = { version = "0.32.0", features = ["bundled"] }
 utoipa = "5.2.0"
 utoipa-gen = "5.2.0"
 utoipa-swagger-ui = {version = "8.0.3", features=["rocket"]}
+bcrypt = "0.15.1"
