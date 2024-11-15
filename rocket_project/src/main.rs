@@ -247,6 +247,13 @@ fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> (Sta
     }
 }
 
+
+/*
+Json(json!({
+                "status": "success",
+                "message": format!("Found {}", username)
+            })) // Return the formatted message
+*/
 #[utoipa::path(
     post,
     path = "/user/login",
@@ -257,16 +264,11 @@ fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> (Sta
     request_body = Login
     )]
 #[post("/user/login", data = "<user_data>")]
-fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
+fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
-    let mut http_code: Status = Status::Ok;
-    let mut message: String;
 
     if user_exists(&user_data.username, &conn) == false {
-        //returning user not found
-        http_code = Status::NotFound;
-        message = "User not found".to_string();
-        return (http_code, message);
+        return Err(Status::NotFound)
     }
 
     // Prepare the SQL INSERT query
@@ -276,17 +278,19 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> (Status, S
     match rows.next() { // Use match to handle the Option returned by next()
         Ok(Some(unwrapped_row)) => { // If there is a row
             let pass_hash: String = unwrapped_row.get(0).unwrap();
-            return (http_code, pass_hash)
+            return Ok(Json
+                (json!(
+                    {
+                "pass_hash": format!("Found {}", pass_hash)
+                    })
+                )
+            ) // Return the formatted message)
         }
         Ok(None) => { // If no rows were returned
-            //returning user not found
-            http_code = Status::NotFound;
-            message = "User not found".to_string();
-            return (http_code, message);
+            return Err(Status::NotFound)
         }
         Err(_) => { // Handle any potential errors from querying
-            http_code = Status::BadRequest;
-            return (http_code, "Bad Request".to_string())
+            return Err(Status::InternalServerError)
         }
     }
 }
