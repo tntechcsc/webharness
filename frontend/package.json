@@ -12,8 +12,9 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "cross-env PORT=80 react-scripts start",
     "build": "react-scripts build",
+    "serve": "serve -s build -p 80",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

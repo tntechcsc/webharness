@@ -101,75 +101,7 @@ fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Con
 
 #[utoipa::path(
     get,
-    path = "/",
-    tag = "Page Management",
-    responses(
-        (status = 200, description = "Page loaded"),
-        (status = 404, description = "Not Found")
-    )
-    )]
-#[get("/")]
-async fn index() -> Option<NamedFile> {
-    NamedFile::open(PathBuf::from("static/index.html")).await.ok()
-}
-
-#[utoipa::path(
-    get,
-    path = "/greetings",
-    tag = "Alive",
-    responses(
-        (status = 200, description = "Greetings")
-    ),
-    params()
-    )]
-#[get("/greetings")]
-fn greetings() -> Result<Json<serde_json::Value>, Status> {
-    Ok(Json(json!({
-        "status": "success",
-        "message": "Hello, Rocket!".to_string()
-    })))
-}
-
-#[utoipa::path(
-    get,
-    path = "/{name}/{age}",
-    tag = "Alive",
-    responses(
-        (status = 200, description = "Hello, <age> year old named <name>!")
-    ),
-    params(
-        ("name", description = "name of person"),
-        ("age", description = "age of person")
-    )
-    )]
-#[get("/<name>/<age>")]
-fn goodbye(name: &str, age: u8) -> Result<Json<serde_json::Value>, Status> {
-    Ok(Json(json!({
-        "status": "success",
-        "message": format!("Hello, {} year old named {}!", age, name)
-    })))
-}
-
-#[utoipa::path(
-    post,
-    path = "/submit",
-    tag = "Alive",
-    responses(
-        (status = 200, description = "Received: Name - <name>, Age - <age>")
-    ),
-    request_body = InputData,
-    )]
-#[post("/submit", format="json", data="<data>")]
-fn submit(data: Json<InputData>) -> Result<Json<serde_json::Value>, Status> {
-    Ok(Json(json!({
-        "status": "success",
-        "message": format!("Received: Name - {}, Age - {}", data.name, data.age)
-    })))
-}
-
-#[utoipa::path(
-    get,
-    path = "/user/search/{username}",
+    path = "/api/user/search/{username}",
     tag = "User Management",
     responses(
         (status = 200, description = "User found"),
@@ -179,7 +111,7 @@ fn submit(data: Json<InputData>) -> Result<Json<serde_json::Value>, Status> {
         ("username", description = "A user's username")
     )
     )]
-#[get("/user/search/<username>")]
+#[get("/api/user/search/<username>")]
 fn user_search(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
@@ -209,14 +141,14 @@ fn user_search(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<ser
 
 #[utoipa::path(
     post,
-    path = "/user/register",
+    path = "/api/user/register",
     tag = "User Management",
     responses(
         (status = 200, description = "Creates a user in our database")
     ),
     request_body = UserInit
     )]
-#[post("/user/register", data = "<user_data>")]
+#[post("/api/user/register", data = "<user_data>")]
 fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
@@ -256,14 +188,14 @@ Json(json!({
 */
 #[utoipa::path(
     post,
-    path = "/user/login",
+    path = "/api/user/login",
     tag = "User Management",
     responses(
         (status = 200, description = "Logs a user in")
     ),
     request_body = Login
     )]
-#[post("/user/login", data = "<user_data>")]
+#[post("/api/user/login", data = "<user_data>")]
 fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
@@ -295,7 +227,7 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
 
 #[utoipa::path(
     put,
-    path = "/user/update",
+    path = "/api/user/update",
     tag = "User Management",
     responses(
         (status = 200, description = "Updates user info"),
@@ -303,7 +235,7 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
     ),
     request_body = User
     )]
-#[put("/user/update", data = "<user_data>")]
+#[put("/api/user/update", data = "<user_data>")]
 fn user_update(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
@@ -332,7 +264,7 @@ fn user_update(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result
 
 #[utoipa::path(
     delete,
-    path = "/user/delete/{username}",
+    path = "/api/user/delete/{username}",
     tag = "User Management",
     responses(
         (status = 200, description = "Deletes a user"),
@@ -342,7 +274,7 @@ fn user_update(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result
         ("username", description = "name of person you want to delete")
     )
     )]
-#[delete("/user/delete/<username>")]
+#[delete("/api/user/delete/<username>")]
 fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
@@ -380,10 +312,8 @@ fn rocket() -> _ {
     #[openapi(
         tags(
             (name = "User Management", description = "User management endpoints."),
-            (name = "Alive", description = "Endpoints to see if the rocket server is live."),
-            (name = "Page Management", description = "Endpoints to open pages")
         ),
-        paths(user_search, user_register, user_login, user_update, user_delete, greetings, goodbye, submit, index)
+        paths(user_search, user_register, user_login, user_update, user_delete)
     )]
     pub struct ApiDoc;
     
@@ -392,12 +322,11 @@ fn rocket() -> _ {
     rocket::build()
     .manage(db)
     .mount("/",
-           SwaggerUi::new("/docs/swagger-ui/<_..>").url("/swagger/openapi.json", ApiDoc::openapi()),
+           SwaggerUi::new("/api/docs/swagger/<_..>").url("/api/docs/openapi.json", ApiDoc::openapi()),
     )
-    .mount("/", routes![index, goodbye, greetings, submit, user_search, user_register, user_login, user_update, user_delete])
-    .mount("/static", FileServer::from("static"))
+    .mount("/", routes![user_search, user_register, user_login, user_update, user_delete])
     .configure(rocket::Config {
-        port: 80,
+        port: 3000,
         ..Default::default()
     })
 }

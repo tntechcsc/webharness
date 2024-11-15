@@ -1,3 +1,4 @@
-/rocket_project/target
-/front_end/build
-/front_end/node_modules
+/backend/target
+/frontend/build
+/frontend/node_modules
+
