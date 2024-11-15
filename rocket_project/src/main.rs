@@ -61,6 +61,14 @@ struct UserInit {
     password: String,
 }
 
+#[derive(Serialize, Deserialize, ToSchema)]
+struct Login {
+    #[schema(example = "gbus")]
+    username: String,
+    #[schema(example = "password123")]
+    password: String,
+}
+
 fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
     let mut stmt = conn.prepare("SELECT COUNT(*) FROM Users WHERE username = ?1").unwrap(); // Prepare your query
     let mut result = stmt.query(&[&username]).unwrap(); // Execute the query
@@ -240,6 +248,50 @@ fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> (Sta
 }
 
 #[utoipa::path(
+    post,
+    path = "/user/login",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "Logs a user in")
+    ),
+    request_body = Login
+    )]
+#[post("/user/login", data = "<user_data>")]
+fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
+    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let mut http_code: Status = Status::Ok;
+    let mut message: String;
+
+    if user_exists(&user_data.username, &conn) == false {
+        //returning user not found
+        http_code = Status::NotFound;
+        message = "User not found".to_string();
+        return (http_code, message);
+    }
+
+    // Prepare the SQL INSERT query
+    let mut stmt = conn.prepare("SELECT pass_hash FROM Users WHERE username = ?1").unwrap(); // Prepare your query
+    let mut rows = stmt.query(&[&user_data.username]).unwrap(); // Execute the query
+
+    match rows.next() { // Use match to handle the Option returned by next()
+        Ok(Some(unwrapped_row)) => { // If there is a row
+            let pass_hash: String = unwrapped_row.get(0).unwrap();
+            return (http_code, pass_hash)
+        }
+        Ok(None) => { // If no rows were returned
+            //returning user not found
+            http_code = Status::NotFound;
+            message = "User not found".to_string();
+            return (http_code, message);
+        }
+        Err(_) => { // Handle any potential errors from querying
+            http_code = Status::BadRequest;
+            return (http_code, "Bad Request".to_string())
+        }
+    }
+}
+
+#[utoipa::path(
     put,
     path = "/user/update",
     tag = "User Management",
@@ -344,7 +396,7 @@ fn rocket() -> _ {
             (name = "Alive", description = "Endpoints to see if the rocket server is live."),
             (name = "Page Management", description = "Endpoints to open pages")
         ),
-        paths(user_search, user_register, user_update, user_delete, greetings, goodbye, submit, index)
+        paths(user_search, user_register, user_login, user_update, user_delete, greetings, goodbye, submit, index)
     )]
     pub struct ApiDoc;
     
@@ -355,7 +407,7 @@ fn rocket() -> _ {
     .mount("/",
            SwaggerUi::new("/docs/swagger-ui/<_..>").url("/swagger/openapi.json", ApiDoc::openapi()),
     )
-    .mount("/", routes![index, goodbye, greetings, submit, user_search, user_register, user_update, user_delete])
+    .mount("/", routes![index, goodbye, greetings, submit, user_search, user_register, user_login, user_update, user_delete])
     .mount("/static", FileServer::from("static"))
     .configure(rocket::Config {
         port: 80,
