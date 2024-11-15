@@ -61,7 +61,7 @@ struct UserInit {
     password: String,
 }
 
-fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> u32 {
+fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
     let mut stmt = conn.prepare("SELECT COUNT(*) FROM Users WHERE username = ?1").unwrap(); // Prepare your query
     let mut result = stmt.query(&[&username]).unwrap(); // Execute the query
     let mut count = 0;
@@ -69,10 +69,10 @@ fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Con
         count = row.get(0).unwrap(); // Get the first column (COUNT(*) result)
     }
     if count >= 1 {
-        return 200;
+        return true;
     }
     else {
-        return 404;
+        return false;
     }
     /*
     match rows.next() { // Use match to handle the Option returned by next()
@@ -205,11 +205,10 @@ fn user_search(username: String, db: &rocket::State<Arc<DB>>) -> Json<serde_json
 #[post("/user/register", data = "<user_data>")]
 fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
-    let result = user_exists(&user_data.username, &conn);
     let http_code: Status;
     let message: String;
 
-    if result == 200 {
+    if user_exists(&user_data.username, &conn) == true {
         //returning user not found
         http_code = Status::BadRequest;
         message = "User already exists".to_string();
@@ -253,11 +252,10 @@ fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> (Sta
 #[put("/user/update", data = "<user_data>")]
 fn user_update(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
-    let result = user_exists(&user_data.username, &conn);
     let http_code: Status;
     let message: String;
 
-    if result == 404 {
+    if user_exists(&user_data.username, &conn) == false {
         //returning user not found
         http_code = Status::NotFound;
         message = "User not found".to_string();
@@ -307,11 +305,10 @@ fn user_update(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> (Statu
 #[delete("/user/delete/<username>")]
 fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> (Status, String) {
     let conn = db.conn.lock().unwrap();
-    let result = user_exists(&username, &conn);
     let http_code: Status;
     let message: String;
 
-    if result == 404 {
+    if user_exists(&username, &conn) == false {
         //returning user not found
         http_code = Status::NotFound;
         message = "User not found".to_string();
