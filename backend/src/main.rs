@@ -18,7 +18,19 @@ struct DB {
 
 impl DB {
     fn new() -> Result<Self> {
-        let conn = Connection::open("db/harnessDB.db")?; // ? is in the case of an error
+        let conn = Connection::open("harnessDB.db")?; // ? is in the case of an error
+
+        // Create the `people` table if it doesn't already exist.
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS people (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                age INTEGER NOT NULL
+            )",
+            [],
+        )?;
+
+
         Ok(DB { conn: Mutex::new(conn) })
     }
 }
