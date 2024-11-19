@@ -11,6 +11,7 @@ use utoipa::{OpenApi, ToSchema, IntoParams};
 use utoipa_swagger_ui::SwaggerUi;
 use bcrypt::{DEFAULT_COST, hash, verify};
 use uuid::Uuid;
+use std::process::Command;
 
 struct DB {
     conn: Mutex<Connection>, // rust complains if there is no thread safety with our connection
@@ -306,14 +307,55 @@ fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<ser
     }
 }
 
+#[derive(Serialize, Deserialize, ToSchema)]
+struct ExecuteRequest {
+    #[schema(example = "/path/to/executable")]
+    executable_path: String,
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/execute",
+    tag = "Program Execution",
+    responses(
+        (status = 200, description = "Executable launched successfully"),
+        (status = 400, description = "Invalid executable path"),
+        (status = 500, description = "Failed to launch executable")
+    ),
+    request_body = ExecuteRequest
+)]
+#[post("/api/execute", data = "<request>")]
+fn execute_program(request: Json<ExecuteRequest>) -> Result<Json<serde_json::Value>, Status> {
+    let path = &request.executable_path;
+
+    // Validate the path
+    if !std::path::Path::new(path).exists() {
+        return Err(Status::BadRequest);
+    }
+
+    // Attempt to execute the program
+    match Command::new(path).spawn() {
+        Ok(_) => Ok(Json(json!({
+            "status": "success",
+            "message": "Executable launched successfully",
+            "path": path
+        }))),
+        Err(e) => {
+            eprintln!("Failed to launch executable: {}", e);
+            Err(Status::InternalServerError)
+        }
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
     #[derive(OpenApi)]
     #[openapi(
         tags(
             (name = "User Management", description = "User management endpoints."),
+            (name = "Program Execution", description = "Application endpoints."),
         ),
-        paths(user_search, user_register, user_login, user_update, user_delete)
+        paths(user_search, user_register, user_login, user_update, user_delete, execute_program)
     )]
     pub struct ApiDoc;
     
@@ -324,7 +366,7 @@ fn rocket() -> _ {
     .mount("/",
            SwaggerUi::new("/api/docs/swagger/<_..>").url("/api/docs/openapi.json", ApiDoc::openapi()),
     )
-    .mount("/", routes![user_search, user_register, user_login, user_update, user_delete])
+    .mount("/", routes![user_search, user_register, user_login, user_update, user_delete, execute_program])
     .configure(rocket::Config {
         port: 3000,
         ..Default::default()
