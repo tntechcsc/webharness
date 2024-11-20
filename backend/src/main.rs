@@ -21,14 +21,106 @@ impl DB {
         let conn = Connection::open("harnessDB.db")?; // ? is in the case of an error
 
         // Create the `people` table if it doesn't already exist.
+        // Create User table
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS people (
-                id INTEGER PRIMARY KEY,
+            "CREATE TABLE IF NOT EXISTS User (
+                id TEXT PRIMARY KEY,
+                username TEXT NOT NULL,
+                pass_hash TEXT NOT NULL,
+                email TEXT NOT NULL
+        )",
+        [],
+        )?;
+
+        // Create Session table
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS Session (
+                id TEXT PRIMARY KEY,
+                userId TEXT NOT NULL,
+                startTime DATE NOT NULL,
+                endTime DATE NOT NULL,
+                FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE
+        )",
+        [],
+        )?;
+
+        // Create Preferences table
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS Preferences (
+                userId TEXT PRIMARY KEY,
+                theme TEXT,
+                FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE
+        )",
+        [],
+        )?;
+
+        // Create Roles table
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS Roles (
+                roleId INTEGER PRIMARY KEY,
+                roleName TEXT NOT NULL,
+                description TEXT
+        )",
+        [],
+        )?;
+
+        // Create UserRoles table
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS UserRoles (
+                userId TEXT NOT NULL,
+                roleId INTEGER NOT NULL,
+                PRIMARY KEY (userId, roleId),
+                     FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE,
+                     FOREIGN KEY (roleId) REFERENCES Roles(roleId) ON DELETE CASCADE
+        )",
+        [],
+        )?;
+
+        // Create Category table
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS Category (
+                name TEXT PRIMARY KEY,
+                description TEXT
+        )",
+        [],
+        )?;
+
+        // Create Instructions table
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS Instructions (
+                id TEXT PRIMARY KEY,
+                path TEXT,
+                arguments TEXT
+        )",
+        [],
+        )?;
+
+        // Create Application table
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS Application (
+                id TEXT PRIMARY KEY,
+                userId TEXT NOT NULL,
                 name TEXT NOT NULL,
-                age INTEGER NOT NULL
-            )",
+                description TEXT,
+                category TEXT,
+                FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE,
+                     FOREIGN KEY (category) REFERENCES Category(name) ON DELETE SET NULL,
+                     FOREIGN KEY (id) REFERENCES Instructions(id) ON DELETE SET NULL
+        )",
+        [],
+        )?;
+
+        // Create Trigger to delete Instruction when Application is deleted
+        conn.execute(
+            "CREATE TRIGGER IF NOT EXISTS delete_instruction_on_application_delete
+            AFTER DELETE ON Application
+            FOR EACH ROW
+            BEGIN
+            DELETE FROM Instructions WHERE id = OLD.id;
+            END;",
             [],
         )?;
+
 
 
         Ok(DB { conn: Mutex::new(conn) })
