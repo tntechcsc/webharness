@@ -12,6 +12,17 @@ use utoipa_swagger_ui::SwaggerUi;
 use bcrypt::{DEFAULT_COST, hash, verify};
 use uuid::Uuid;
 use std::process::Command;
+use std::collections::HashMap;
+use std::process::ExitStatus;
+use rocket::State;
+
+struct ProcessInfo {
+    pid: u32,
+    status: Arc<Mutex<String>>,           // e.g., "Running", "Exited"
+    exit_code: Arc<Mutex<Option<i32>>>,   // Exit code if the process has exited
+}
+
+type ProcessMap = Arc<Mutex<HashMap<String, ProcessInfo>>>;
 
 struct DB {
     conn: Mutex<Connection>, // rust complains if there is no thread safety with our connection
@@ -325,7 +336,10 @@ struct ExecuteRequest {
     request_body = ExecuteRequest
 )]
 #[post("/api/execute", data = "<request>")]
-fn execute_program(request: Json<ExecuteRequest>) -> Result<Json<serde_json::Value>, Status> {
+fn execute_program(
+    request: Json<ExecuteRequest>,
+    process_map: &State<ProcessMap>,
+) -> Result<Json<serde_json::Value>, Status> {
     let path = &request.executable_path;
 
     // Validate the path
@@ -335,15 +349,101 @@ fn execute_program(request: Json<ExecuteRequest>) -> Result<Json<serde_json::Val
 
     // Attempt to execute the program
     match Command::new(path).spawn() {
-        Ok(_) => Ok(Json(json!({
-            "status": "success",
-            "message": "Executable launched successfully",
-            "path": path
-        }))),
+        Ok(mut child) => {
+            let pid = child.id();
+            let process_id = Uuid::new_v4().to_string();
+
+            let status = Arc::new(Mutex::new("Running".to_string()));
+            let exit_code = Arc::new(Mutex::new(None));
+
+            let process_info = ProcessInfo {
+                pid,
+                status: status.clone(),
+                exit_code: exit_code.clone(),
+            };
+
+            // Store the process info in the process map
+            {
+                let mut map = process_map.lock().unwrap();
+                map.insert(process_id.clone(), process_info);
+            }
+
+            // Spawn a thread to monitor the process
+            let process_map_clone = (*process_map).clone();
+            let process_id_clone = process_id.clone();
+            std::thread::spawn(move || {
+                std::thread::spawn(move || {
+                    loop {
+                        match child.try_wait() {
+                            Ok(Some(exit_status)) => {
+                                // Process has exited
+                                let mut map = process_map_clone.lock().unwrap();
+                                if let Some(process_info) = map.get_mut(&process_id_clone) {
+                                    *process_info.status.lock().unwrap() = "Exited".to_string();
+                                    *process_info.exit_code.lock().unwrap() = exit_status.code();
+                                }
+                                break; // Exit the loop
+                            }
+                            Ok(None) => {
+                                // Process is still running, sleep for a short duration
+                                std::thread::sleep(std::time::Duration::from_millis(500));
+                            }
+                            Err(e) => {
+                                eprintln!("Error monitoring process: {}", e);
+                                break; // Exit the loop on error
+                            }
+                        }
+                    }
+                });                
+            });
+
+            Ok(Json(json!({
+                "status": "success",
+                "message": "Executable launched successfully",
+                "process_id": process_id,
+                "pid": pid,
+                "path": path
+            })))
+        }
         Err(e) => {
             eprintln!("Failed to launch executable: {}", e);
             Err(Status::InternalServerError)
         }
+    }
+}
+
+#[derive(Serialize, ToSchema)]
+struct ProcessStatusResponse {
+    status: String,
+    pid: u32,
+    exit_code: Option<i32>,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/process/{process_id}/status",
+    tag = "Program Execution",
+    params(
+        ("process_id" = String, Path, description = "Process ID to query"),
+    ),
+    responses(
+        (status = 200, description = "Process status retrieved successfully", body = ProcessStatusResponse),
+        (status = 404, description = "Process not found"),
+    ),
+)]
+#[get("/api/process/<process_id>/status")]
+fn get_process_status(
+    process_id: String,
+    process_map: &State<ProcessMap>,
+) -> Result<Json<ProcessStatusResponse>, Status> {
+    let map = process_map.lock().unwrap();
+    if let Some(process_info) = map.get(&process_id) {
+        let status = process_info.status.lock().unwrap().clone();
+        let pid = process_info.pid;
+        let exit_code = *process_info.exit_code.lock().unwrap();
+        Ok(Json(ProcessStatusResponse { status, pid, exit_code }))
+    } else {
+        Err(Status::NotFound)
     }
 }
 
@@ -355,18 +455,20 @@ fn rocket() -> _ {
             (name = "User Management", description = "User management endpoints."),
             (name = "Program Execution", description = "Application endpoints."),
         ),
-        paths(user_search, user_register, user_login, user_update, user_delete, execute_program)
+        paths(user_search, user_register, user_login, user_update, user_delete, execute_program, get_process_status)
     )]
     pub struct ApiDoc;
     
     let db = Arc::new(DB::new().expect("Failed to initialize database")); // rust requires thread safety
+    let process_map: ProcessMap = Arc::new(Mutex::new(HashMap::new()));
 
     rocket::build()
     .manage(db)
+    .manage(process_map)
     .mount("/",
            SwaggerUi::new("/api/docs/swagger/<_..>").url("/api/docs/openapi.json", ApiDoc::openapi()),
     )
-    .mount("/", routes![user_search, user_register, user_login, user_update, user_delete, execute_program])
+    .mount("/", routes![user_search, user_register, user_login, user_update, user_delete, execute_program, get_process_status])
     .configure(rocket::Config {
         port: 3000,
         ..Default::default()
