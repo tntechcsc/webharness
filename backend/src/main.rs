@@ -20,10 +20,13 @@ impl DB {
     fn new() -> Result<Self> {
         let conn = Connection::open("harnessDB.db")?; // ? is in the case of an error
 
+        // Set the encryption key for SQLCipher
+        conn.execute_batch("PRAGMA key = 'my_secure_passphrase';")?;
+
         // Create the `people` table if it doesn't already exist.
-        // Create User table
+        // Create Users table
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS User (
+            "CREATE TABLE IF NOT EXISTS Users (
                 id TEXT PRIMARY KEY,
                 username TEXT NOT NULL,
                 pass_hash TEXT NOT NULL,
@@ -39,7 +42,7 @@ impl DB {
                 userId TEXT NOT NULL,
                 startTime DATE NOT NULL,
                 endTime DATE NOT NULL,
-                FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE
+                FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE
         )",
         [],
         )?;
@@ -49,7 +52,7 @@ impl DB {
             "CREATE TABLE IF NOT EXISTS Preferences (
                 userId TEXT PRIMARY KEY,
                 theme TEXT,
-                FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE
+                FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE
         )",
         [],
         )?;
@@ -70,7 +73,7 @@ impl DB {
                 userId TEXT NOT NULL,
                 roleId INTEGER NOT NULL,
                 PRIMARY KEY (userId, roleId),
-                     FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE,
+                     FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE,
                      FOREIGN KEY (roleId) REFERENCES Roles(roleId) ON DELETE CASCADE
         )",
         [],
@@ -99,11 +102,12 @@ impl DB {
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Application (
                 id TEXT PRIMARY KEY,
+                pid INTEGER,
                 userId TEXT NOT NULL,
                 name TEXT NOT NULL,
                 description TEXT,
                 category TEXT,
-                FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE,
+                FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE,
                      FOREIGN KEY (category) REFERENCES Category(name) ON DELETE SET NULL,
                      FOREIGN KEY (id) REFERENCES Instructions(id) ON DELETE SET NULL
         )",
@@ -161,6 +165,8 @@ struct User {
 struct UserInit {
     #[schema(example = "gbus")]
     username: String,
+    #[schema(example = "gbus@gmail.com")]
+    email: String,
     #[schema(example = "password123")]
     password: String,
 }
@@ -219,7 +225,7 @@ fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Con
 fn user_search(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
-    let mut stmt = conn.prepare("SELECT username FROM users WHERE username = ?1").unwrap(); // Prepare your query
+    let mut stmt = conn.prepare("SELECT username FROM Users WHERE username = ?1").unwrap(); // Prepare your query
     let mut rows = stmt.query([&username]).unwrap(); // Execute the query
     
     match rows.next() {
@@ -264,8 +270,8 @@ fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Resu
     let pass_hash = hash(user_data.password.clone(), DEFAULT_COST).unwrap(); // Hash the password
 
     // Prepare the SQL INSERT query
-    let query = "INSERT INTO users (id, username, pass_hash) VALUES (?1, ?2, ?3)";
-    let result = conn.execute(query, &[&id, &user_data.username, &pass_hash]);
+    let query = "INSERT INTO Users (id, username, pass_hash, email) VALUES (?1, ?2, ?3, ?4)";
+    let result = conn.execute(query, &[&id, &user_data.username, &pass_hash, &user_data.email]);
 
     match result {
         Ok(_) => {
@@ -343,7 +349,7 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
 fn user_update(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
-    let mut stmt = conn.prepare("SELECT username FROM users WHERE username = ?1").unwrap(); // Prepare the query
+    let mut stmt = conn.prepare("SELECT username FROM Users WHERE username = ?1").unwrap(); // Prepare the query
     let mut rows = stmt.query([&user_data.username]).unwrap(); // Execute the query
 
     match rows.next() {
@@ -388,7 +394,7 @@ fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<ser
     }
 
     // Prepare the SQL DELETE query
-    let query = "DELETE FROM users WHERE username = ?1";
+    let query = "DELETE FROM Users WHERE username = ?1";
     let result = conn.execute(query, &[&username]);
 
     match result {
