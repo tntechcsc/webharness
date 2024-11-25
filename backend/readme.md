@@ -1,0 +1,1 @@
+rust backend with rocket and rusqlite. Due to using "bundled-sqlcipher-vendored-openssl" with rusqlite, this project does not work on linux.
