@@ -21,6 +21,7 @@ impl DB {
         let conn = Connection::open("harnessDB.db")?; // ? is in the case of an error
 
         // Set the encryption key for SQLCipher
+        // we will have to have this read from a environment variable in the future
         conn.execute_batch("PRAGMA key = 'my_secure_passphrase';")?;
 
         // Create the `people` table if it doesn't already exist.
