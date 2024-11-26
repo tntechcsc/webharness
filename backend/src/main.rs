@@ -24,132 +24,108 @@ impl DB {
         // we will have to have this read from a environment variable in the future
         conn.execute_batch("PRAGMA key = 'my_secure_passphrase';")?;
 
-        // Create the `people` table if it doesn't already exist.
-        // Create Users table
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS Users (
+            "CREATE TABLE IF NOT EXISTS User (
                 id TEXT PRIMARY KEY,
                 username TEXT NOT NULL,
                 pass_hash TEXT NOT NULL,
                 email TEXT NOT NULL
-        )",
-        [],
+            )",
+            [],
         )?;
-
-        // Create Session table
+    
+        // Create the Session table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Session (
                 id TEXT PRIMARY KEY,
-                userId TEXT NOT NULL,
-                startTime DATE NOT NULL,
-                endTime DATE NOT NULL,
-                FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE
-        )",
-        [],
+                userId TEXT,
+                startTime DATE,
+                endTime DATE,
+                FOREIGN KEY(userId) REFERENCES User(id) ON DELETE CASCADE
+            )",
+            [],
         )?;
-
-        // Create Preferences table
+    
+        // Create the Preferences table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Preferences (
                 userId TEXT PRIMARY KEY,
                 theme TEXT,
-                FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE
-        )",
-        [],
+                FOREIGN KEY(userId) REFERENCES User(id) ON DELETE CASCADE
+            )",
+            [],
         )?;
-
-        // Create Roles table
+    
+        // Create the Roles table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Roles (
                 roleId INTEGER PRIMARY KEY,
-                roleName TEXT NOT NULL,
+                roleName TEXT,
                 description TEXT
-        )",
-        [],
+            )",
+            [],
         )?;
-
-        // Create UserRoles table
+    
+        // Create the UserRoles table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS UserRoles (
-                userId TEXT NOT NULL,
-                roleId INTEGER NOT NULL,
+                userId TEXT,
+                roleId INTEGER,
                 PRIMARY KEY (userId, roleId),
-                     FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE,
-                     FOREIGN KEY (roleId) REFERENCES Roles(roleId) ON DELETE CASCADE
-        )",
-        [],
+                FOREIGN KEY(userId) REFERENCES User(id) ON DELETE CASCADE,
+                FOREIGN KEY(roleId) REFERENCES Roles(roleId) ON DELETE CASCADE
+            )",
+            [],
         )?;
-
-        // Create Category table
+    
+        // Create the Category table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Category (
-                name TEXT PRIMARY KEY,
+                id TEXT PRIMARY KEY,
+                name TEXT,
                 description TEXT
-        )",
-        [],
+            )",
+            [],
         )?;
-
-        // Create Instructions table
+    
+        // Create the Instructions table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Instructions (
                 id TEXT PRIMARY KEY,
                 path TEXT,
                 arguments TEXT
-        )",
-        [],
+            )",
+            [],
         )?;
-
-        // Create Application table
+    
+        // Create the Application table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Application (
                 id TEXT PRIMARY KEY,
-                pid INTEGER,
-                userId TEXT NOT NULL,
-                name TEXT NOT NULL,
+                userId TEXT,
+                name TEXT,
                 description TEXT,
-                category TEXT,
-                FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE,
-                     FOREIGN KEY (category) REFERENCES Category(name) ON DELETE SET NULL,
-                     FOREIGN KEY (id) REFERENCES Instructions(id) ON DELETE SET NULL
-        )",
-        [],
+                category_id TEXT,
+                FOREIGN KEY(userId) REFERENCES User(id) ON DELETE CASCADE,
+                FOREIGN KEY(category_id) REFERENCES Category(id) ON DELETE SET NULL
+            )",
+            [],
         )?;
-
-        // Create Trigger to delete Instruction when Application is deleted
+    
+        // Create the Process table
         conn.execute(
-            "CREATE TRIGGER IF NOT EXISTS delete_instruction_on_application_delete
-            AFTER DELETE ON Application
-            FOR EACH ROW
-            BEGIN
-            DELETE FROM Instructions WHERE id = OLD.id;
-            END;",
+            "CREATE TABLE IF NOT EXISTS Process (
+                id TEXT,
+                pid INTEGER,
+                status TEXT,
+                PRIMARY KEY(id),
+                FOREIGN KEY(id) REFERENCES Application(id) ON DELETE CASCADE
+            )",
             [],
         )?;
 
-
-
         Ok(DB { conn: Mutex::new(conn) })
     }
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-struct Message {
-    #[schema(example = "Hello World")]
-    message: String,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
-struct InputData {
-    #[schema(example = "Tim")]
-	name: String,
-    #[schema(example = "21")]
-	age: u32,
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-struct Person {
-    name: String,
-    age: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -158,6 +134,8 @@ struct User {
     id: String,
     #[schema(example = "gbus")]
     username: String,
+    #[schema(example = "gbus@gbus.com")]
+    email: String,
     #[schema(example = "$2b$12$mhH1Yx.SoK3Jhl.PJkvi1OpMY0GL6wh79K0MIRosiZrTXM2ThTpIq")] // obviously the front end is not expected to send a hashed password. 
     pass_hash: String,
 }
@@ -176,12 +154,14 @@ struct UserInit {
 struct Login {
     #[schema(example = "gbus")]
     username: String,
+    #[schema(example = "gbus@gmail.com")]
+    email: String,
     #[schema(example = "password123")]
     password: String,
 }
 
 fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
-    let mut stmt = conn.prepare("SELECT COUNT(*) FROM Users WHERE username = ?1").unwrap(); // Prepare your query
+    let mut stmt = conn.prepare("SELECT COUNT(*) FROM User WHERE username = ?1").unwrap(); // Prepare your query
     let mut result = stmt.query(&[&username]).unwrap(); // Execute the query
     let mut count = 0;
     if let Some(row) = result.next().unwrap() { // Unwrap the first row
@@ -226,7 +206,7 @@ fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Con
 fn user_search(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
-    let mut stmt = conn.prepare("SELECT username FROM Users WHERE username = ?1").unwrap(); // Prepare your query
+    let mut stmt = conn.prepare("SELECT username FROM User WHERE username = ?1").unwrap(); // Prepare your query
     let mut rows = stmt.query([&username]).unwrap(); // Execute the query
     
     match rows.next() {
@@ -271,7 +251,7 @@ fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Resu
     let pass_hash = hash(user_data.password.clone(), DEFAULT_COST).unwrap(); // Hash the password
 
     // Prepare the SQL INSERT query
-    let query = "INSERT INTO Users (id, username, pass_hash, email) VALUES (?1, ?2, ?3, ?4)";
+    let query = "INSERT INTO User (id, username, pass_hash, email) VALUES (?1, ?2, ?3, ?4)";
     let result = conn.execute(query, &[&id, &user_data.username, &pass_hash, &user_data.email]);
 
     match result {
@@ -315,7 +295,7 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
     }
 
     // Prepare the SQL INSERT query
-    let mut stmt = conn.prepare("SELECT pass_hash FROM Users WHERE username = ?1").unwrap(); // Prepare your query
+    let mut stmt = conn.prepare("SELECT pass_hash FROM User WHERE username = ?1").unwrap(); // Prepare your query
     let mut rows = stmt.query(&[&user_data.username]).unwrap(); // Execute the query
 
     match rows.next() { // Use match to handle the Option returned by next()
@@ -336,6 +316,7 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
     }
 }
 
+/*
 #[utoipa::path(
     put,
     path = "/api/user/update",
@@ -350,7 +331,7 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
 fn user_update(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
-    let mut stmt = conn.prepare("SELECT username FROM Users WHERE username = ?1").unwrap(); // Prepare the query
+    let mut stmt = conn.prepare("SELECT username FROM User WHERE username = ?1").unwrap(); // Prepare the query
     let mut rows = stmt.query([&user_data.username]).unwrap(); // Execute the query
 
     match rows.next() {
@@ -372,6 +353,7 @@ fn user_update(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result
         }
     }
 }
+*/
 
 #[utoipa::path(
     delete,
@@ -395,7 +377,7 @@ fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<ser
     }
 
     // Prepare the SQL DELETE query
-    let query = "DELETE FROM Users WHERE username = ?1";
+    let query = "DELETE FROM User WHERE username = ?1";
     let result = conn.execute(query, &[&username]);
 
     match result {
@@ -424,7 +406,7 @@ fn rocket() -> _ {
         tags(
             (name = "User Management", description = "User management endpoints."),
         ),
-        paths(user_search, user_register, user_login, user_update, user_delete)
+        paths(user_search, user_register, user_login, user_delete)
     )]
     pub struct ApiDoc;
     
@@ -435,7 +417,7 @@ fn rocket() -> _ {
     .mount("/",
            SwaggerUi::new("/api/docs/swagger/<_..>").url("/api/docs/openapi.json", ApiDoc::openapi()),
     )
-    .mount("/", routes![user_search, user_register, user_login, user_update, user_delete])
+    .mount("/", routes![user_search, user_register, user_login, user_delete])
     .configure(rocket::Config {
         port: 3000,
         ..Default::default()
