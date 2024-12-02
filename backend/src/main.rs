@@ -15,6 +15,9 @@ use std::process::Command;
 use std::collections::HashMap;
 use std::process::ExitStatus;
 use rocket::State;
+use winapi::um::processthreadsapi::OpenProcess;
+use winapi::um::winnt::PROCESS_TERMINATE;
+use winapi::um::processthreadsapi::TerminateProcess;
 
 struct ProcessInfo {
     pid: u32,
@@ -447,6 +450,52 @@ fn get_process_status(
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/process/{process_id}/stop",
+    tag = "Program Execution",
+    params(
+        ("process_id" = String, Path, description = "Process ID to stop"),
+    ),
+    responses(
+        (status = 200, description = "Process stopped successfully"),
+        (status = 404, description = "Process not found"),
+        (status = 500, description = "Failed to stop process"),
+    ),
+)]
+#[delete("/api/process/<process_id>/stop")]
+fn stop_process(
+    process_id: String,
+    process_map: &State<ProcessMap>,
+) -> Result<Json<serde_json::Value>, Status> {
+    let mut map = process_map.lock().unwrap();
+    if let Some(process_info) = map.get(&process_id) {
+        let pid = process_info.pid;
+
+        // Attempt to terminate the process
+        unsafe {
+            let handle = OpenProcess(PROCESS_TERMINATE, 0, pid);
+            if handle.is_null() {
+                return Err(Status::InternalServerError); // Could not open process handle
+            }
+
+            // Terminate the process
+            if TerminateProcess(handle, 1) == 0 {
+                return Err(Status::InternalServerError); // Termination failed
+            }
+        }
+
+        // Update the status in the process map
+        *process_info.status.lock().unwrap() = "Stopped".to_string();
+        Ok(Json(json!({
+            "status": "success",
+            "message": format!("Process with PID {} stopped successfully", pid)
+        })))
+    } else {
+        Err(Status::NotFound) // Process ID not found in the map
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
     #[derive(OpenApi)]
@@ -455,7 +504,7 @@ fn rocket() -> _ {
             (name = "User Management", description = "User management endpoints."),
             (name = "Program Execution", description = "Application endpoints."),
         ),
-        paths(user_search, user_register, user_login, user_update, user_delete, execute_program, get_process_status)
+        paths(user_search, user_register, user_login, user_update, user_delete, execute_program, get_process_status, stop_process)
     )]
     pub struct ApiDoc;
     
@@ -468,7 +517,7 @@ fn rocket() -> _ {
     .mount("/",
            SwaggerUi::new("/api/docs/swagger/<_..>").url("/api/docs/openapi.json", ApiDoc::openapi()),
     )
-    .mount("/", routes![user_search, user_register, user_login, user_update, user_delete, execute_program, get_process_status])
+    .mount("/", routes![user_search, user_register, user_login, user_update, user_delete, execute_program, get_process_status, stop_process])
     .configure(rocket::Config {
         port: 3000,
         ..Default::default()

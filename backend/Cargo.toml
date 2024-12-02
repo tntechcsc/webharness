@@ -13,3 +13,5 @@ utoipa-gen = "5.2.0"
 utoipa-swagger-ui = {version = "8.0.3", features=["rocket"]}
 bcrypt = "0.15.1"
 uuid = {version = "1.11.0", features = ["v4"]}
+winapi = { version = "0.3", features = ["processthreadsapi", "winnt"] }
+
