@@ -1,7 +1,8 @@
 
-cd C:\4610\devops_backend
+cd C:\4610
 
 git pull --all
+
 
 ################### RUST STUFF ###################
 
