@@ -3,6 +3,6 @@
 /backend/Cargo.lock
 /frontend/build
 /frontend/node_modules
-/devops_backend/node_modules
+*.log
 
 backend/Cargo.lock
