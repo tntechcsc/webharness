@@ -18,6 +18,7 @@ use rocket::State;
 use winapi::um::processthreadsapi::OpenProcess;
 use winapi::um::winnt::PROCESS_TERMINATE;
 use winapi::um::processthreadsapi::TerminateProcess;
+use chrono::{DateTime, Utc};
 
 struct ProcessInfo {
     pid: u32,
@@ -173,6 +174,18 @@ struct Login {
     email: String,
     #[schema(example = "password123")]
     password: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+struct Session {
+    #[schema(example = "ajhniksdjnkdsa-7e1f-4686-bc90-b010ff98213e")]
+    id: String,
+    #[schema(example = "95dcd4e0-7e1f-4686-bc90-b010ff98213e")]
+    username: String,
+    #[schema(example = "START TIME")]
+    startTime: DateTime<Utc>,
+    #[schema(example = "END TIME")]
+    endTime: DateTime<Utc>,
 }
 
 fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
