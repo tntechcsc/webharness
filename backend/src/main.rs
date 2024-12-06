@@ -436,7 +436,7 @@ struct ExecuteRequest {
 #[utoipa::path(
     post,
     path = "/api/execute",
-    tag = "Program Execution",
+    tag = "Program Management",
     responses(
         (status = 200, description = "Executable launched successfully"),
         (status = 400, description = "Invalid executable path"),
@@ -531,7 +531,7 @@ struct ProcessStatusResponse {
 #[utoipa::path(
     get,
     path = "/api/process/{process_id}/status",
-    tag = "Program Execution",
+    tag = "Program Management",
     params(
         ("process_id" = String, Path, description = "Process ID to query"),
     ),
@@ -559,7 +559,7 @@ fn get_process_status(
 #[utoipa::path(
     delete,
     path = "/api/process/{process_id}/stop",
-    tag = "Program Execution",
+    tag = "Program Management",
     params(
         ("process_id" = String, Path, description = "Process ID to stop"),
     ),
@@ -608,7 +608,7 @@ fn rocket() -> _ {
     #[openapi(
         tags(
             (name = "User Management", description = "User management endpoints."),
-            (name = "Program Execution", description = "Application endpoints."),
+            (name = "Program Management", description = "Application endpoints."),
         ),
         paths(user_search, user_register, user_login, user_delete, execute_program, get_process_status, stop_process)
     )]
