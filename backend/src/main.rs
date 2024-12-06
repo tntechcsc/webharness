@@ -243,6 +243,36 @@ fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Con
     */
 }
 
+fn user_password_check(username: &String, password: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
+    let mut stmt = conn.prepare("SELECT pass_hash FROM User WHERE username = ?1").unwrap();
+    let mut rows = stmt.query(&[username]).unwrap();
+
+    match rows.next() { // Use match to handle the Option returned by next()
+        Ok(Some(unwrapped_row)) => { // If there is a row
+            let pass_hash: String = unwrapped_row.get(0).unwrap();
+            match verify(password, &pass_hash) {
+                Ok(valid) => {
+                    if valid {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+                Err(e) => {
+                    return false;
+                }
+            }
+
+        }
+        Ok(None) => { // If no rows were returned
+            return false;
+        }
+        Err(_) => { // Handle any potential errors from querying
+            return false;
+        }
+    }
+}
+
 #[utoipa::path(
     get,
     path = "/api/user/search/{username}",
@@ -347,26 +377,13 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
         return Err(Status::NotFound)
     }
 
-    // Prepare the SQL INSERT query
-    let mut stmt = conn.prepare("SELECT pass_hash FROM User WHERE username = ?1").unwrap(); // Prepare your query
-    let mut rows = stmt.query(&[&user_data.username]).unwrap(); // Execute the query
+    let result = user_password_check(&user_data.username, &user_data.password, &conn);
 
-    match rows.next() { // Use match to handle the Option returned by next()
-        Ok(Some(unwrapped_row)) => { // If there is a row
-            let pass_hash: String = unwrapped_row.get(0).unwrap();
-            Ok(Json(json!({
-                "status": "success",
-                "message": "User logged in",
-                "pass_hash": pass_hash
-            })))
-        }
-        Ok(None) => { // If no rows were returned
-            Err(Status::NotFound)
-        }
-        Err(_) => { // Handle any potential errors from querying
-            Err(Status::InternalServerError)
-        }
-    }
+    Ok(Json(json!({
+        "Status": "success",
+        "Message": result.to_string(),
+        }))
+    )
 }
 
 /*
