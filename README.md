@@ -17,4 +17,5 @@ Invoke-WebRequest -Uri https://strawberryperl.com/download/5.32.1.1/strawberry-p
 ```
 
 to run the backend head to /backend/ and run `cargo run`
+
 to run the frontend head to /frontend/ and run `npm start`
