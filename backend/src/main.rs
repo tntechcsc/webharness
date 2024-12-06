@@ -183,9 +183,9 @@ struct Session {
     #[schema(example = "95dcd4e0-7e1f-4686-bc90-b010ff98213e")]
     username: String,
     #[schema(example = "START TIME")]
-    startTime: DateTime<Utc>,
+    startTime: String,
     #[schema(example = "END TIME")]
-    endTime: DateTime<Utc>,
+    endTime: String,
 }
 
 fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
