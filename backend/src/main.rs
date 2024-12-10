@@ -119,6 +119,7 @@ impl DB {
             "CREATE TABLE IF NOT EXISTS Application (
                 id TEXT PRIMARY KEY,
                 userId TEXT,
+                contact TEXT,
                 name TEXT,
                 description TEXT,
                 category_id TEXT,
