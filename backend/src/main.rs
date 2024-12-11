@@ -42,12 +42,14 @@ impl DB {
 
         conn.execute(
             "CREATE TABLE IF NOT EXISTS User (
-                id TEXT PRIMARY KEY,
-                username TEXT NOT NULL,
-                pass_hash TEXT NOT NULL,
-                email TEXT NOT NULL,
+                id VARCHAR(36) PRIMARY KEY,
+                username VARCHAR(15) NOT NULL,
+                pass_hash VARCHAR(60) NOT NULL,
+                email VARCHAR(100) NOT NULL,
                 CHECK (length(id) <= 36),
-                CHECK (length(username) <= 15)
+                CHECK (length(username) <= 15),
+                CHECK (length(pass_hash) <= 60),
+                CHECK (length(email) <= 100)
             )",
             [],
         )?;
@@ -55,11 +57,13 @@ impl DB {
         // Create the Session table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Session (
-                id TEXT PRIMARY KEY,
-                userId TEXT,
+                id VARCHAR(36) PRIMARY KEY,
+                userId VARCHAR(36),
                 startTime DATE,
                 endTime DATE,
-                FOREIGN KEY(userId) REFERENCES User(id) ON DELETE CASCADE
+                FOREIGN KEY(userId) REFERENCES User(id) ON DELETE CASCADE,
+                CHECK (length(id) <= 36),
+                CHECK (length(userId) <= 36)         
             )",
             [],
         )?;
@@ -67,9 +71,11 @@ impl DB {
         // Create the Preferences table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Preferences (
-                userId TEXT PRIMARY KEY,
-                theme TEXT,
-                FOREIGN KEY(userId) REFERENCES User(id) ON DELETE CASCADE
+                userId VARCHAR(36) PRIMARY KEY,
+                theme VARCHAR(6),
+                FOREIGN KEY(userId) REFERENCES User(id) ON DELETE CASCADE,
+                CHECK (length(userId) <= 36),
+                CHECK (length(theme) <= 6)            
             )",
             [],
         )?;
@@ -77,9 +83,11 @@ impl DB {
         // Create the Roles table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Roles (
-                roleId INTEGER PRIMARY KEY,
-                roleName TEXT,
-                description TEXT
+                roleId VARCHAR(36) PRIMARY KEY,
+                roleName VARCHAR(36),
+                description TEXT,
+                CHECK (length(roleId) <= 36),
+                CHECK (length(roleName) <= 36)
             )",
             [],
         )?;
@@ -87,11 +95,13 @@ impl DB {
         // Create the UserRoles table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS UserRoles (
-                userId TEXT,
-                roleId INTEGER,
+                userId VARCHAR(36),
+                roleId VARCHAR(36),
                 PRIMARY KEY (userId, roleId),
                 FOREIGN KEY(userId) REFERENCES User(id) ON DELETE CASCADE,
-                FOREIGN KEY(roleId) REFERENCES Roles(roleId) ON DELETE CASCADE
+                FOREIGN KEY(roleId) REFERENCES Roles(roleId) ON DELETE CASCADE,
+                CHECK (length(userId) <= 36),
+                CHECK (length(roleId) <= 36)
             )",
             [],
         )?;
@@ -99,9 +109,11 @@ impl DB {
         // Create the Category table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Category (
-                id TEXT PRIMARY KEY,
-                name TEXT,
-                description TEXT
+                id VARCHAR(36) PRIMARY KEY,
+                name VARCHAR(36),
+                description TEXT,
+                CHECK (length(id) <= 36),
+                CHECK (length(name) <= 36)
             )",
             [],
         )?;
@@ -109,9 +121,12 @@ impl DB {
         // Create the Instructions table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Instructions (
-                id TEXT PRIMARY KEY,
-                path TEXT,
-                arguments TEXT
+                id VARCHAR(36) PRIMARY KEY,
+                path VARCHAR(256),
+                arguments VARCHAR(256),
+                CHECK (length(id) <= 36),
+                CHECK (length(id) <= 256),
+                CHECK (length(arguments) <= 256)
             )",
             [],
         )?;
@@ -119,14 +134,19 @@ impl DB {
         // Create the Application table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Application (
-                id TEXT PRIMARY KEY,
-                userId TEXT,
-                contact TEXT,
-                name TEXT,
+                id VARCHAR(36) PRIMARY KEY,
+                userId VARCHAR(36),
+                contact VARCHAR(100),
+                name VARCHAR(36),
                 description TEXT,
-                category_id TEXT,
+                category_id VARCHAR(36),
                 FOREIGN KEY(userId) REFERENCES User(id) ON DELETE CASCADE,
-                FOREIGN KEY(category_id) REFERENCES Category(id) ON DELETE SET NULL
+                FOREIGN KEY(category_id) REFERENCES Category(id) ON DELETE SET NULL,
+                CHECK (length(id) <= 36),
+                CHECK (length(userId) <= 36),
+                CHECK (length(contact) <= 100),
+                CHECK (length(name) <= 36)
+                CHECK (length(category_id) <= 36)
             )",
             [],
         )?;
@@ -134,11 +154,13 @@ impl DB {
         // Create the Process table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Process (
-                id TEXT,
+                id VARCHAR(36),
                 pid INTEGER,
-                status TEXT,
+                status VARCHAR(36),
                 PRIMARY KEY(id),
-                FOREIGN KEY(id) REFERENCES Application(id) ON DELETE CASCADE
+                FOREIGN KEY(id) REFERENCES Application(id) ON DELETE CASCADE,
+                CHECK (length(id) <= 36),
+                CHECK (length(status) <= 36)
             )",
             [],
         )?;
