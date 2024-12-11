@@ -45,7 +45,9 @@ impl DB {
                 id TEXT PRIMARY KEY,
                 username TEXT NOT NULL,
                 pass_hash TEXT NOT NULL,
-                email TEXT NOT NULL
+                email TEXT NOT NULL,
+                CHECK (length(id) <= 36),
+                CHECK (length(username) <= 15)
             )",
             [],
         )?;
