@@ -117,20 +117,7 @@ impl DB {
             )",
             [],
         )?;
-    
-        // Create the Instructions table
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS Instructions (
-                id VARCHAR(36) PRIMARY KEY,
-                path VARCHAR(256),
-                arguments VARCHAR(256),
-                CHECK (length(id) <= 36),
-                CHECK (length(id) <= 256),
-                CHECK (length(arguments) <= 256)
-            )",
-            [],
-        )?;
-    
+
         // Create the Application table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS Application (
@@ -147,6 +134,19 @@ impl DB {
                 CHECK (length(contact) <= 100),
                 CHECK (length(name) <= 36)
                 CHECK (length(category_id) <= 36)
+            )",
+            [],
+        )?;
+    
+        // Create the Instructions table
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS Instructions (
+                id VARCHAR(36) PRIMARY KEY,
+                path VARCHAR(256),
+                arguments VARCHAR(256),
+                CHECK (length(id) <= 36),
+                CHECK (length(id) <= 256),
+                CHECK (length(arguments) <= 256)
             )",
             [],
         )?;
