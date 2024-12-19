@@ -377,11 +377,12 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
         return Err(Status::NotFound)
     }
 
-    let result = user_password_check(&user_data.username, &user_data.password, &conn);
+    if !user_password_check(&user_data.username, &user_data.password, &conn) {
+        return Err(Status::BadRequest)
+    }
 
-    Ok(Json(json!({
-        "Status": "success",
-        "Message": result.to_string(),
+    return Ok(Json(json!({
+        "Status": "success"
         }))
     )
 }
