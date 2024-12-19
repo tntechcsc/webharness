@@ -372,6 +372,7 @@ Json(json!({
 #[post("/api/user/login", data = "<user_data>")]
 fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let mut userId: String;
 
     if user_exists(&user_data.username, &conn) == false {
         return Err(Status::NotFound)
@@ -381,10 +382,27 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
         return Err(Status::BadRequest)
     }
 
+    let mut stmt = conn.prepare("SELECT id FROM User WHERE username = ?1").unwrap();
+    let mut result = stmt.query(&[&user_data.username]).unwrap();
+
+    match result.next() {
+        Ok(Some(unwrapped_row)) => {
+            // If a user is found
+            userId = unwrapped_row.get(0).unwrap();
+        }
+        Ok(None) => {
+            return Err(Status::BadRequest);
+        }
+        Err(_) => {
+            // Querying error, return 500 Internal Server Error
+            return Err(Status::InternalServerError);
+        }
+    }
+
     return Ok(Json(json!({
-        "Status": "success"
-        }))
-    )
+        "status": userId
+    })))
+    
 }
 
 /*
