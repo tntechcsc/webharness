@@ -273,6 +273,10 @@ fn user_password_check(username: &String, password: &String, conn: &std::sync::M
     }
 }
 
+fn is_session(userId, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
+    
+}
+
 #[utoipa::path(
     get,
     path = "/api/user/search/{username}",
