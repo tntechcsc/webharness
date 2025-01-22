@@ -18,7 +18,7 @@ use rocket::State;
 use winapi::um::processthreadsapi::OpenProcess;
 use winapi::um::winnt::PROCESS_TERMINATE;
 use winapi::um::processthreadsapi::TerminateProcess;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, Duration};
 
 struct ProcessInfo {
     pid: u32,
@@ -372,7 +372,11 @@ Json(json!({
 #[post("/api/user/login", data = "<user_data>")]
 fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let id = Uuid::new_v4().to_string(); // Generate a session ID
     let mut userId: String;
+    let startTime = Utc::now();
+    let endTime = startTime + Duration::hours(1);
+
 
     if user_exists(&user_data.username, &conn) == false {
         return Err(Status::NotFound)
@@ -381,6 +385,8 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
     if !user_password_check(&user_data.username, &user_data.password, &conn) {
         return Err(Status::BadRequest)
     }
+
+    //---getting user id to insert into session
 
     let mut stmt = conn.prepare("SELECT id FROM User WHERE username = ?1").unwrap();
     let mut result = stmt.query(&[&user_data.username]).unwrap();
@@ -399,8 +405,11 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
         }
     }
 
+    let query = "INSERT INTO Session (id, userId, startTime, endTime) VALUES (?1, ?2, ?3, ?4)";
+
     return Ok(Json(json!({
-        "status": userId
+        "status": userId,
+        "time": endTime
     })))
     
 }
