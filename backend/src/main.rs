@@ -374,8 +374,9 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let id = Uuid::new_v4().to_string(); // Generate a session ID
     let mut userId: String;
-    let startTime = Utc::now();
-    let endTime = startTime + Duration::hours(1);
+    let startTime: String = Utc::now().to_string();
+    let endTime: String = (Utc::now() + Duration::hours(1)).to_string();
+
 
 
     if user_exists(&user_data.username, &conn) == false {
@@ -406,11 +407,22 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
     }
 
     let query = "INSERT INTO Session (id, userId, startTime, endTime) VALUES (?1, ?2, ?3, ?4)";
+    let result = conn.execute(query, &[&id, &userId, &startTime, &endTime]);
 
-    return Ok(Json(json!({
-        "status": userId,
-        "time": endTime
-    })))
+    match result {
+        Ok(_) => {
+            // Successfully added user, return 200 OK with a success message
+            Ok(Json(json!({
+                "status": "success",
+                "message": "User logged in successfully",
+                "time": startTime,
+            })))
+        }
+        Err(_) => {
+            // Database error, return 400 Bad Request with error message
+            Err(Status::BadRequest)
+        }
+    }
     
 }
 
