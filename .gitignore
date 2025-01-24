@@ -4,5 +4,6 @@
 /frontend/build
 /frontend/node_modules
 *.log
-
+*~
+*note_modules*
 backend/Cargo.lock
