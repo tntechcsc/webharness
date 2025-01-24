@@ -5,5 +5,5 @@
 /frontend/node_modules
 *.log
 *~
-*note_modules*
+*node_modules*
 backend/Cargo.lock
