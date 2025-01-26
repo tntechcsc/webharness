@@ -464,51 +464,51 @@ Json(json!({
     request_body = Login
     )]
 #[post("/api/user/login", data = "<user_data>")]
-fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> { // endpoint to log in a person
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let id = Uuid::new_v4().to_string(); // Generate a session ID
-    let mut userId: String;
-    let startTime: String = Utc::now().to_string();
-    let endTime: String = (Utc::now() + Duration::hours(1)).to_string();
+    let mut userId: String; // we need to look for their userId as we only know their username
+    let startTime: String = Utc::now().to_string(); // the time that the session starts UTC or greenwich time
+    let endTime: String = (Utc::now() + Duration::hours(1)).to_string(); // the time that the session ends (1 hour from when the user was logged in)
 
-
-
+    // checking if the user exists. we pass the username and connection via association
     if user_exists(&user_data.username, &conn) == false {
-        return Err(Status::NotFound)
+        return Err(Status::NotFound) // if they are not found we return a status error of not found
     }
 
+    //checking their their password
     if !user_password_check(&user_data.username, &user_data.password, &conn) {
-        return Err(Status::BadRequest)
+        return Err(Status::BadRequest) // bad request if the password doesnt match. idk if this is the best status response
     }
 
     //---getting user id to insert into session
+    let mut stmt = conn.prepare("SELECT id FROM User WHERE username = ?1").unwrap(); //preparing a statement to query for their username
+    let mut result = stmt.query(&[&user_data.username]).unwrap(); // also whats very important is that usernames are unique
 
-    let mut stmt = conn.prepare("SELECT id FROM User WHERE username = ?1").unwrap();
-    let mut result = stmt.query(&[&user_data.username]).unwrap();
-
-    match result.next() {
+    match result.next() { // a switch statement to find out their password
         Ok(Some(unwrapped_row)) => {
             // If a user is found
             userId = unwrapped_row.get(0).unwrap();
         }
-        Ok(None) => {
+        Ok(None) => { // nothing was found in the database for some reason
             return Err(Status::BadRequest);
         }
         Err(_) => {
-            // Querying error, return 500 Internal Server Error
+            // Querying error, return 500 Internal Server Error // any sort of errors
             return Err(Status::InternalServerError);
         }
     }
 
+    //checking if the user's session is valid or if the user has too many sessions. assuming a user can only have one session
     if session_valid(userId.clone(), &conn) == false || has_excess_sessions(userId.clone(), &conn) {
-        delete_session(userId.clone(), &conn);
+        delete_session(userId.clone(), &conn); //deleting their sessions as we are about to create one for them
     }
 
-    let query = "INSERT INTO Session (id, userId, startTime, endTime) VALUES (?1, ?2, ?3, ?4)";
-    let result = conn.execute(query, &[&id, &userId, &startTime, &endTime]);
+    let query = "INSERT INTO Session (id, userId, startTime, endTime) VALUES (?1, ?2, ?3, ?4)"; // making a query to insert into the session table
+    let result = conn.execute(query, &[&id, &userId, &startTime, &endTime]); // passing all the proper values
 
-    match result {
-        Ok(_) => {
+    match result { // switch statement
+        Ok(_) => { // if its ok, then we return success
             // Successfully added user, return 200 OK with a success message
             Ok(Json(json!({
                 "status": "success",
@@ -516,13 +516,17 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
                 "time": startTime,
             })))
         }
-        Err(_) => {
+        Err(_) => { // if it was not successful, then we return a status for a bad request. truly dont know if this is the proper response code though.
             // Database error, return 400 Bad Request with error message
             Err(Status::BadRequest)
         }
     }
     
 }
+
+#[utoipa::path(
+    
+)]
 
 /*
 #[utoipa::path(
