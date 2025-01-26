@@ -202,6 +202,16 @@ struct Login {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
+struct Logout {
+    #[schema(example = "gbus")]
+    username: String,
+    #[schema(example = "gbus@gmail.com")]
+    email: String,
+    #[schema(example = "password123")]
+    password: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
 struct Session {
     #[schema(example = "ajhniksdjnkdsa-7e1f-4686-bc90-b010ff98213e")]
     id: String,
@@ -417,7 +427,7 @@ fn user_search(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<ser
     request_body = UserInit
     )]
 #[post("/api/user/register", data = "<user_data>")]
-fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> { //should we also log them in?
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
     if user_exists(&user_data.username, &conn) {
@@ -525,8 +535,60 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
 }
 
 #[utoipa::path(
-    
+    delete,
+    path = "/api/user/logout",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "User logged out"),
+        (status = 404, description = "User not found")
+    ),
+    request_body = Logout
 )]
+#[delete("/api/user/logout", data = "<user_data>")]
+fn user_logout(user_data: Json<Logout>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let mut userId: String; // we need to look for their userId as we only know their username
+
+    // checking if the user exists. we pass the username and connection via association
+    if user_exists(&user_data.username, &conn) == false {
+        return Err(Status::NotFound) // if they are not found we return a status error of not found
+    }
+
+    //checking their their password
+    if !user_password_check(&user_data.username, &user_data.password, &conn) {
+        return Err(Status::BadRequest) // bad request if the password doesnt match. idk if this is the best status response
+    }
+
+    //---getting user id to delete from session
+    let mut stmt = conn.prepare("SELECT id FROM User WHERE username = ?1").unwrap(); //preparing a statement to query for their username
+    let mut result = stmt.query(&[&user_data.username]).unwrap(); // also whats very important is that usernames are unique
+
+    match result.next() { // a switch statement to find out their password
+        Ok(Some(unwrapped_row)) => {
+            // If a user is found
+            userId = unwrapped_row.get(0).unwrap();
+        }
+        Ok(None) => { // nothing was found in the database for some reason
+            return Err(Status::BadRequest);
+        }
+        Err(_) => {
+            // Querying error, return 500 Internal Server Error // any sort of errors
+            return Err(Status::InternalServerError);
+        }
+    }
+
+    //checking if the user's session is valid or if the user has too many sessions. assuming a user can only have one session
+    if session_valid(userId.clone(), &conn) == false || has_excess_sessions(userId.clone(), &conn) {
+        delete_session(userId.clone(), &conn); //deleting their sessions as we are about to create one for them
+        return Ok(Json(json!({
+            "status": "success",
+            "message": format!("Successfully logged out {}", &user_data.username)
+        })))
+    }
+    else {
+        return Err(Status::BadRequest);
+    }
+}
 
 /*
 #[utoipa::path(
@@ -794,7 +856,7 @@ fn rocket() -> _ {
             (name = "User Management", description = "User management endpoints."),
             (name = "Program Management", description = "Application endpoints."),
         ),
-        paths(user_search, user_register, user_login, user_delete, execute_program, get_process_status, stop_process)
+        paths(user_search, user_register, user_login, user_delete, execute_program, get_process_status, stop_process, user_logout)
     )]
     pub struct ApiDoc;
     
@@ -807,7 +869,7 @@ fn rocket() -> _ {
     .mount("/",
            SwaggerUi::new("/api/docs/swagger/<_..>").url("/api/docs/openapi.json", ApiDoc::openapi()),
     )
-    .mount("/", routes![user_search, user_register, user_login, user_delete, execute_program, get_process_status, stop_process])
+    .mount("/", routes![user_search, user_register, user_login, user_logout, user_delete, execute_program, get_process_status, stop_process])
     .configure(rocket::Config {
         port: 3000,
         ..Default::default()
