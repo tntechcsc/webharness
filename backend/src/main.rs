@@ -25,20 +25,37 @@ use rocket::request::{FromRequest, Outcome};
 
 pub struct SessionGuard(String);
 
+impl SessionGuard{
+    fn is_valid_session(session_id: &str, conn: &Connection) -> bool {
+        let now = Utc::now().to_string();
+        
+        match conn.query_row(
+            "SELECT COUNT(*) FROM Session 
+             WHERE id = ? 
+             AND endTime > ?",
+            &[session_id, &now],
+            |row| row.get::<_, i64>(0)
+        ) {
+            Ok(count) => count > 0,
+            Err(_) => false
+        }
+    }
+}
+
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for SessionGuard {
     type Error = ();
 
     async fn from_request(request: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
-        fn is_valid_api_key(key: &str) -> bool {
-            // Replace this with your actual API key validation logic
-            key == "your_api_key_here"
-        }
-
+        let db = request.rocket().state::<Arc<DB>>().unwrap();
+        let conn = db.conn.lock().unwrap();
+        
         match request.headers().get_one("x-session-id") {
             None => Outcome::Error((Status::Unauthorized, ())),
-            Some(key) if !is_valid_api_key(key) => Outcome::Error((Status::Unauthorized, ())),
-            Some(key) => Outcome::Success(SessionGuard(key.to_string())),
+            Some(session_id) if !Self::is_valid_session(session_id, &conn) => {
+                Outcome::Error((Status::Unauthorized, ()))
+            },
+            Some(session_id) => Outcome::Success(SessionGuard(session_id.to_string())),
         }
     }
 }
@@ -550,6 +567,7 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
                 "status": "success",
                 "message": "User logged in successfully",
                 "time": startTime,
+                "session_id": id,
             })))
         }
         Err(_) => { // if it was not successful, then we return a status for a bad request. truly dont know if this is the proper response code though.
