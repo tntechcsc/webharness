@@ -8,6 +8,8 @@ use std::path::PathBuf; // for accessing a folder
 use rusqlite::{Connection, Result}; // for our sqlite connection
 use std::sync::{Arc, Mutex}; // for thread-safe access
 use utoipa::{OpenApi, ToSchema, IntoParams};
+use utoipa::openapi::security::{SecurityScheme, ApiKeyValue};
+use utoipa::openapi::security::ApiKey as UtoipaApiKey;
 use utoipa_swagger_ui::SwaggerUi;
 use bcrypt::{DEFAULT_COST, hash, verify};
 use uuid::Uuid;
@@ -19,6 +21,27 @@ use winapi::um::processthreadsapi::OpenProcess;
 use winapi::um::winnt::PROCESS_TERMINATE;
 use winapi::um::processthreadsapi::TerminateProcess;
 use chrono::{DateTime, Utc, Duration, TimeDelta};
+use rocket::request::{FromRequest, Outcome};
+
+pub struct SessionGuard(String);
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for SessionGuard {
+    type Error = ();
+
+    async fn from_request(request: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
+        fn is_valid_api_key(key: &str) -> bool {
+            // Replace this with your actual API key validation logic
+            key == "your_api_key_here"
+        }
+
+        match request.headers().get_one("x-session-id") {
+            None => Outcome::Error((Status::Unauthorized, ())),
+            Some(key) if !is_valid_api_key(key) => Outcome::Error((Status::Unauthorized, ())),
+            Some(key) => Outcome::Success(SessionGuard(key.to_string())),
+        }
+    }
+}
 
 struct ProcessInfo {
     pid: u32,
@@ -387,10 +410,13 @@ fn delete_session(userId: String, conn: &std::sync::MutexGuard<'_, rusqlite::Con
     ),
     params(
         ("username", description = "A user's username")
-    )
+    ),
+    security(
+        ("session_id" = [])
+    ),
     )]
 #[get("/api/user/search/<username>")]
-fn user_search(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+fn user_search(_session_id: SessionGuard, username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
     let mut stmt = conn.prepare("SELECT username FROM User WHERE username = ?1").unwrap(); // Prepare your query
@@ -856,9 +882,22 @@ fn rocket() -> _ {
             (name = "User Management", description = "User management endpoints."),
             (name = "Program Management", description = "Application endpoints."),
         ),
-        paths(user_search, user_register, user_login, user_delete, execute_program, get_process_status, stop_process, user_logout)
+        paths(user_search, user_register, user_login, user_delete, execute_program, get_process_status, stop_process, user_logout),
+        modifiers(&SecurityAddon),
     )]
     pub struct ApiDoc;
+    struct SecurityAddon;
+
+    impl utoipa::Modify for SecurityAddon {
+        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+            if let Some(components) = openapi.components.as_mut() {
+                components.add_security_scheme(
+                    "session_id",
+                    SecurityScheme::ApiKey(UtoipaApiKey::Header(ApiKeyValue::new("x-session-id")))
+                );
+            }
+        }
+    }
     
     let db = Arc::new(DB::new().expect("Failed to initialize database")); // rust requires thread safety
     let process_map: ProcessMap = Arc::new(Mutex::new(HashMap::new()));
