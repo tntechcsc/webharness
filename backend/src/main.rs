@@ -205,6 +205,28 @@ impl DB {
             [],
         )?;
 
+        let mut roleId: String = Uuid::new_v4().to_string();
+
+        // Creating Superadmin, admin, and viewer roles
+        conn.execute(
+            "INSERT OR IGNORE INTO Roles (roleId, roleName, description) VALUES (?1, ?2, ?3)",
+            &["1", "Superadmin", "A special admin that manages every single other user"],
+        )?;
+
+        let mut roleId: String = Uuid::new_v4().to_string();
+
+        conn.execute(
+            "INSERT OR IGNORE INTO Roles (roleId, roleName, description) VALUES (?1, ?2, ?3)",
+            &["2", "Admin", "A admin that manages other users(Viewers)"],
+        )?;
+
+        let mut roleId: String = Uuid::new_v4().to_string();
+
+        conn.execute(
+            "INSERT OR IGNORE INTO Roles (roleId, roleName, description) VALUES (?1, ?2, ?3)",
+            &["3", "Viewer", "A regular user that can only view and run programs"],
+        )?;
+
         Ok(DB { conn: Mutex::new(conn) })
     }
 }
@@ -493,6 +515,44 @@ fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Resu
                 "user_id": id
             })))
         }
+        Err(_) => {
+            // Database error, return 400 Bad Request with error message
+            Err(Status::BadRequest)
+        }
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/user/register",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "Creates a superadmin in our database")
+    ),
+    request_body = UserInit
+    )]
+#[post("/api/user/register", data = "<user_data>")]
+fn superadmin_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> { //should we also log them in?
+    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+
+    if user_exists(&user_data.username, &conn) {
+        return Err(Status::BadRequest);
+    }
+
+    let id = Uuid::new_v4().to_string(); // Generate a unique user ID
+    let pass_hash = hash(user_data.password.clone(), DEFAULT_COST).unwrap(); // Hash the password
+
+    // Prepare the SQL INSERT query
+    let query = "INSERT INTO User (id, username, pass_hash, email) VALUES (?1, ?2, ?3, ?4)";
+    let result = conn.execute(query, &[&id, &user_data.username, &pass_hash, &user_data.email]);
+
+    match result {
+        Ok(_) => {
+            Ok(Json(json!({
+                "status": "success",
+                "message": "User registered successfully",
+                "user_id": id
+            })))        }
         Err(_) => {
             // Database error, return 400 Bad Request with error message
             Err(Status::BadRequest)
