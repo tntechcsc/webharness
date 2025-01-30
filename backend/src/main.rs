@@ -516,14 +516,14 @@ fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Resu
 
 #[utoipa::path(
     post,
-    path = "/api/user/register",
+    path = "/api/user/superadmin_register",
     tag = "User Management",
     responses(
         (status = 200, description = "Creates a superadmin in our database")
     ),
     request_body = UserInit
     )]
-#[post("/api/user/register", data = "<user_data>")]
+#[post("/api/user/superadmin_register", data = "<user_data>")]
 fn superadmin_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> { //should we also log them in?
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
@@ -540,6 +540,19 @@ fn superadmin_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -
 
     match result {
         Ok(_) => {
+            println!("GOOD")
+        }
+        Err(_) => {
+            // Database error, return 400 Bad Request with error message
+            return Err(Status::BadRequest);
+        }
+    }
+
+    let query = "INSERT INTO UserRoles (userId, roleId) VALUES (?1, ?2)";
+    let result = conn.execute(query, &[&id, "1"]);
+
+    match result {
+        Ok(_) => {
             Ok(Json(json!({
                 "status": "success",
                 "message": "User registered successfully",
@@ -547,7 +560,7 @@ fn superadmin_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -
             })))        }
         Err(_) => {
             // Database error, return 400 Bad Request with error message
-            Err(Status::BadRequest)
+            Err(Status::InternalServerError)
         }
     }
 }
@@ -952,7 +965,7 @@ fn rocket() -> _ {
             (name = "User Management", description = "User management endpoints."),
             (name = "Program Management", description = "Application endpoints."),
         ),
-        paths(user_search, user_register, user_login, user_delete, execute_program, get_process_status, stop_process, user_logout),
+        paths(user_search, user_register, superadmin_register, user_login, user_delete, execute_program, get_process_status, stop_process, user_logout),
         modifiers(&SecurityAddon),
     )]
     pub struct ApiDoc;
@@ -978,7 +991,7 @@ fn rocket() -> _ {
     .mount("/",
            SwaggerUi::new("/api/docs/swagger/<_..>").url("/api/docs/openapi.json", ApiDoc::openapi()),
     )
-    .mount("/", routes![user_search, user_register, user_login, user_logout, user_delete, execute_program, get_process_status, stop_process])
+    .mount("/", routes![user_search, user_register, superadmin_register, user_login, user_logout, user_delete, execute_program, get_process_status, stop_process])
     .configure(rocket::Config {
         port: 3000,
         ..Default::default()
