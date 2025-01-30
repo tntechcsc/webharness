@@ -205,23 +205,15 @@ impl DB {
             [],
         )?;
 
-        let mut roleId: String = Uuid::new_v4().to_string();
-
         // Creating Superadmin, admin, and viewer roles
         conn.execute(
             "INSERT OR IGNORE INTO Roles (roleId, roleName, description) VALUES (?1, ?2, ?3)",
             &["1", "Superadmin", "A special admin that manages every single other user"],
         )?;
-
-        let mut roleId: String = Uuid::new_v4().to_string();
-
         conn.execute(
             "INSERT OR IGNORE INTO Roles (roleId, roleName, description) VALUES (?1, ?2, ?3)",
             &["2", "Admin", "A admin that manages other users(Viewers)"],
         )?;
-
-        let mut roleId: String = Uuid::new_v4().to_string();
-
         conn.execute(
             "INSERT OR IGNORE INTO Roles (roleId, roleName, description) VALUES (?1, ?2, ?3)",
             &["3", "Viewer", "A regular user that can only view and run programs"],
