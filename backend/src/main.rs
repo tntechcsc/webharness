@@ -328,6 +328,28 @@ fn user_id_search(username: String, conn: &std::sync::MutexGuard<'_, rusqlite::C
     }
 }
 
+fn user_role_search(username: String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> String {    
+    let userId = user_id_search(username, &conn);
+    let mut stmt = conn.prepare("SELECT roleId FROM UserRoles WHERE userId = ?1").unwrap(); // Prepare your query
+    let mut rows = stmt.query([&userId]).unwrap(); // Execute the query
+    
+    match rows.next() {
+        Ok(Some(unwrapped_row)) => {
+            // If a user is found
+            let found_id: String = unwrapped_row.get(0).unwrap();
+            return found_id;
+        }
+        Ok(None) => {
+            // No user found, return 404 Not Found
+            return "".to_string();
+        }
+        Err(_) => {
+            // Querying error, return 500 Internal Server Error
+            return "".to_string();
+        }
+    }
+}
+
 fn user_password_check(username: &String, password: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
     let mut stmt = conn.prepare("SELECT pass_hash FROM User WHERE username = ?1").unwrap();
     let mut rows = stmt.query(&[username]).unwrap();
@@ -511,7 +533,7 @@ fn user_search(_session_id: SessionGuard, username: String, db: &rocket::State<A
     ),
     )]
 #[get("/api/role/search/<username>")]
-fn user_role_search(_session_id: SessionGuard, username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+fn user_role_search_api(_session_id: SessionGuard, username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
     println!("{}", username);
@@ -1032,7 +1054,7 @@ fn rocket() -> _ {
             (name = "User Management", description = "User management endpoints."),
             (name = "Program Management", description = "Application endpoints."),
         ),
-        paths(user_search, user_role_search, user_register, superadmin_register, user_login, user_delete, execute_program, get_process_status, stop_process, user_logout),
+        paths(user_search, user_role_search_api, user_register, superadmin_register, user_login, user_delete, execute_program, get_process_status, stop_process, user_logout),
         modifiers(&SecurityAddon),
     )]
     pub struct ApiDoc;
@@ -1058,7 +1080,7 @@ fn rocket() -> _ {
     .mount("/",
            SwaggerUi::new("/api/docs/swagger/<_..>").url("/api/docs/openapi.json", ApiDoc::openapi()),
     )
-    .mount("/", routes![user_search, user_role_search, user_register, superadmin_register, user_login, user_logout, user_delete, execute_program, get_process_status, stop_process])
+    .mount("/", routes![user_search, user_role_search_api, user_register, superadmin_register, user_login, user_logout, user_delete, execute_program, get_process_status, stop_process])
     .configure(rocket::Config {
         port: 3000,
         ..Default::default()
