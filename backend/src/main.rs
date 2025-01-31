@@ -307,6 +307,27 @@ fn user_exists(username: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Con
     */
 }
 
+fn user_id_search(username: String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> String {    
+    let mut stmt = conn.prepare("SELECT id FROM User WHERE username = ?1").unwrap(); // Prepare your query
+    let mut rows = stmt.query([&username]).unwrap(); // Execute the query
+    
+    match rows.next() {
+        Ok(Some(unwrapped_row)) => {
+            // If a user is found
+            let found_id: String = unwrapped_row.get(0).unwrap();
+            return found_id;
+        }
+        Ok(None) => {
+            // No user found, return 404 Not Found
+            return "".to_string();
+        }
+        Err(_) => {
+            // Querying error, return 500 Internal Server Error
+            return "".to_string();
+        }
+    }
+}
+
 fn user_password_check(username: &String, password: &String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
     let mut stmt = conn.prepare("SELECT pass_hash FROM User WHERE username = ?1").unwrap();
     let mut rows = stmt.query(&[username]).unwrap();
@@ -476,23 +497,26 @@ fn user_search(_session_id: SessionGuard, username: String, db: &rocket::State<A
 
 #[utoipa::path(
     get,
-    path = "/api/role/search/{userId}",
+    path = "/api/role/search/{username}",
     tag = "User Management",
     responses(
         (status = 200, description = "User found"),
         (status = 404, description = "User not found")
     ),
     params(
-        ("userId", description = "A user's id")
+        ("username", description = "A user's username")
     ),
     security(
         ("session_id" = [])
     ),
     )]
-#[get("/api/role/search/<userId>")]
-fn user_role_search(_session_id: SessionGuard, userId: &str, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+#[get("/api/role/search/<username>")]
+fn user_role_search(_session_id: SessionGuard, username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
+    println!("{}", username);
+    let userId = user_id_search(username.to_string(), &conn);
+    println!("{}", userId);
     let mut stmt = conn.prepare("SELECT roleId FROM UserRoles WHERE userId = ?1").unwrap(); // Prepare your query
     let mut rows = stmt.query([&userId]).unwrap(); // Execute the query
     
