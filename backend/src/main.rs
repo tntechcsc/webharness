@@ -690,14 +690,31 @@ fn user_role_search_api(_session_id: SessionGuard, username: String, db: &rocket
     responses(
         (status = 200, description = "Creates a user in our database")
     ),
-    request_body = UserInit
+    request_body = UserInit,
+    security(
+        ("session_id" = [])
+    ),
     )]
 #[post("/api/user/register", data = "<user_data>")]
-fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> { //should we also log them in?
+fn user_register(_session_id: SessionGuard, user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> { //should we also log them in?
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    
+    let actor = session_to_user(_session_id.0.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
+    let actor_role = user_role_search(actor.clone(), &conn);
+    let actor_role: i32 = actor_role.parse().expect("Not a valid number");
+    let target_role: i32 = user_data.role.parse().expect("Not a valid number");
+
+    if actor == "" {
+        return Err(Status::BadRequest);
+    }
+
+    if actor_role > target_role {
+        return Err(Status::Unauthorized);
+    }
 
     if user_data.role == "1" {
-        return Err(Status::BadRequest);
+        return Err(Status::Unauthorized);
     }
 
     if user_exists(&user_data.username, &conn) {
@@ -822,39 +839,19 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
         (status = 200, description = "User logged out"),
         (status = 404, description = "User not found")
     ),
-    request_body = Logout
+    security(
+        ("session_id" = [])
+    ),
 )]
-#[delete("/api/user/logout", data = "<user_data>")]
-fn user_logout(user_data: Json<Logout>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+#[delete("/api/user/logout")]
+fn user_logout(_session_id: SessionGuard, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
-    let mut userId: String; // we need to look for their userId as we only know their username
+    let mut userId: String = session_to_user(_session_id.0.clone(), &conn); // getting the user id from the session id
+    let mut username: String = user_name_search(userId.clone(), &conn); // getting the username from the user id
 
     // checking if the user exists. we pass the username and connection via association
-    if user_exists(&user_data.username, &conn) == false {
+    if user_exists(&username, &conn) == false {
         return Err(Status::NotFound) // if they are not found we return a status error of not found
-    }
-
-    //checking their their password
-    if !user_password_check(&user_data.username, &user_data.password, &conn) {
-        return Err(Status::BadRequest) // bad request if the password doesnt match. idk if this is the best status response
-    }
-
-    //---getting user id to delete from session
-    let mut stmt = conn.prepare("SELECT id FROM User WHERE username = ?1").unwrap(); //preparing a statement to query for their username
-    let mut result = stmt.query(&[&user_data.username]).unwrap(); // also whats very important is that usernames are unique
-
-    match result.next() { // a switch statement to find out their password
-        Ok(Some(unwrapped_row)) => {
-            // If a user is found
-            userId = unwrapped_row.get(0).unwrap();
-        }
-        Ok(None) => { // nothing was found in the database for some reason
-            return Err(Status::BadRequest);
-        }
-        Err(_) => {
-            // Querying error, return 500 Internal Server Error // any sort of errors
-            return Err(Status::InternalServerError);
-        }
     }
 
     //checking if the user's session is valid or if the user has too many sessions. assuming a user can only have one session
@@ -862,7 +859,7 @@ fn user_logout(user_data: Json<Logout>, db: &rocket::State<Arc<DB>>) -> Result<J
         delete_session(userId.clone(), &conn); //deleting their sessions as we are about to create one for them
         return Ok(Json(json!({
             "status": "success",
-            "message": format!("Successfully logged out {}", &user_data.username)
+            "message": format!("Successfully logged out {}", &username)
         })))
     }
     else {
