@@ -136,31 +136,6 @@ impl DB {
                 )",
                 [],
             )?;
-    
-            // Check if the trigger already exists before creating it
-            let mut stmt = conn_use.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name = 'prevent_multiple_superadmins'")?;
-            let trigger_exists: bool = stmt.query_row([], |row| row.get::<_, String>(0)).optional()?.is_some();
-    
-            // If the trigger doesn't exist, create it
-            if !trigger_exists {
-                conn_use.execute(
-                    "
-                    CREATE TRIGGER prevent_multiple_superadmins
-                    BEFORE INSERT ON UserRoles
-                    FOR EACH ROW
-                    BEGIN
-                        -- If the new roleId is 1, check if there's already one row with roleId 1
-                        SELECT
-                        CASE
-                            WHEN (SELECT COUNT(*) FROM UserRoles WHERE roleId = 1) > 0
-                            THEN
-                                RAISE (ABORT, 'Only one user can have roleId 1')
-                        END;
-                    END;
-                    ",
-                    [],
-                )?;
-            }
         
             // Create the UserRoles table
             conn_use.execute(
@@ -171,10 +146,37 @@ impl DB {
                     FOREIGN KEY(userId) REFERENCES User(id) ON DELETE CASCADE,
                     FOREIGN KEY(roleId) REFERENCES Roles(roleId) ON DELETE CASCADE,
                     CHECK (length(userId) <= 36),
-                    CHECK (length(roleId) <= 36)
+                    CHECK (length(roleId) <= 36),
+                    CHECK (roleId IN ('1', '2', '3'))  -- Ensure roleId is either 1, 2, or 3
                 )",
                 [],
             )?;
+
+            // Check if the trigger already exists before creating it
+            let mut stmt = conn_use.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name = 'prevent_multiple_superadmins'")?;
+            let trigger_exists: bool = stmt.query_row([], |row| row.get::<_, String>(0)).optional()?.is_some();
+    
+            // If the trigger doesn't exist, create it
+            if !trigger_exists {
+                conn_use.execute(
+                    "
+                        CREATE TRIGGER prevent_multiple_superadmins
+                        BEFORE INSERT ON UserRoles
+                        FOR EACH ROW
+                        WHEN NEW.roleId = 1
+                        BEGIN
+                            -- Check if there's already a row with roleId = 1
+                            SELECT
+                            CASE
+                                WHEN (SELECT COUNT(*) FROM UserRoles WHERE roleId = 1) > 0
+                                THEN
+                                    RAISE (ABORT, 'Only one user can have roleId 1')
+                            END;
+                        END;
+                    ",
+                    [],
+                )?;
+            }
         
             // Create the Category table
             conn_use.execute(
@@ -248,6 +250,18 @@ impl DB {
                 "INSERT OR IGNORE INTO Roles (roleId, roleName, description) VALUES (?1, ?2, ?3)",
                 &["3", "Viewer", "A regular user that can only view and run programs"],
             )?;
+
+            let pass_hash = hash("password123", DEFAULT_COST).unwrap(); // Hash the password
+            // Creating Superadmin, admin, and viewer roles
+            conn_use.execute(
+                "INSERT OR IGNORE INTO User (id, username, pass_hash, email) VALUES (?1, ?2, ?3, ?4)",
+                &["1", "su", &pass_hash, "email@email.com"],
+            )?;
+
+            conn_use.execute(
+                "INSERT OR IGNORE INTO UserRoles (userId, roleId) VALUES (?1, ?2)",
+                &["1", "1"],
+            )?;
         }
 
         Ok(DB { conn })
@@ -274,6 +288,8 @@ struct UserInit {
     email: String,
     #[schema(example = "password123")]
     password: String,
+    #[schema(example = "1 for Superadmin, 2 for Admin, 3 for Viewer")]
+    role: String
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -367,16 +383,15 @@ fn user_id_search(username: String, conn: &std::sync::MutexGuard<'_, rusqlite::C
     }
 }
 
-fn user_role_search(username: String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> String {    
-    let userId = user_id_search(username, &conn);
-    let mut stmt = conn.prepare("SELECT roleId FROM UserRoles WHERE userId = ?1").unwrap(); // Prepare your query
+fn user_name_search(userId: String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> String {    
+    let mut stmt = conn.prepare("SELECT username FROM User WHERE id = ?1").unwrap(); // Prepare your query
     let mut rows = stmt.query([&userId]).unwrap(); // Execute the query
     
     match rows.next() {
         Ok(Some(unwrapped_row)) => {
             // If a user is found
-            let found_id: String = unwrapped_row.get(0).unwrap();
-            return found_id;
+            let found_name: String = unwrapped_row.get(0).unwrap();
+            return found_name;
         }
         Ok(None) => {
             // No user found, return 404 Not Found
@@ -389,6 +404,51 @@ fn user_role_search(username: String, conn: &std::sync::MutexGuard<'_, rusqlite:
     }
 }
 
+fn user_role_search(username: String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> String {    
+    let userId = user_id_search(username, &conn);
+    let mut stmt = conn.prepare("SELECT roleId FROM UserRoles WHERE userId = ?1").unwrap(); // Prepare your query
+    let mut rows = stmt.query([&userId]).unwrap(); // Execute the query
+    
+    match rows.next() {
+        Ok(Some(unwrapped_row)) => {
+            // If a user is found
+            let found_id: String = unwrapped_row.get(0).unwrap();
+            return found_id;
+            println!("{}", found_id);
+        }
+        Ok(None) => {
+            // No user found, return 404 Not Found
+            return "".to_string();
+        }
+        Err(_) => {
+            // Querying error, return 500 Internal Server Error
+            return "".to_string();
+        }
+    }
+}
+
+fn has_role(username: String, role: String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
+    let user_role = user_role_search(username, &conn);
+    if user_role == role {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+fn compare_roles(actor: String, target: String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
+    let actor_role: i32 = user_role_search(actor, &conn).parse().expect("Not a valid number");;
+    let target_role: i32 = user_role_search(target, &conn).parse().expect("Not a valid number");;
+
+    if actor_role <= target_role {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
 fn session_to_user(session_id: String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> String {
     let mut stmt = conn.prepare("SELECT userId FROM Session WHERE id = ?1").unwrap(); // Prepare your query
     let mut rows = stmt.query([&session_id]).unwrap(); // Execute the query
@@ -396,8 +456,8 @@ fn session_to_user(session_id: String, conn: &std::sync::MutexGuard<'_, rusqlite
     match rows.next() {
         Ok(Some(unwrapped_row)) => {
             // If a user is found
-            let found_id: String = unwrapped_row.get(0).unwrap();
-            return found_id;
+            let found_name: String = unwrapped_row.get(0).unwrap();
+            return found_name;
         }
         Ok(None) => {
             // No user found, return 404 Not Found
@@ -636,45 +696,9 @@ fn user_role_search_api(_session_id: SessionGuard, username: String, db: &rocket
 fn user_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> { //should we also log them in?
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
-    if user_exists(&user_data.username, &conn) {
+    if user_data.role == "1" {
         return Err(Status::BadRequest);
     }
-
-    let id = Uuid::new_v4().to_string(); // Generate a unique user ID
-    let pass_hash = hash(user_data.password.clone(), DEFAULT_COST).unwrap(); // Hash the password
-
-    // Prepare the SQL INSERT query
-    let query = "INSERT INTO User (id, username, pass_hash, email) VALUES (?1, ?2, ?3, ?4)";
-    let result = conn.execute(query, &[&id, &user_data.username, &pass_hash, &user_data.email]);
-
-    match result {
-        Ok(_) => {
-            // Successfully added user, return 200 OK with a success message
-            Ok(Json(json!({
-                "status": "success",
-                "message": "User registered successfully",
-                "user_id": id
-            })))
-        }
-        Err(_) => {
-            // Database error, return 400 Bad Request with error message
-            Err(Status::BadRequest)
-        }
-    }
-}
-
-#[utoipa::path(
-    post,
-    path = "/api/user/superadmin_register",
-    tag = "User Management",
-    responses(
-        (status = 200, description = "Creates a superadmin in our database")
-    ),
-    request_body = UserInit
-    )]
-#[post("/api/user/superadmin_register", data = "<user_data>")]
-fn superadmin_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> { //should we also log them in?
-    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
     if user_exists(&user_data.username, &conn) {
         return Err(Status::BadRequest);
@@ -698,22 +722,20 @@ fn superadmin_register(user_data: Json<UserInit>, db: &rocket::State<Arc<DB>>) -
     }
 
     let query = "INSERT INTO UserRoles (userId, roleId) VALUES (?1, ?2)";
-    let result = conn.execute(query, &[&id, "1"]);
-
+    let result = conn.execute(query, &[&id, &user_data.role]);
     match result {
         Ok(_) => {
             Ok(Json(json!({
                 "status": "success",
                 "message": "User registered successfully",
                 "user_id": id
-            })))        }
+            })))
+        }
         Err(_) => {
-            // Database error, return 400 Bad Request with error message
             Err(Status::InternalServerError)
         }
     }
 }
-
 
 /*
 Json(json!({
@@ -866,24 +888,30 @@ fn user_logout(user_data: Json<Logout>, db: &rocket::State<Arc<DB>>) -> Result<J
 #[put("/api/password/reset", data = "<user_data>")]
 fn reset_password(_session_id: SessionGuard, user_data: Json<ResetPasswordForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
-    let username = &user_data.target;
+    let target = &user_data.target;
     let password = &user_data.password;
     let session_id = &_session_id.0;
 
-    if !user_exists(username, &conn) {
+    if !user_exists(target, &conn) {
         return Err(Status::NotFound);
     }
     
     let pass_hash = hash(password, DEFAULT_COST).unwrap(); // Hash the password
 
-    let userId = "2";
+    //session is that of the actor
+    let actor = session_to_user(session_id.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
 
-    if userId == "" {
+    if actor == "" {
         return Err(Status::NotFound);
     }
 
+    if !compare_roles(actor, target.clone(), &conn) {
+        return Err(Status::Unauthorized);
+    }
+
     let query = "UPDATE User SET pass_hash = ?1 WHERE username = ?2";
-    let result = conn.execute(query, &[&pass_hash, &username]);
+    let result = conn.execute(query, &[&pass_hash, &target]);
 
     match result {
         Ok(0) => {
@@ -1132,7 +1160,7 @@ fn rocket() -> _ {
             (name = "User Management", description = "User management endpoints."),
             (name = "Program Management", description = "Application endpoints."),
         ),
-        paths(user_search, user_role_search_api, user_register, superadmin_register, user_login, reset_password, user_delete, execute_program, get_process_status, stop_process, user_logout),
+        paths(user_search, user_role_search_api, user_register, user_login, reset_password, user_delete, execute_program, get_process_status, stop_process, user_logout),
         modifiers(&SecurityAddon),
     )]
     pub struct ApiDoc;
@@ -1158,7 +1186,7 @@ fn rocket() -> _ {
     .mount("/",
            SwaggerUi::new("/api/docs/<_..>").url("/api/docs/openapi.json", ApiDoc::openapi()),
     )
-    .mount("/", routes![user_search, user_role_search_api, user_register, superadmin_register, user_login, user_logout, reset_password, user_delete, execute_program, get_process_status, stop_process])
+    .mount("/", routes![user_search, user_role_search_api, user_register, user_login, user_logout, reset_password, user_delete, execute_program, get_process_status, stop_process])
     .configure(rocket::Config {
         port: 3000,
         ..Default::default()
