@@ -288,7 +288,7 @@ struct UserInit {
     email: String,
     #[schema(example = "password123")]
     password: String,
-    #[schema(example = "1 for Superadmin, 2 for Admin, 3 for Viewer")]
+    #[schema(example = "2 for Admin, 3 for Viewer")]
     role: String
 }
 
