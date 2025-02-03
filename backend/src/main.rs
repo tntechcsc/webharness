@@ -296,8 +296,6 @@ struct UserInit {
 struct Login {
     #[schema(example = "gbus")]
     username: String,
-    #[schema(example = "gbus@gmail.com")]
-    email: String,
     #[schema(example = "password123")]
     password: String,
 }
