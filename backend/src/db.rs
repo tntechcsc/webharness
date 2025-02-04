@@ -2,10 +2,8 @@ use rusqlite::{Connection, Result, OptionalExtension}; // for our sqlite connect
 use std::sync::{Arc, Mutex};
 use bcrypt::{DEFAULT_COST, hash, verify};
 
-
-
 pub struct DB {
-    conn: Mutex<Connection>, // rust complains if there is no thread safety with our connection
+    pub conn: Mutex<Connection>, // rust complains if there is no thread safety with our connection
 }
 
 impl DB {
