@@ -1,24 +1,89 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from 'react';
+import './App.css'; // Ensure your styles are linked correctly
 
 function App() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Simulate a delay before showing the page content
+  useEffect(() => {
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 3000); // Adjust timing as needed
+  }, []);
+
+  
+  const applications = [
+   
+  ];
+
+  // Filter applications based on search input
+  const filteredApps = applications.filter((app) =>
+    app.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      {isLoading ? (
+        <div className="loading-container">
+          <img src='LogoHarness2.png' alt="Loading Logo" className="loading-logo" />
+          <p className='loading-text'> Loading Project Mangrove </p>
+          <div className="spinner"></div>
+        </div>
+      ) : (
+        <div className="app-container">
+          {/* Sidebar/Navbar */}
+          <div className="sidebar">
+            <div className="logo-button">
+              <button onClick={() => console.log("Logo button clicked")} style={{ all: 'unset', cursor: 'pointer' }}>
+                <img 
+                  src="LogoHarness2.png" 
+                  alt="Logo" 
+                  style={{ width: '10rem', height: '11rem'}} 
+                />
+              </button>
+            </div>
+            <div className="nav-button">Application</div>
+            <div className="nav-button">Role Management</div>
+          </div>
+
+          {/* Main content area */}
+          <div className="main-content">
+            <div className="content-wrapper">
+              <h1 className="page-header">Welcome to Project Mangrove</h1>
+
+              {/* Mini Panel with Search and Application List */}
+              <div className="mini-panel">
+                <h2>Application Panel</h2>
+                
+                {/* Search Bar */}
+                <input
+                  type="text"
+                  placeholder="Search Feature"
+                  className="search-bar"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+
+                {/* Application Table */}
+                <table className="app-table">
+                  <tbody>
+                    {filteredApps.map((app) => (
+                      <tr key={app.id}>
+                        <td className="app-name">{app.name}</td>
+                        <td>
+                          <button className="run-button">Run</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
