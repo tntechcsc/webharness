@@ -37,6 +37,10 @@ use winapi::um::processthreadsapi::TerminateProcess;
 //for handling dates
 use chrono::{DateTime, Utc, Duration, TimeDelta};
 
+//for cors
+use rocket::http::Method;
+use rocket_cors::{AllowedOrigins, CorsOptions};
+
 use rocket::launch;
 
 //for our db
@@ -123,11 +127,23 @@ fn rocket() -> _ {
         }
     }
 
+    //defining cors structure to allow stuff
+    let cors = CorsOptions::default()
+    .allowed_origins(AllowedOrigins::all())
+    .allowed_methods(
+        vec![Method::Get, Method::Post, Method::Patch]
+            .into_iter()
+            .map(From::from)
+            .collect(),
+    )
+    .allow_credentials(true);
+
     //let db = Arc::new(DB::new().expect("Failed to initialize database")); // rust requires thread safety
     let process_map: ProcessMap = Arc::new(Mutex::new(HashMap::new()));
 
     let db = Arc::new(db::DB::new().expect("Failed to initialize database"));
     rocket::build()
+        .attach(cors.to_cors().unwrap()) //attaching cors for rocket to manage it
         .manage(db)
         .manage(process_map)
         .mount("/", user_management::user_management_routes())

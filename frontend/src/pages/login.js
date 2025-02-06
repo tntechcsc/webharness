@@ -1,0 +1,38 @@
+import React from "react";
+import axios from "axios";
+import "./login.css"; // Assuming you save your CSS in Login.css
+
+const Login = () => {
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const email = formData.get("email");
+    const password = formData.get("password");
+
+    axios.post("http://localhost/api/login", { email, password })
+      .then(response => {
+        console.log("Login successful:", response.data);
+        // Handle success (e.g., redirect, display message)
+      })
+      .catch(error => {
+        console.error("Login error:", error);
+        // Handle error (e.g., display error message)
+      });
+  };
+
+  return (
+    <div className="d-flex justify-content-center align-items-center min-vh-100 position-relative w-100">
+      <form className="form col-md-4 text-center" onSubmit={handleSubmit}>
+        <img src="LogoHarness2.png" alt="Logo" className="logo" style={{ maxWidth: '200px', maxHeight: '200px' }}/>
+        <div style={{ fontSize: '32px', color: '#6ffb78' }}>Mangrove</div>
+        <div className="d-flex flex-column align-items-center">
+          <input className="input mb-3" name="email" placeholder="Email" type="email" required />
+          <input className="input mb-3" name="password" placeholder="Password" type="password" required />
+          <button className="button">Log In →</button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default Login;
