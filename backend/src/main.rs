@@ -5,6 +5,7 @@ use rocket::http::Status; // to return a status code
 use rocket::serde::{Serialize, Deserialize, json::Json}; // for handling jsons
 use rocket::State; // for handling state???
 use rocket::request::{FromRequest, Outcome}; //for outcome and optional handling
+use rocket::response::Redirect; //for redirecting on a failed session id check
 
 //for jsons
 use serde_json::json;
@@ -52,6 +53,7 @@ mod models;
 mod utils;
 mod user_management; // Add this line
 mod execution; // Add this line
+mod redirects;
 
 pub struct SessionGuard(String);
 
@@ -81,7 +83,9 @@ impl<'r> FromRequest<'r> for SessionGuard {
         let conn = db.conn.lock().unwrap();
         
         match request.headers().get_one("x-session-id") {
-            None => Outcome::Error((Status::Unauthorized, ())),
+            None => {
+                Outcome::Error((Status::Unauthorized, ()))
+            },
             Some(session_id) if !Self::is_valid_session(session_id, &conn) => {
                 Outcome::Error((Status::Unauthorized, ()))
             },
@@ -149,6 +153,7 @@ fn rocket() -> _ {
         .manage(process_map)
         .mount("/", user_management::user_management_routes())
         .mount("/", execution::execution_routes())
+        .register("/", redirects::redirect_routes())
         .mount("/",
            SwaggerUi::new("/api/swagger/<_..>").url("/api/api-docs/openapi.json", ApiDoc::openapi()),
         )
