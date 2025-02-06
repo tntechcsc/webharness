@@ -52,10 +52,10 @@ fn unauthorized(req: &Request) -> Redirect {
     Redirect::to("http://localhost/login")
 }
 
-#[catch(404)]
+#[catch(403)]
 fn not_found(req: &Request) -> Redirect {
     // Redirect the user to your React login page
-    Redirect::to("http://localhost/login")
+    Redirect::to("http://localhost/home")
 }
 
 
