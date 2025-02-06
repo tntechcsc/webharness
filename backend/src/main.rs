@@ -99,6 +99,7 @@ fn rocket() -> _ {
             (name = "Program Management", description = "Application endpoints."),
         ),
         paths( 
+            crate::user_management::session_validate_api,
             crate::user_management::user_search, 
             crate::user_management::user_role_search_api, 
             crate::user_management::user_register, 

@@ -88,6 +88,28 @@ fn user_search(_session_id: SessionGuard, username: String, db: &rocket::State<A
 
 #[utoipa::path(
     get,
+    path = "/api/session-validate",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "Session is valid"),
+        (status = 401, description = "Unauthorized")
+    ),
+    params(
+    ),
+    security(
+        ("session_id" = [])
+    ),
+    )]
+#[get("/api/session-validate")]
+fn session_validate_api(_session_id: SessionGuard) -> Result<Json<serde_json::Value>, Status> {
+    Ok(Json(json!({
+        "status": "success",
+        "message": "Session is valid"
+    })))
+}
+
+#[utoipa::path(
+    get,
     path = "/api/role/search/{username}",
     tag = "User Management",
     responses(
@@ -425,7 +447,7 @@ fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<ser
 
 // Export the routes
 pub fn user_management_routes() -> Vec<Route> {
-    routes![user_search, user_role_search_api, user_register, user_login, user_logout, reset_password, user_delete]
+    routes![session_validate_api, user_search, user_role_search_api, user_register, user_login, user_logout, reset_password, user_delete]
 }
 
 pub struct UserSearchPaths;
