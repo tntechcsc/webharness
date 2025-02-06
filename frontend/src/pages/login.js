@@ -6,13 +6,19 @@ const Login = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const email = formData.get("email");
+    const username = formData.get("username");
     const password = formData.get("password");
 
-    axios.post("http://localhost/api/login", { email, password })
+    axios.post("http://localhost:3000/api/user/login", { username, password })
       .then(response => {
         console.log("Login successful:", response.data);
-        // Handle success (e.g., redirect, display message)
+        // insert received session token into div #token
+        //document.getElementById("token").innerText = JSON.stringify(response.data.session_id);
+        // store session token in sessionStorage
+        sessionStorage.setItem("session_id", response.data.session_id);
+
+        // Handle success by redirecting to /
+        window.location.href = "/";
       })
       .catch(error => {
         console.error("Login error:", error);
@@ -26,9 +32,10 @@ const Login = () => {
         <img src="LogoHarness2.png" alt="Logo" className="logo" style={{ maxWidth: '200px', maxHeight: '200px' }}/>
         <div style={{ fontSize: '32px', color: '#6ffb78' }}>Mangrove</div>
         <div className="d-flex flex-column align-items-center">
-          <input className="input mb-3" name="email" placeholder="Email" type="email" required />
+          <input className="input mb-3" name="username" placeholder="Username" type="username" required />
           <input className="input mb-3" name="password" placeholder="Password" type="password" required />
-          <button className="button">Log In →</button>
+          <button type="submit" className="button">Log In →</button>
+          <div id="token"></div>
         </div>
       </form>
     </div>
