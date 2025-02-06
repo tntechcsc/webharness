@@ -9,7 +9,7 @@ export const checkSession = async () => {
     }
   
     try {
-      const response = await fetch('https://localhost:3000/session_validate_api', {
+      const response = await fetch('http://localhost:3000/api/session-validate', {
         method: 'GET',
         headers: {
           'x-session-id': `${sessionId}`, // Pass session ID as a Bearer token in the Authorization header
