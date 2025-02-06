@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../App'; // Ensure your styles are linked correctly
+import Navbar from "../components/Navbar";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
 
@@ -29,25 +30,9 @@ const Home = () => {
   
   
 
-  return ( <div>
-
-
-<div className="app-container">
-          {/* Sidebar/Navbar */}
-          <div className="sidebar">
-            <div className="logo-button">
-              <button onClick={() => console.log("Logo button clicked")} style={{ all: 'unset', cursor: 'pointer' }}>
-                <img 
-                  src="LogoHarness2.png" 
-                  alt="Logo" 
-                  style={{ width: '10rem', height: '11rem'}} 
-                />
-              </button>
-            </div>
-            <div className="nav-button">Application</div>
-            <div className="nav-button">Role Management</div>
-          </div>
-
+  return ( 
+  <div>
+    <div className="app-container">
           {/* Main content area */}
           <div className="main-content">
             <div className="content-wrapper">

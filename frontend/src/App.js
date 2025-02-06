@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import Application from "./pages/Application";
 import RoleManagment from "./pages/RoleManagement";
+import Navbar from "./components/Navbar";
 
 
 function App() {
@@ -37,11 +38,11 @@ function App() {
         </div>
       ) : (
         <Router>
-        <div className="d-flex flex-column min-vh-100 bg-dark text-light">
+        <div className="d-flex min-vh-100 bg-dark text-light">
+          <Navbar />
           <div className="flex-grow-1">
             <Routes>
             <Route path="/" element={<Home />} />
-            
             </Routes>
           </div>
         </div>
