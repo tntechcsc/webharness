@@ -13,7 +13,7 @@ const Login = () => {
       .then(response => {
         console.log("Login successful:", response.data);
         // insert received session token into div #token
-        document.getElementById("token").innerText = response.data.token;
+        document.getElementById("token").innerText = JSON.stringify(response.data.session_id);
 
         // Handle success (e.g., redirect, display message)
       })
