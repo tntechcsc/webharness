@@ -16,8 +16,8 @@ const Navbar = () => {
             />
           </Link>
         </div>
-        <Link to="/application" className="nav-button">Application</Link>
-        <Link to="/role-management" className="nav-button">Role Management</Link>
+        <Link to="/application" style={{ textDecoration: 'none' }} className="nav-button">Application</Link>
+        <Link to="/role-management" style={{ textDecoration: 'none' }} className="nav-button">Role Management</Link>
       </div>
     </div>
   );
