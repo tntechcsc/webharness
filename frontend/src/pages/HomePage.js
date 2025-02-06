@@ -6,7 +6,7 @@ import placeholder from "../assets/profile-placeholder.png";
 
 
 
-const Home = () => {
+const HomePage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [userRole, setUserRole] = useState("superadmin");
@@ -32,7 +32,7 @@ const Home = () => {
 
   return (
   <div>
-    <div className="app-container">
+      <div className="app-container">
           {/* Main content area */}
           <div className="main-content">
             <div className="content-wrapper">
@@ -77,10 +77,9 @@ const Home = () => {
             </div>
           </div>
         </div>
-
-          </div> );
+  </div> );
 };
 
 
 
-export default Home;
+export default HomePage;
