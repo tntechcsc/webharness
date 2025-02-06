@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import  ProtectedRoute  from "./ProtectedRoute"
 import './App.css'; // Ensure your styles are linked correctly
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
@@ -6,7 +7,6 @@ import Application from "./pages/Application";
 import RoleManagement from "./pages/RoleManagement";
 import Navbar from "./components/Navbar";
 import Login from "./pages/login";
-
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -43,9 +43,9 @@ function App() {
           <Navbar /> 
           <div className="flex-grow-1">
             <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="role-management" element={<RoleManagement />} />
-            <Route path="applications" element={<Application />} />
+            <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />
+            <Route path="role-management" element={<ProtectedRoute element={<RoleManagement />} />} />
+            <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
             <Route path="login" element={<Login />} />
             </Routes>
           </div>
