@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import  ProtectedRoute  from "./ProtectedRoute"
+import  ProtectedRoute  from "./components/ProtectedRoute"
 import './App.css'; // Ensure your styles are linked correctly
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
