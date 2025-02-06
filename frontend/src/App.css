@@ -3,6 +3,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+
 }
 
 /* Loading screen */
@@ -54,11 +55,12 @@
   width: 100vw;
 }
 
+
 /* Sidebar styling */
 .sidebar { 
   width: 10rem;
   height: 100vh;
-  background-color: #333;
+  background-color: #031039; /* ✅ Fix: Set a static background */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -67,6 +69,7 @@
   left: 0;
   z-index: 1000;
 }
+
 
 /* Sidebar navigation buttons */
 .nav-button {
@@ -93,7 +96,8 @@
 
 /* Sidebar logo button */
 .logo-button {
-  border-bottom: 2px solid white;
+  color: #031039;
+  border-bottom: 2px solid rgb(255, 255, 255);
 }
 
 .logo-button:hover {
@@ -120,7 +124,8 @@
   width: 100vw;
   text-align: center;
   color: #12255f;
-  background-color: rgb(255, 255, 255);
+  background-color: #fdfffd;
+ 
 }
 
 /* Mini Panel Styles */
@@ -178,3 +183,4 @@
 .run-button:hover {
   background-color: #5fd066;
 }
+

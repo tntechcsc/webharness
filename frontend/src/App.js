@@ -41,11 +41,12 @@ function App() {
           <div className="flex-grow-1">
             <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/applications" element={<Application/>} />
             
             </Routes>
           </div>
         </div>
-    </Router>
+      </Router>
       )}
     </>
   );
