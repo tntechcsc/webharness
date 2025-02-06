@@ -5,6 +5,7 @@ import HomePage from "./pages/HomePage";
 import Application from "./pages/Application";
 import RoleManagement from "./pages/RoleManagement";
 import Navbar from "./components/Navbar";
+import Login from "./pages/login";
 
 
 function App() {
@@ -39,12 +40,13 @@ function App() {
       ) : (
         <Router>
         <div className="d-flex min-vh-100 bg-dark text-light">
-          <Navbar />
+          <Navbar /> 
           <div className="flex-grow-1">
             <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="role-management" element={<RoleManagement />} />
             <Route path="applications" element={<Application />} />
+            <Route path="login" element={<Login />} />
             </Routes>
           </div>
         </div>
