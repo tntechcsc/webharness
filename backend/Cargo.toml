@@ -15,5 +15,6 @@ bcrypt = "0.15.1"
 uuid = {version = "1.11.0", features = ["v4"]}
 winapi = { version = "0.3", features = ["processthreadsapi", "winnt"] }
 chrono = { version = "0.4.38", features = ["serde"]}
+rocket_cors = "0.6.0"
 
 
