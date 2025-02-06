@@ -13,9 +13,12 @@ const Login = () => {
       .then(response => {
         console.log("Login successful:", response.data);
         // insert received session token into div #token
-        document.getElementById("token").innerText = JSON.stringify(response.data.session_id);
+        //document.getElementById("token").innerText = JSON.stringify(response.data.session_id);
+        // store session token in sessionStorage
+        sessionStorage.setItem("session_id", response.data.session_id);
 
-        // Handle success (e.g., redirect, display message)
+        // Handle success by redirecting to /
+        window.location.href = "/";
       })
       .catch(error => {
         console.error("Login error:", error);
