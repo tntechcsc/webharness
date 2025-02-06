@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './App.css'; // Ensure your styles are linked correctly
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import Home from "./pages/Home";
+import Application from "./pages/Application";
+import RoleManagment from "./pages/RoleManagement";
+
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -31,57 +36,16 @@ function App() {
           <div className="spinner"></div>
         </div>
       ) : (
-        <div className="app-container">
-          {/* Sidebar/Navbar */}
-          <div className="sidebar">
-            <div className="logo-button">
-              <button onClick={() => console.log("Logo button clicked")} style={{ all: 'unset', cursor: 'pointer' }}>
-                <img 
-                  src="LogoHarness2.png" 
-                  alt="Logo" 
-                  style={{ width: '10rem', height: '11rem'}} 
-                />
-              </button>
-            </div>
-            <div className="nav-button">Application</div>
-            <div className="nav-button">Role Management</div>
-          </div>
-
-          {/* Main content area */}
-          <div className="main-content">
-            <div className="content-wrapper">
-              <h1 className="page-header">Welcome to Project Mangrove</h1>
-
-              {/* Mini Panel with Search and Application List */}
-              <div className="mini-panel">
-                <h2>Application Panel</h2>
-                
-                {/* Search Bar */}
-                <input
-                  type="text"
-                  placeholder="Search Feature"
-                  className="search-bar"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-
-                {/* Application Table */}
-                <table className="app-table">
-                  <tbody>
-                    {filteredApps.map((app) => (
-                      <tr key={app.id}>
-                        <td className="app-name">{app.name}</td>
-                        <td>
-                          <button className="run-button">Run</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+        <Router>
+        <div className="d-flex flex-column min-vh-100 bg-dark text-light">
+          <div className="flex-grow-1">
+            <Routes>
+            <Route path="/" element={<Home />} />
+            
+            </Routes>
           </div>
         </div>
+    </Router>
       )}
     </>
   );
