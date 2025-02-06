@@ -9,8 +9,20 @@ import Navbar from "./components/Navbar";
 import Login from "./pages/login";
 
 function App() {
+  const [atLogin, setAtLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    let pathname = window.location.pathname;
+    if (pathname === "/login") {
+      setAtLogin(true);
+    }
+    else {
+      setAtLogin(false);
+    }
+    
+  })
 
   // Simulate a delay before showing the page content
   useEffect(() => {
@@ -29,6 +41,7 @@ function App() {
     app.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+
   return (
     <>
       {isLoading ? (
@@ -40,7 +53,7 @@ function App() {
       ) : (
         <Router>
         <div className="d-flex min-vh-100 bg-dark text-light">
-          <Navbar /> 
+          {!atLogin ? <Navbar /> : ""}
           <div className="flex-grow-1">
             <Routes>
             <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />
