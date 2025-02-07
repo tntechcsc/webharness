@@ -224,6 +224,8 @@
 
 .role-management{
   padding: 20px;
+  flex: 1;
+  margin-left: 10rem;
 }
 
 table {
@@ -238,7 +240,7 @@ th, td {
 }
 
 th {
-  background-color: #f4f4f4;
+  background-color: #12255f;
 }
 
 select {

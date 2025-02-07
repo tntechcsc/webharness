@@ -46,7 +46,7 @@ function App() {
             <Route path="/applications" element={<Application/>} />
             
             <Route path="/" element={<HomePage />} />
-            <Route path="roles" element={<RoleManagement />} />
+            <Route path="role-management" element={<RoleManagement />} />
             <Route path="applications" element={<Application />} />
             </Routes>
           </div>
