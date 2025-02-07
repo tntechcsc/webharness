@@ -41,14 +41,12 @@ function App() {
         <div className="d-flex min-vh-100 bg-dark text-light">
           <Navbar />
           <div className="flex-grow-1">
-            <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/applications" element={<Application/>} />
-            
+          <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="role-management" element={<RoleManagement />} />
-            <Route path="applications" element={<Application />} />
-            </Routes>
+            <Route path="/applications" element={<Application />} />
+            <Route path="/role-management" element={<RoleManagement />} />
+          </Routes>
+
           </div>
         </div>
       </Router>
