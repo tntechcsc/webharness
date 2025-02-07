@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 import './Navbar.css';  
 
 const Navbar = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-
   return (
     <div className="navbar">
       {/* Sidebar/Navbar */}
