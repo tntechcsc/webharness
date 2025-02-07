@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import '../App'; // Ensure your styles are linked correctly
+import Navbar from "../components/Navbar";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import placeholder from "../assets/profile-placeholder.png";
 
 
 
-
-
-const Home = () => {
+const HomePage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [userRole, setUserRole] = useState("superadmin");
   
     // Simulate a delay before showing the page content
     useEffect(() => {
@@ -29,29 +30,22 @@ const Home = () => {
   
   
 
-  return ( <div>
-
-
-<div className="app-container">
-          {/* Sidebar/Navbar */}
-          <div className="sidebar">
-            <div className="logo-button">
-              <button onClick={() => console.log("Logo button clicked")} style={{ all: 'unset', cursor: 'pointer' }}>
-                <img 
-                  src="LogoHarness2.png" 
-                  alt="Logo" 
-                  style={{ width: '10rem', height: '11rem'}} 
-                />
-              </button>
-            </div>
-            <div className="nav-button">Application</div>
-            <div className="nav-button">Role Management</div>
-          </div>
-
+  return (
+  <div>
+      <div className="app-container">
           {/* Main content area */}
           <div className="main-content">
             <div className="content-wrapper">
               <h1 className="page-header">Welcome to Project Mangrove</h1>
+              <div className="profile-container">
+                <div className="username-container">
+                  <span className="username">John Doe</span>
+                  <div className="role-subheader">
+                    {userRole === "superadmin" ? "Super Admin" : "Admin"}
+                  </div>
+                </div>  
+                <img src={placeholder} alt="Profile" className="profile-pic" />
+              </div>
 
               {/* Mini Panel with Search and Application List */}
               <div className="mini-panel">
@@ -83,10 +77,9 @@ const Home = () => {
             </div>
           </div>
         </div>
-
-          </div> );
+  </div> );
 };
 
 
 
-export default Home;
+export default HomePage;
