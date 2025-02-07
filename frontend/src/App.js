@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import  ProtectedRoute  from "./components/ProtectedRoute"
 import './App.css'; // Ensure your styles are linked correctly
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, useLocation  } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import Application from "./pages/Application";
 import RoleManagement from "./pages/RoleManagement";
@@ -11,18 +11,7 @@ import Login from "./pages/login";
 function App() {
   const [atLogin, setAtLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-
-  useEffect(() => {
-    let pathname = window.location.pathname;
-    if (pathname === "/login") {
-      setAtLogin(true);
-    }
-    else {
-      setAtLogin(false);
-    }
-    
-  })
+  const location = useLocation(); // Hook to get the current location/pathname
 
   // Simulate a delay before showing the page content
   useEffect(() => {
@@ -36,11 +25,6 @@ function App() {
    
   ];
 
-  // Filter applications based on search input
-  const filteredApps = applications.filter((app) =>
-    app.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
 
   return (
     <>
@@ -51,22 +35,27 @@ function App() {
           <div className="spinner"></div>
         </div>
       ) : (
-        <Router>
         <div className="d-flex min-vh-100 bg-dark text-light">
-          {!atLogin ? <Navbar /> : ""}
+          {!location.pathname === "/login" && <Navbar />}
           <div className="flex-grow-1">
             <Routes>
-            <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />
-            <Route path="role-management" element={<ProtectedRoute element={<RoleManagement />} />} />
-            <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
-            <Route path="login" element={<Login />} />
+              <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />
+              <Route path="role-management" element={<ProtectedRoute element={<RoleManagement />} />} />
+              <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
+              <Route path="login" element={<Login />} />
             </Routes>
           </div>
         </div>
-    </Router>
       )}
     </>
   );
 }
 
-export default App;
+// Wrap the App component with the Router to provide routing context
+export default function WrappedApp() {
+  return (
+    <Router>
+      <App />
+    </Router>
+  );
+}
