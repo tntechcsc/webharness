@@ -12,7 +12,6 @@ function App() {
   const [atLogin, setAtLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const location = useLocation(); // Hook to get the current location/pathname
-
   // Simulate a delay before showing the page content
   useEffect(() => {
     setTimeout(() => {
@@ -36,7 +35,7 @@ function App() {
         </div>
       ) : (
         <div className="d-flex min-vh-100 bg-dark text-light">
-          {!location.pathname === "/login" && <Navbar />}
+          {location.pathname !== "/login" && <Navbar />}
           <div className="flex-grow-1">
             <Routes>
               <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />
