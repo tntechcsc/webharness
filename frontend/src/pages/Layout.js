@@ -9,8 +9,8 @@ const Layout = ({ children, title }) => {
 
   return (
     <>
-      <Navbar />
       <div className="app-container">
+        <Navbar />
         <div className="main-content">
           <div className="content-wrapper">
             <PageHeader 
