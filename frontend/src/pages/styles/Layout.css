@@ -1,0 +1,18 @@
+.layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  .app-container {
+    flex: 1;
+    padding-top: 60px; /* Adjust this value based on your navbar height */
+  }
+  
+  .main-content {
+    height: 100%;
+  }
+  
+  .content-wrapper {
+    padding: 20px;
+  }
