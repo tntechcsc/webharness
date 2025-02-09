@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Layout from './Layout';
 
 const RoleManagement = () => {
   const [users, setUsers] = useState([]);
@@ -10,7 +11,8 @@ const RoleManagement = () => {
   };
 
   return (
-    <div className="role-management">
+    <Layout title="Role Management">
+          <div className="role-management">
       <h2>Role Management</h2>
       <p><strong>Your Role:</strong> {currentUserRole}</p>
 
@@ -50,6 +52,7 @@ const RoleManagement = () => {
         </tbody>
       </table>
     </div>
+    </Layout>
   );
 };
 

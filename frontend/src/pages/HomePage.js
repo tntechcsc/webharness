@@ -3,6 +3,8 @@ import '../App'; // Ensure your styles are linked correctly
 import Navbar from "../components/Navbar";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import placeholder from "../assets/profile-placeholder.png";
+import Layout from "./Layout";
+import PageHeader from "../components/PageHeader";
 
 
 
@@ -31,53 +33,35 @@ const HomePage = () => {
   
 
   return (
-  <div>
-      <div className="app-container">
-          {/* Main content area */}
-          <div className="main-content">
-            <div className="content-wrapper">
-              <h1 className="page-header">Welcome to Project Mangrove</h1>
-              <div className="profile-container">
-                <div className="username-container">
-                  <span className="username">John Doe</span>
-                  <div className="role-subheader">
-                    {userRole === "superadmin" ? "Super Admin" : "Admin"}
-                  </div>
-                </div>  
-                <img src={placeholder} alt="Profile" className="profile-pic" />
-              </div>
+  <Layout title="Welcome to Project Mangrove">
+    {/* Mini Panel with Search and Application List */}
+    <div className="mini-panel">
+      <h2>Application Panel</h2>
+      
+      {/* Search Bar */}
+      <input
+        type="text"
+        placeholder="Search Feature"
+        className="search-bar"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
 
-              {/* Mini Panel with Search and Application List */}
-              <div className="mini-panel">
-                <h2>Application Panel</h2>
-                
-                {/* Search Bar */}
-                <input
-                  type="text"
-                  placeholder="Search Feature"
-                  className="search-bar"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-
-                {/* Application Table */}
-                <table className="app-table">
-                  <tbody>
-                    {filteredApps.map((app) => (
-                      <tr key={app.id}>
-                        <td className="app-name">{app.name}</td>
-                        <td>
-                          <button className="run-button">Run</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-  </div> );
+      {/* Application Table */}
+      <table className="app-table">
+        <tbody>
+          {filteredApps.map((app) => (
+            <tr key={app.id}>
+              <td className="app-name">{app.name}</td>
+              <td>
+                <button className="run-button">Run</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </Layout> );
 };
 
 
