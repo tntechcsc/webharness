@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require('cors');
 const app = express();
 const port = 80;
+const fs = require('fs').promises;
+
 var exec = require('child_process').exec;
 
 app.use(cors());
@@ -16,9 +18,12 @@ app.get("/api/test", function (req, res) {
 app.post("/api/bruh", function (req, res) {
 	
 
-	console.log(req.body);	
+	// fs.appendFile("output.json", JSON.stringify(req.body.ref));	
 
-	const command = "powershell C:\\4610\\devops_backend\\devops\\push.ps1"
+	const command = `powershell C:\\4610\\devops_backend\\devops\\push.ps1 ${req.body.ref}`
+	
+	
+	return 0;
 	exec(command, (err,output) => {
 
 		if (err) {
