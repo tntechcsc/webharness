@@ -3,13 +3,15 @@ import React from "react";
 // Function to check if the session is valid
 export const checkSession = async () => {
     const sessionId = sessionStorage.getItem('session_id'); // Get the session ID from sessionStorage
+
+    const baseURL = window.location.origin;
   
     if (!sessionId) {
       return false; // If no session ID, user is not authenticated
     }
   
     try {
-      const response = await fetch('http://localhost:3000/api/session-validate', {
+      const response = await fetch(`${baseURL}:3000/api/session-validate`, {
         method: 'GET',
         headers: {
           'x-session-id': `${sessionId}`, // Pass session ID as a Bearer token in the Authorization header

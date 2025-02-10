@@ -9,7 +9,9 @@ const Login = () => {
     const username = formData.get("username");
     const password = formData.get("password");
 
-    axios.post("http://localhost:3000/api/user/login", { username, password })
+    const baseURL = window.location.origin;
+
+    axios.post(`${baseURL}:3000/api/user/login`, { username, password })
       .then(response => {
         console.log("Login successful:", response.data);
         // insert received session token into div #token

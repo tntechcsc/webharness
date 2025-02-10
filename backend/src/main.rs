@@ -158,6 +158,7 @@ fn rocket() -> _ {
            SwaggerUi::new("/api/swagger/<_..>").url("/api/api-docs/openapi.json", ApiDoc::openapi()),
         )
         .configure(rocket::Config {
+            address: "0.0.0.0".parse().expect("invalid address"),
             port: 3000,
             ..Default::default()
         })
