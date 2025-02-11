@@ -211,7 +211,7 @@ fn stop_process(
 #[utoipa::path(
     post,
     path = "/api/applications/add",
-    tag = "Application Management",
+    tag = "Program Management",
     responses(
         (status = 200, description = "Application added successfully"),
         (status = 400, description = "Invalid application data"),
