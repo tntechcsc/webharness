@@ -22,8 +22,6 @@ app.post("/api/bruh", function (req, res) {
 
 	const command = `powershell C:\\4610\\devops_backend\\devops\\push.ps1 ${req.body.ref}`
 	
-	
-	return 0;
 	exec(command, (err,output) => {
 
 		if (err) {
