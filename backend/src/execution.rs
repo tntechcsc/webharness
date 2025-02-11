@@ -42,6 +42,7 @@ use crate::utils::*;
 use crate::models::*;  // Now Login, User, and other public items are in scope
 use crate::SessionGuard;
 
+use rusqlite::params;
 use rocket::info;
 
 pub type ProcessMap = Arc<Mutex<HashMap<String, ProcessInfo>>>;
@@ -217,6 +218,9 @@ fn stop_process(
         (status = 400, description = "Invalid application data"),
         (status = 500, description = "Failed to add application")
     ),
+    security(
+        ("session_id" = [])
+    ),
     request_body = ApplicationEntry
 )]
 #[post("/api/applications/add", data = "<application_data>")]
@@ -225,11 +229,11 @@ fn add_application(
     application_data: Json<ApplicationEntry>,
     db: &rocket::State<Arc<DB>>,
 ) -> Result<Json<serde_json::Value>, Status> {
-    info!("Received Session ID: {:?}", _session_id.0);
     let conn = db.conn.lock().unwrap();
 
     // Validate user permissions
     let actor = session_to_user(_session_id.0.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
     let actor_role = user_role_search(actor.clone(), &conn);
     let actor_role: i32 = actor_role.parse().expect("Not a valid number");
 
@@ -240,32 +244,30 @@ fn add_application(
     if actor_role > 2 {
         return Err(Status::Unauthorized); // Only Superadmin (1) or Admin (2) can add applications
     }
-
     let path = &application_data.executable_path;
 
     // Validate the executable path
     if !std::path::Path::new(path).exists() {
         return Err(Status::BadRequest);
     }
-
     let application_id = Uuid::new_v4().to_string();
     let instruction_id = Uuid::new_v4().to_string();
 
-    // Insert into Application table
     let query = "INSERT INTO Application (id, userId, contact, name, description, category_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
     let result = conn.execute(
         query,
-        &[
+        params![
             &application_id,
             &application_data.user_id,
-            "email@email.com", // Placeholder contact info (should be retrieved from the user)
+            "email@email.com",
             &application_data.name,
             &application_data.description,
-            &application_data.category_id.clone().unwrap_or("".to_string()),
+            application_data.category_id.as_deref(), //This converts `Option<&String>` to `Option<&str> which allows for requests without category id.`
         ],
     );
 
-    if let Err(_) = result {
+    if let Err(e) = result {
+        error!("Database error while inserting application: {:?}", e);
         return Err(Status::InternalServerError);
     }
 
