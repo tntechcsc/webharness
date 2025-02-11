@@ -42,6 +42,8 @@ use crate::utils::*;
 use crate::models::*;  // Now Login, User, and other public items are in scope
 use crate::SessionGuard;
 
+use rocket::info;
+
 pub type ProcessMap = Arc<Mutex<HashMap<String, ProcessInfo>>>;
 
 #[utoipa::path(
@@ -206,7 +208,91 @@ fn stop_process(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/applications/add",
+    tag = "Application Management",
+    responses(
+        (status = 200, description = "Application added successfully"),
+        (status = 400, description = "Invalid application data"),
+        (status = 500, description = "Failed to add application")
+    ),
+    request_body = ApplicationEntry
+)]
+#[post("/api/applications/add", data = "<application_data>")]
+fn add_application(
+    _session_id: SessionGuard, // User session verification
+    application_data: Json<ApplicationEntry>,
+    db: &rocket::State<Arc<DB>>,
+) -> Result<Json<serde_json::Value>, Status> {
+    info!("Received Session ID: {:?}", _session_id.0);
+    let conn = db.conn.lock().unwrap();
+
+    // Validate user permissions
+    let actor = session_to_user(_session_id.0.clone(), &conn);
+    let actor_role = user_role_search(actor.clone(), &conn);
+    let actor_role: i32 = actor_role.parse().expect("Not a valid number");
+
+    if actor.is_empty() {
+        return Err(Status::Unauthorized);
+    }
+    
+    if actor_role > 2 {
+        return Err(Status::Unauthorized); // Only Superadmin (1) or Admin (2) can add applications
+    }
+
+    let path = &application_data.executable_path;
+
+    // Validate the executable path
+    if !std::path::Path::new(path).exists() {
+        return Err(Status::BadRequest);
+    }
+
+    let application_id = Uuid::new_v4().to_string();
+    let instruction_id = Uuid::new_v4().to_string();
+
+    // Insert into Application table
+    let query = "INSERT INTO Application (id, userId, contact, name, description, category_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
+    let result = conn.execute(
+        query,
+        &[
+            &application_id,
+            &application_data.user_id,
+            "email@email.com", // Placeholder contact info (should be retrieved from the user)
+            &application_data.name,
+            &application_data.description,
+            &application_data.category_id.clone().unwrap_or("".to_string()),
+        ],
+    );
+
+    if let Err(_) = result {
+        return Err(Status::InternalServerError);
+    }
+
+    // Insert into Instructions table
+    let query = "INSERT INTO Instructions (id, path, arguments) VALUES (?1, ?2, ?3)";
+    let result = conn.execute(
+        query,
+        &[
+            &instruction_id,
+            &application_data.executable_path,
+            &application_data.arguments.clone().unwrap_or("".to_string()),
+        ],
+    );
+
+    if let Err(_) = result {
+        return Err(Status::InternalServerError);
+    }
+
+    Ok(Json(json!({
+        "status": "success",
+        "message": "Application added successfully",
+        "application_id": application_id,
+        "instruction_id": instruction_id
+    })))
+}
+
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, get_process_status, stop_process]
+    routes![execute_program, get_process_status, stop_process, add_application]
 }
