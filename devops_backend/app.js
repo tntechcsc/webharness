@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require('cors');
 const app = express();
-const port = 80;
+const port = 8000;
 const fs = require('fs').promises;
 
 var exec = require('child_process').exec;
