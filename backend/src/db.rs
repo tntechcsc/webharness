@@ -148,10 +148,13 @@ impl DB {
             conn_use.execute(
                 "CREATE TABLE IF NOT EXISTS Instructions (
                     id VARCHAR(36) PRIMARY KEY,
+                    application_id VARCHAR(36),
                     path VARCHAR(256),
                     arguments VARCHAR(256),
+                    FOREIGN KEY(application_id) REFERENCES Application(id) ON DELETE CASCADE,
                     CHECK (length(id) <= 36),
-                    CHECK (length(id) <= 256),
+                    CHECK (length(application_id) <= 36),
+                    CHECK (length(path) <= 256),
                     CHECK (length(arguments) <= 256)
                 )",
                 [],

@@ -124,3 +124,52 @@ pub struct ExecuteRequest {
     pub executable_path: String,
 }
 // Add other models here
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct ApplicationEntry {
+    #[schema(example = "Calculator")]
+    pub name: String,
+
+    #[schema(example = "A simple calculator application.")]
+    pub description: String,
+
+    #[schema(example = "user-id-1234")]
+    pub user_id: String,
+
+    #[schema(example = "/path/to/executable")]
+    pub executable_path: String,
+
+    #[schema(example = "--arg1 --arg2")]
+    pub arguments: Option<String>, // Optional arguments for the application
+
+    #[schema(example = "category-id-5678")]
+    pub category_id: Option<String>, // Optional category association
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct InstructionsEntry {
+    #[schema(example = "instruction-id-1234")]
+    pub id: String,
+
+    #[schema(example = "/path/to/executable")]
+    pub path: String,
+
+    #[schema(example = "--arg1 --arg2")]
+    pub arguments: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct ApplicationDetails {
+    pub id: String,
+    pub user_id: String,
+    pub contact: String,
+    pub name: String,
+    pub description: String,
+    pub category_id: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct InstructionsDetails {
+    pub path: String,
+    pub arguments: Option<String>,
+}
