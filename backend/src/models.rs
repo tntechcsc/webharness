@@ -168,7 +168,7 @@ pub struct ApplicationDetails {
     pub category_id: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, Clone, ToSchema)]
 pub struct InstructionsDetails {
     pub path: String,
     pub arguments: Option<String>,

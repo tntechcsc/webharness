@@ -498,7 +498,115 @@ fn get_application(
     })))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/applications",
+    tag = "Program Management",
+    responses(
+        (status = 200, description = "List of all applications retrieved successfully", body = [ApplicationDetails]),
+        (status = 500, description = "Failed to retrieve applications")
+    ),
+    security(
+        ("session_id" = [])
+    )
+)]
+#[get("/api/applications")]
+fn get_all_applications(
+    _session_id: SessionGuard,
+    db: &rocket::State<Arc<DB>>,
+) -> Result<Json<serde_json::Value>, Status> {
+    let conn = db.conn.lock().unwrap();
+
+    // ✅ Query to get all applications
+    let query = "SELECT id, userId, contact, name, description, category_id FROM Application";
+    let mut stmt = match conn.prepare(query) {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            error!("Database error while preparing applications query: {:?}", e);
+            return Err(Status::InternalServerError);
+        }
+    };
+
+    let applications_result: Result<Vec<ApplicationDetails>, _> = stmt
+        .query_map([], |row| {
+            Ok(ApplicationDetails {
+                id: row.get(0)?,
+                user_id: row.get(1)?,
+                contact: row.get(2)?,
+                name: row.get(3)?,
+                description: row.get(4)?,
+                category_id: row.get(5).ok(), // category_id is optional
+            })
+        })
+        .and_then(|rows| rows.collect())
+        .map_err(|e| {
+            error!("Database error while retrieving applications: {:?}", e);
+            Status::InternalServerError
+        });
+
+    let applications = match applications_result {
+        Ok(apps) => apps,
+        Err(status) => return Err(status),
+    };
+
+    // Query to get all instructions
+    let query = "SELECT application_id, path, arguments FROM Instructions";
+    let mut stmt = match conn.prepare(query) {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            error!("Database error while preparing instructions query: {:?}", e);
+            return Err(Status::InternalServerError);
+        }
+    };
+
+    let mut instructions_map: HashMap<String, InstructionsDetails> = HashMap::new();
+
+    let instructions_result: Result<(), Status> = stmt
+        .query_map([], |row| {
+            let application_id: String = row.get(0)?;
+            let instruction = InstructionsDetails {
+                path: row.get(1)?,
+                arguments: row.get(2).ok(),
+            };
+            instructions_map.insert(application_id, instruction);
+            Ok(())
+        })
+        .and_then(|rows| rows.collect())
+        .map_err(|e| {
+            error!("Database error while retrieving instructions: {:?}", e);
+            Status::InternalServerError
+        });
+
+    if let Err(status) = instructions_result {
+        return Err(status);
+    }
+
+    // Merge applications with their instructions
+    let applications_with_instructions: Vec<_> = applications
+        .into_iter()
+        .map(|app| {
+            let instructions = instructions_map
+                .get(&app.id)
+                .cloned()
+                .unwrap_or_else(|| InstructionsDetails {
+                    path: "".to_string(),
+                    arguments: None,
+                });
+
+            json!({
+                "application": app,
+                "instructions": instructions
+            })
+        })
+        .collect();
+
+    Ok(Json(json!({
+        "status": "success",
+        "applications": applications_with_instructions
+    })))
+}
+
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, get_process_status, stop_process, add_application, remove_application, get_application]
+    routes![execute_program, get_process_status, stop_process, add_application, remove_application, get_application, get_all_applications]
 }
