@@ -134,6 +134,28 @@ pub fn user_role_search(username: String, conn: &std::sync::MutexGuard<'_, rusql
     }
 }
 
+pub fn roleId_to_roleName(id: String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> String {
+    let mut stmt = conn.prepare("SELECT roleName FROM Roles WHERE roleId = ?1").unwrap(); // Prepare your query
+    let mut rows = stmt.query([&id]).unwrap(); // Execute the query
+    
+    match rows.next() {
+        Ok(Some(unwrapped_row)) => {
+            // If a user is found
+            let roleName: String = unwrapped_row.get(0).unwrap();
+            return roleName;
+            println!("{}", roleName);
+        }
+        Ok(None) => {
+            // No user found, return 404 Not Found
+            return "".to_string();
+        }
+        Err(_) => {
+            // Querying error, return 500 Internal Server Error
+            return "".to_string();
+        }
+    }
+}
+
 pub fn has_role(username: String, role: String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
     let user_role = user_role_search(username, &conn);
     if user_role == role {
