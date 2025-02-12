@@ -272,17 +272,19 @@ fn add_application(
     }
 
     // Insert into Instructions table
-    let query = "INSERT INTO Instructions (id, path, arguments) VALUES (?1, ?2, ?3)";
+    let query = "INSERT INTO Instructions (id, application_id, path, arguments) VALUES (?1, ?2, ?3, ?4)";
     let result = conn.execute(
         query,
         &[
             &instruction_id,
+            &application_id,
             &application_data.executable_path,
             &application_data.arguments.clone().unwrap_or("".to_string()),
         ],
     );
 
-    if let Err(_) = result {
+    if let Err(e) = result {
+        error!("Database error while inserting application: {:?}", e);
         return Err(Status::InternalServerError);
     }
 
@@ -294,7 +296,157 @@ fn add_application(
     })))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/applications/remove/{application_id}",
+    tag = "Program Management",
+    responses(
+        (status = 200, description = "Application removed successfully"),
+        (status = 400, description = "Invalid application ID"),
+        (status = 403, description = "Unauthorized"),
+        (status = 500, description = "Failed to remove application")
+    ),
+    security(
+        ("session_id" = [])
+    ),
+    params(
+        ("application_id" = String, Path, description = "The ID of the application to remove")
+    )
+)]
+#[delete("/api/applications/remove/<application_id>")]
+fn remove_application(
+    _session_id: SessionGuard,
+    application_id: String,
+    db: &rocket::State<Arc<DB>>,
+) -> Result<Json<serde_json::Value>, Status> {
+    let conn = db.conn.lock().unwrap();
+
+    // Validate user permissions
+    let actor = session_to_user(_session_id.0.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
+    let actor_role = user_role_search(actor.clone(), &conn);
+    let actor_role: i32 = actor_role.parse().expect("Not a valid number");
+
+    if actor.is_empty() {
+        return Err(Status::Unauthorized);
+    }
+
+    if actor_role > 2 {
+        return Err(Status::Unauthorized); // Only Superadmin (1) or Admin (2) can remove applications
+    }
+
+    // Delete the application
+    let query = "DELETE FROM Application WHERE id = ?1";
+    let result = conn.execute(query, &[&application_id]);
+
+    if let Err(e) = result {
+        error!("Database error while deleting application: {:?}", e);
+        return Err(Status::InternalServerError);
+    }
+
+    // Delete the related instructions (wasnt sure about how the cascades work so adding this just in case)
+    let query = "DELETE FROM Instructions WHERE id = ?1";
+    let result = conn.execute(query, &[&application_id]);
+
+    if let Err(e) = result {
+        error!("Database error while deleting instructions: {:?}", e);
+        return Err(Status::InternalServerError);
+    }
+
+    Ok(Json(json!({
+        "status": "success",
+        "message": "Application removed successfully",
+        "application_id": application_id
+    })))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/applications/{application_id}",
+    tag = "Program Management",
+    responses(
+        (status = 200, description = "Application details retrieved successfully", body = ApplicationDetails),
+        (status = 404, description = "Application not found"),
+        (status = 500, description = "Failed to retrieve application")
+    ),
+    security(
+        ("session_id" = [])
+    ),
+    params(
+        ("application_id" = String, Path, description = "The ID of the application to retrieve")
+    )
+)]
+#[get("/api/applications/<application_id>")]
+fn get_application(
+    _session_id: SessionGuard,
+    application_id: String,
+    db: &rocket::State<Arc<DB>>,
+) -> Result<Json<serde_json::Value>, Status> {
+    let conn = db.conn.lock().unwrap();
+
+    // Query to get application details
+    let query = "SELECT id, userId, contact, name, description, category_id FROM Application WHERE id = ?1";
+    let mut stmt = match conn.prepare(query) {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            error!("Database error while preparing application query: {:?}", e);
+            return Err(Status::InternalServerError);
+        }
+    };
+
+    let application: ApplicationDetails = match stmt.query_row([&application_id], |row| {
+        Ok(ApplicationDetails {
+            id: row.get(0)?,
+            user_id: row.get(1)?,
+            contact: row.get(2)?,
+            name: row.get(3)?,
+            description: row.get(4)?,
+            category_id: row.get(5).ok(), // category_id is optional
+        })
+    }) {
+        Ok(app) => app,
+        Err(rusqlite::Error::QueryReturnedNoRows) => return Err(Status::NotFound),
+        Err(e) => {
+            error!("Database error while retrieving application: {:?}", e);
+            return Err(Status::InternalServerError);
+        }
+    };
+
+    // Query to get associated instructions
+    let query = "SELECT path, arguments FROM Instructions WHERE application_id = ?1";
+    let mut stmt = match conn.prepare(query) {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            error!("Database error while preparing instructions query: {:?}", e);
+            return Err(Status::InternalServerError);
+        }
+    };
+
+    let instructions = match stmt.query_row([&application_id], |row| {
+        Ok(InstructionsDetails {
+            path: row.get(0)?,
+            arguments: row.get(1).ok(),
+        })
+    }) {
+        Ok(instr) => instr,
+        Err(rusqlite::Error::QueryReturnedNoRows) => InstructionsDetails {
+            path: "".to_string(),
+            arguments: None,
+        },
+        Err(e) => {
+            error!("Database error while retrieving instructions: {:?}", e);
+            return Err(Status::InternalServerError);
+        }
+    };
+
+    Ok(Json(json!({
+        "status": "success",
+        "application": application,
+        "instructions": instructions
+    })))
+}
+
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, get_process_status, stop_process, add_application]
+    routes![execute_program, get_process_status, stop_process, add_application, remove_application, get_application]
 }

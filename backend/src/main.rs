@@ -115,7 +115,9 @@ fn rocket() -> _ {
             crate::execution::execute_program, 
             crate::execution::get_process_status, 
             crate::execution::stop_process,
-            crate::execution::add_application
+            crate::execution::add_application,
+            crate::execution::remove_application,
+            crate::execution::get_application,
         ),
         modifiers(&SecurityAddon),
     )]

@@ -157,3 +157,19 @@ pub struct InstructionsEntry {
     #[schema(example = "--arg1 --arg2")]
     pub arguments: Option<String>,
 }
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct ApplicationDetails {
+    pub id: String,
+    pub user_id: String,
+    pub contact: String,
+    pub name: String,
+    pub description: String,
+    pub category_id: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct InstructionsDetails {
+    pub path: String,
+    pub arguments: Option<String>,
+}
