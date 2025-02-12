@@ -15,8 +15,6 @@ const Layout = ({ children, title }) => {
           <div className="content-wrapper">
             <PageHeader 
               title={title}
-              username={username}
-              userRole={userRole}
             />
             {children}
           </div>

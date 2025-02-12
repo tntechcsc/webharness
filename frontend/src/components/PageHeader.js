@@ -1,7 +1,35 @@
-import React from 'react';
 import placeholder from "../assets/profile-placeholder.png";
+import { useState, useEffect } from 'react';
 
-const PageHeader = ({ title, username, userRole }) => {
+const PageHeader = ({ title }) => {
+  const [username, setUsername] = useState('John Doe');
+  const [role, setRole] = useState('Plebian');
+
+  useEffect(() => {
+    const uri = "http://localhost:3000/api/user/info";
+    let session_id = sessionStorage.getItem("session_id")
+    //call endpoint to get username and role
+    fetch(uri, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "x-session-id": session_id
+      }
+    })
+      .then((res) => {
+        console.log(res);
+        if (res.ok) {
+          res.json().then((user) => {
+            console.log("success", user);
+            setUsername(user.username);
+            setRole(user.roleName);
+          });
+        } else {
+          console.log("failed");
+        }
+    });
+  })
+
   return (
     <>
       <h1 className="page-header">{title}</h1>
@@ -9,7 +37,7 @@ const PageHeader = ({ title, username, userRole }) => {
         <div className="username-container">
           <span className="username">{username}</span>
           <div className="role-subheader">
-            {userRole === "superadmin" ? "Super Admin" : "Admin"}
+            {role}
           </div>
         </div>  
         <img src={placeholder} alt="Profile" className="profile-pic" />

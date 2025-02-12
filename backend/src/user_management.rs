@@ -95,6 +95,59 @@ fn user_search(_session_id: SessionGuard, username: String, db: &rocket::State<A
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/user/info",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "User found"),
+        (status = 404, description = "User not found")
+    ),
+    params(),
+    security(
+        ("session_id" = [])
+    ),
+    )]
+#[get("/api/user/info")]
+fn user_info(_session_id: SessionGuard, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let session_id = _session_id.0;
+
+    let id = session_to_user(session_id, &conn);
+
+    let mut stmt = conn.prepare("SELECT id, username, email FROM User WHERE id = ?1").unwrap(); // Prepare your query
+    let mut rows = stmt.query([&id]).unwrap(); // Execute the query
+    
+    match rows.next() {
+        Ok(Some(unwrapped_row)) => {
+            // If a user is found
+            let id: String = unwrapped_row.get(0).unwrap();
+            let username: String = unwrapped_row.get(1).unwrap();
+            let email: String = unwrapped_row.get(2).unwrap();
+            let roleId: String = user_role_search(username.clone(), &conn);
+            let roleName: String = roleId_to_roleName(roleId.clone(), &conn);
+
+            Ok(Json(json!({
+                "status": "success",
+                "message": format!("Found {}", username),
+                "id": id,
+                "username": username,
+                "email": email,
+                "roleId": roleId,
+                "roleName": roleName,
+            })))
+        }
+        Ok(None) => {
+            // No user found, return 404 Not Found
+            Err(Status::NotFound)
+        }
+        Err(_) => {
+            // Querying error, return 500 Internal Server Error
+            Err(Status::InternalServerError)
+        }
+    }
+}
+
 
 
 #[utoipa::path(
@@ -458,7 +511,7 @@ fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<ser
 
 // Export the routes
 pub fn user_management_routes() -> Vec<Route> {
-    routes![session_validate_api, user_search, user_role_search_api, user_register, user_login, user_logout, reset_password, user_delete]
+    routes![session_validate_api, user_search, user_info, user_role_search_api, user_register, user_login, user_logout, reset_password, user_delete]
 }
 
 pub struct UserSearchPaths;
