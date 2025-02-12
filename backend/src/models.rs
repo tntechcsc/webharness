@@ -120,8 +120,8 @@ pub struct ProcessStatusResponse {
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct ExecuteRequest {
-    #[schema(example = "/path/to/executable")]
-    pub executable_path: String,
+    #[schema(example = "application-id-123")]
+    pub application_id: String,
 }
 // Add other models here
 
