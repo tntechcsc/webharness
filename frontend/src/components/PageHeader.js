@@ -8,6 +8,11 @@ const PageHeader = ({ title }) => {
   useEffect(() => {
     const uri = "http://localhost:3000/api/user/info";
     let session_id = sessionStorage.getItem("session_id")
+
+    if (!session_id) {
+      return;
+    }
+
     //call endpoint to get username and role
     fetch(uri, {
       method: "GET",
