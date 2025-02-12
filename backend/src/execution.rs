@@ -43,6 +43,8 @@ use crate::models::*;  // Now Login, User, and other public items are in scope
 use crate::SessionGuard;
 
 use rusqlite::params;
+
+//For ddebugging
 use rocket::info;
 
 pub type ProcessMap = Arc<Mutex<HashMap<String, ProcessInfo>>>;
@@ -53,28 +55,45 @@ pub type ProcessMap = Arc<Mutex<HashMap<String, ProcessInfo>>>;
     tag = "Program Management",
     responses(
         (status = 200, description = "Executable launched successfully"),
-        (status = 400, description = "Invalid executable path"),
+        (status = 400, description = "Invalid application ID or missing path"),
+        (status = 401, description = "Unauthorized"),
         (status = 500, description = "Failed to launch executable")
+    ),
+    security(
+        ("session_id" = [])
     ),
     request_body = ExecuteRequest
 )]
 #[post("/api/execute", data = "<request>")]
 fn execute_program(
+    _session_id: SessionGuard,
     request: Json<ExecuteRequest>,
     process_map: &State<ProcessMap>,
+    db: &rocket::State<Arc<DB>>,
 ) -> Result<Json<serde_json::Value>, Status> {
-    let path = &request.executable_path;
+    let conn = db.conn.lock().unwrap();
 
-    // Validate the path
-    if !std::path::Path::new(path).exists() {
+    // Get the path from the database using application_id
+    let query = "SELECT path FROM Instructions WHERE application_id = ?";
+    let path: Result<String, _> = conn.query_row(query, [&request.application_id], |row| row.get(0));
+
+    let path = match path {
+        Ok(p) => p,
+        Err(_) => {
+            error!("No executable path found for application_id: {}", request.application_id);
+            return Err(Status::BadRequest);
+        }
+    };
+
+    if !std::path::Path::new(&path).exists() {
+        error!("Executable path does not exist: {}", path);
         return Err(Status::BadRequest);
     }
 
     // Attempt to execute the program
-    match Command::new(path).spawn() {
+    match Command::new(&path).spawn() {
         Ok(mut child) => {
             let pid = child.id();
-            let process_id = Uuid::new_v4().to_string();
 
             let status = Arc::new(Mutex::new("Running".to_string()));
             let exit_code = Arc::new(Mutex::new(None));
@@ -85,51 +104,46 @@ fn execute_program(
                 exit_code: exit_code.clone(),
             };
 
-            // Store the process info in the process map
-            {
-                let mut map = process_map.lock().unwrap();
-                map.insert(process_id.clone(), process_info);
-            }
+            // Store in `process_map` using `application_id` as the key
+            let mut map = process_map.lock().unwrap();
+            map.insert(request.application_id.clone(), process_info);
 
-            // Spawn a thread to monitor the process
-            let process_map_clone = (*process_map).clone();
-            let process_id_clone = process_id.clone();
+            // Monitor the process in a separate thread so we can continue
+            let process_map_clone = Arc::clone(process_map);
+            let application_id_clone = request.application_id.clone();
             std::thread::spawn(move || {
-                std::thread::spawn(move || {
-                    loop {
-                        match child.try_wait() {
-                            Ok(Some(exit_status)) => {
-                                // Process has exited
-                                let mut map = process_map_clone.lock().unwrap();
-                                if let Some(process_info) = map.get_mut(&process_id_clone) {
-                                    *process_info.status.lock().unwrap() = "Exited".to_string();
-                                    *process_info.exit_code.lock().unwrap() = exit_status.code();
-                                }
-                                break; // Exit the loop
+                loop {
+                    match child.try_wait() {
+                        Ok(Some(exit_status)) => {
+                            // Process has exited
+                            let mut map = process_map_clone.lock().unwrap();
+                            if let Some(process_info) = map.get_mut(&application_id_clone) {
+                                *process_info.status.lock().unwrap() = "Exited".to_string();
+                                *process_info.exit_code.lock().unwrap() = exit_status.code();
                             }
-                            Ok(None) => {
-                                // Process is still running, sleep for a short duration
-                                std::thread::sleep(std::time::Duration::from_millis(500));
-                            }
-                            Err(e) => {
-                                eprintln!("Error monitoring process: {}", e);
-                                break; // Exit the loop on error
-                            }
+                            break;
+                        }
+                        Ok(None) => {
+                            // Process is still running so take a nap
+                            std::thread::sleep(std::time::Duration::from_secs(1));
+                        }
+                        Err(e) => {
+                            error!("Error monitoring process: {}", e);
+                            break;
                         }
                     }
-                });                
+                }
             });
 
             Ok(Json(json!({
                 "status": "success",
                 "message": "Executable launched successfully",
-                "process_id": process_id,
                 "pid": pid,
-                "path": path
+                "application_id": request.application_id
             })))
         }
         Err(e) => {
-            eprintln!("Failed to launch executable: {}", e);
+            error!("Failed to launch executable: {}", e);
             Err(Status::InternalServerError)
         }
     }
@@ -165,47 +179,85 @@ fn get_process_status(
 
 #[utoipa::path(
     delete,
-    path = "/api/process/{process_id}/stop",
+    path = "/api/process/{application_id}/stop",
     tag = "Program Management",
     params(
-        ("process_id" = String, Path, description = "Process ID to stop"),
+        ("application_id" = String, Path, description = "Application ID to stop"),
     ),
     responses(
         (status = 200, description = "Process stopped successfully"),
+        (status = 401, description = "Unauthorized"),
         (status = 404, description = "Process not found"),
         (status = 500, description = "Failed to stop process"),
     ),
+    security(
+        ("session_id" = [])
+    )
 )]
-#[delete("/api/process/<process_id>/stop")]
+#[delete("/api/process/<application_id>/stop")]
 fn stop_process(
-    process_id: String,
+    _session_id: SessionGuard,  //Requires authentication
+    application_id: String,
     process_map: &State<ProcessMap>,
 ) -> Result<Json<serde_json::Value>, Status> {
     let mut map = process_map.lock().unwrap();
-    if let Some(process_info) = map.get(&process_id) {
-        let pid = process_info.pid;
 
-        // Attempt to terminate the process
-        unsafe {
-            let handle = OpenProcess(PROCESS_TERMINATE, 0, pid);
-            if handle.is_null() {
-                return Err(Status::InternalServerError); // Could not open process handle
-            }
+    if let Some(process_info) = map.get(&application_id) {
+        let parent_pid = process_info.pid;
 
-            // Terminate the process
-            if TerminateProcess(handle, 1) == 0 {
-                return Err(Status::InternalServerError); // Termination failed
-            }
+        // Find all child processes
+        let output = Command::new("wmic")
+            .args(&["process", "where", format!("ParentProcessId={}", parent_pid).as_str(), "get", "ProcessId"])
+            .output();
+
+        let child_pids: Vec<String> = if let Ok(output) = output {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            stdout
+                .lines()
+                .skip(1) // Skip header line
+                .filter_map(|line| {
+                    let trimmed = line.trim();
+                    if !trimmed.is_empty() {
+                        Some(trimmed.to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        } else {
+            vec![]
+        };
+
+        // Kill all child processes
+        for pid in &child_pids {
+            let _ = Command::new("taskkill")
+                .args(&["/PID", pid, "/F"])
+                .output();
         }
 
-        // Update the status in the process map
+        // Kill the parent process
+        let kill_result = Command::new("taskkill")
+            .args(&["/PID", &parent_pid.to_string(), "/F"])
+            .output();
+
+        if let Err(e) = kill_result {
+            error!("Failed to terminate parent process {}: {:?}", parent_pid, e);
+            return Err(Status::InternalServerError);
+        }
+
+        // Update process status
         *process_info.status.lock().unwrap() = "Stopped".to_string();
+
+        // Remove from process_map
+        map.remove(&application_id);
+
         Ok(Json(json!({
             "status": "success",
-            "message": format!("Process with PID {} stopped successfully", pid)
+            "message": format!("Process {} and all child processes stopped successfully", application_id)
         })))
     } else {
-        Err(Status::NotFound) // Process ID not found in the map
+        error!("Process not found for application_id: {}", application_id);
+        Err(Status::NotFound)
     }
 }
 
