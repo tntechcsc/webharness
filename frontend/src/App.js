@@ -35,7 +35,6 @@ function App() {
         </div>
       ) : (
         <div className="d-flex min-vh-100 bg-dark text-light">
-          {location.pathname !== "/login" && <Navbar />}
           <div className="flex-grow-1">
             <Routes>
               <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />

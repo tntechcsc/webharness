@@ -180,7 +180,6 @@
 
 /* Search Bar */
 .search-bar {
-  width: 100%;
   padding: 10px;
   margin-bottom: 10px;
   border: 1px solid #ccc;
@@ -217,7 +216,6 @@
 
 .role-management{
   padding: 20px;
-  flex: 1;
   margin-left: 10rem;
 }
 
