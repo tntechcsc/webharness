@@ -2,8 +2,8 @@ import placeholder from "../assets/profile-placeholder.png";
 import { useState, useEffect } from 'react';
 
 const PageHeader = ({ title }) => {
-  const [username, setUsername] = useState('John Doe');
-  const [role, setRole] = useState('Plebian');
+  const [username, setUsername] = useState(null);
+  const [role, setRole] = useState(null);
 
   useEffect(() => {
     const uri = "http://localhost:3000/api/user/info";
@@ -13,7 +13,7 @@ const PageHeader = ({ title }) => {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "x-session-id": session_id
+        "x-session-id": session_id || ""
       }
     })
       .then((res) => {
@@ -28,7 +28,7 @@ const PageHeader = ({ title }) => {
           console.log("failed");
         }
     });
-  })
+  }, [])
 
   return (
     <>
