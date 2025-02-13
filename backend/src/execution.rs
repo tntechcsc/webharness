@@ -877,13 +877,13 @@ fn get_all_categories(
         (status = 200, description = "Updates program info"),
         (status = 404, description = "Program not found")
     ),
-    request_body = UpdateApplicationForm,
+    request_body = ApplicationUpdateForm,
     security(
         ("session_id" = [])
     ),
     )]
-#[put("/api/password/reset", data = "<user_data>")]
-fn update_application(_session_id: SessionGuard, application_data: Json<UpdateApplicationForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+#[put("/api/password/reset", data = "<application_data>")]
+fn update_application(_session_id: SessionGuard, application_data: Json<ApplicationUpdateForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let session_id = &_session_id.0;
     
@@ -899,7 +899,7 @@ fn update_application(_session_id: SessionGuard, application_data: Json<UpdateAp
     let role = user_role_search(actor, &conn);
 
     //if they're a viewer
-    if role == 3 {
+    if role == "3" {
         return Err(Status::Unauthorized);
     } 
 
@@ -907,7 +907,7 @@ fn update_application(_session_id: SessionGuard, application_data: Json<UpdateAp
 
     
     if let Some(name) = &application_data.name {
-        println!(name);
+        println!("{}", name);
     }
 
 
