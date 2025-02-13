@@ -1,0 +1,9 @@
+/backend/target
+/backend/*.db
+/backend/Cargo.lock
+/frontend/build
+/frontend/node_modules
+*.log
+*~
+*node_modules*
+backend/Cargo.lock
