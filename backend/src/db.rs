@@ -132,18 +132,29 @@ impl DB {
                     contact VARCHAR(100),
                     name VARCHAR(36),
                     description TEXT,
-                    category_id VARCHAR(36),
                     FOREIGN KEY(userId) REFERENCES User(id) ON DELETE CASCADE,
-                    FOREIGN KEY(category_id) REFERENCES Category(id) ON DELETE SET NULL,
                     CHECK (length(id) <= 36),
                     CHECK (length(userId) <= 36),
                     CHECK (length(contact) <= 100),
-                    CHECK (length(name) <= 36),
-                    CHECK (length(category_id) <= 36)
+                    CHECK (length(name) <= 36)
                 )",
                 [],
             )?;
-        
+            
+            // Create the CategoryApplication table
+            conn_use.execute(
+                "CREATE TABLE IF NOT EXISTS CategoryApplication (
+                    category_id VARCHAR(36),
+                    application_id VARCHAR(36),
+                    PRIMARY KEY (category_id, application_id),
+                    FOREIGN KEY(category_id) REFERENCES Category(id) ON DELETE CASCADE,
+                    FOREIGN KEY(application_id) REFERENCES Application(id) ON DELETE CASCADE,
+                    CHECK (length(category_id) <= 36),
+                    CHECK (length(application_id) <= 36)
+                )",
+                [],
+            )?;
+
             // Create the Instructions table
             conn_use.execute(
                 "CREATE TABLE IF NOT EXISTS Instructions (

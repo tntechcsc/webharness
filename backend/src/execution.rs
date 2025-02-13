@@ -296,25 +296,24 @@ fn add_application(
     if actor_role > 2 {
         return Err(Status::Unauthorized); // Only Superadmin (1) or Admin (2) can add applications
     }
-    let path = &application_data.executable_path;
 
-    // Validate the executable path
+    // Validate the path
+    let path = &application_data.executable_path;
     if !std::path::Path::new(path).exists() {
         return Err(Status::BadRequest);
     }
     let application_id = Uuid::new_v4().to_string();
     let instruction_id = Uuid::new_v4().to_string();
 
-    let query = "INSERT INTO Application (id, userId, contact, name, description, category_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
+    let query = "INSERT INTO Application (id, userId, contact, name, description) VALUES (?1, ?2, ?3, ?4, ?5)";
     let result = conn.execute(
         query,
         params![
             &application_id,
             &application_data.user_id,
-            "email@email.com",
+            "email@email.com", // TODO: figure out how to get iser contact info.
             &application_data.name,
-            &application_data.description,
-            application_data.category_id.as_deref(), //This converts `Option<&String>` to `Option<&str> which allows for requests without category id.`
+            &application_data.description
         ],
     );
 
@@ -323,15 +322,26 @@ fn add_application(
         return Err(Status::InternalServerError);
     }
 
+    // Insert into CategoryApplication table (if categories are provided)
+    if let Some(category_ids) = &application_data.category_ids {
+        for category_id in category_ids {
+            let query = "INSERT INTO CategoryApplication (application_id, category_id) VALUES (?1, ?2)";
+            if let Err(e) = conn.execute(query, params![&application_id, category_id]) {
+                error!("Database error while inserting category mapping: {:?}", e);
+                return Err(Status::InternalServerError);
+            }
+        }
+    }
+
     // Insert into Instructions table
     let query = "INSERT INTO Instructions (id, application_id, path, arguments) VALUES (?1, ?2, ?3, ?4)";
     let result = conn.execute(
         query,
-        &[
+        params![
             &instruction_id,
             &application_id,
             &application_data.executable_path,
-            &application_data.arguments.clone().unwrap_or("".to_string()),
+            &application_data.arguments.clone().unwrap_or("".to_string())
         ],
     );
 
@@ -373,7 +383,7 @@ fn remove_application(
 ) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap();
 
-    // Validate user permissions
+    // Validate
     let actor = session_to_user(_session_id.0.clone(), &conn);
     let actor = user_name_search(actor, &conn);
     let actor_role = user_role_search(actor.clone(), &conn);
@@ -387,21 +397,24 @@ fn remove_application(
         return Err(Status::Unauthorized); // Only Superadmin (1) or Admin (2) can remove applications
     }
 
-    // Delete the application
-    let query = "DELETE FROM Application WHERE id = ?1";
-    let result = conn.execute(query, &[&application_id]);
-
-    if let Err(e) = result {
-        error!("Database error while deleting application: {:?}", e);
+    // Remove category mappings from CategoryApplication table
+    let query = "DELETE FROM CategoryApplication WHERE application_id = ?1";
+    if let Err(e) = conn.execute(query, &[&application_id]) {
+        error!("Database error while deleting category mappings: {:?}", e);
         return Err(Status::InternalServerError);
     }
 
-    // Delete the related instructions (wasnt sure about how the cascades work so adding this just in case)
-    let query = "DELETE FROM Instructions WHERE id = ?1";
-    let result = conn.execute(query, &[&application_id]);
-
-    if let Err(e) = result {
+    // Remove instructions (the cascades should handle this, but this is just to be safe)
+    let query = "DELETE FROM Instructions WHERE application_id = ?1";
+    if let Err(e) = conn.execute(query, &[&application_id]) {
         error!("Database error while deleting instructions: {:?}", e);
+        return Err(Status::InternalServerError);
+    }
+
+    // Remove the application
+    let query = "DELETE FROM Application WHERE id = ?1";
+    if let Err(e) = conn.execute(query, &[&application_id]) {
+        error!("Database error while deleting application: {:?}", e);
         return Err(Status::InternalServerError);
     }
 
@@ -436,8 +449,8 @@ fn get_application(
 ) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap();
 
-    // Query to get application details
-    let query = "SELECT id, userId, contact, name, description, category_id FROM Application WHERE id = ?1";
+    // Get application details
+    let query = "SELECT id, userId, contact, name, description FROM Application WHERE id = ?";
     let mut stmt = match conn.prepare(query) {
         Ok(stmt) => stmt,
         Err(e) => {
@@ -453,7 +466,7 @@ fn get_application(
             contact: row.get(2)?,
             name: row.get(3)?,
             description: row.get(4)?,
-            category_id: row.get(5).ok(), // category_id is optional
+            category_ids: None, // Placeholder, will be updated below
         })
     }) {
         Ok(app) => app,
@@ -464,8 +477,27 @@ fn get_application(
         }
     };
 
-    // Query to get associated instructions
-    let query = "SELECT path, arguments FROM Instructions WHERE application_id = ?1";
+    // Get category IDs for the application
+    let query = "SELECT category_id FROM CategoryApplication WHERE application_id = ?";
+    let mut stmt = match conn.prepare(query) {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            error!("Database error while preparing category query: {:?}", e);
+            return Err(Status::InternalServerError);
+        }
+    };
+
+    let category_ids_result: Result<Vec<String>, _> = stmt
+        .query_map([&application_id], |row| row.get(0))
+        .and_then(|rows| rows.collect());
+
+    let category_ids = match category_ids_result {
+        Ok(ids) if !ids.is_empty() => Some(ids),
+        _ => None, // No categories found
+    };
+
+    // Get associated instructions
+    let query = "SELECT path, arguments FROM Instructions WHERE application_id = ?";
     let mut stmt = match conn.prepare(query) {
         Ok(stmt) => stmt,
         Err(e) => {
@@ -493,7 +525,14 @@ fn get_application(
 
     Ok(Json(json!({
         "status": "success",
-        "application": application,
+        "application": {
+            "id": application.id,
+            "user_id": application.user_id,
+            "contact": application.contact,
+            "name": application.name,
+            "description": application.description,
+            "category_ids": category_ids,  // Now returns multiple categories
+        },
         "instructions": instructions
     })))
 }
@@ -507,7 +546,7 @@ fn get_application(
         (status = 500, description = "Failed to retrieve applications")
     ),
     security(
-        ("session_id" = [])
+        ("session_id" = []),
     )
 )]
 #[get("/api/applications")]
@@ -517,8 +556,8 @@ fn get_all_applications(
 ) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap();
 
-    // ✅ Query to get all applications
-    let query = "SELECT id, userId, contact, name, description, category_id FROM Application";
+    // Retrieve all applications
+    let query = "SELECT id, userId, contact, name, description FROM Application";
     let mut stmt = match conn.prepare(query) {
         Ok(stmt) => stmt,
         Err(e) => {
@@ -535,21 +574,63 @@ fn get_all_applications(
                 contact: row.get(2)?,
                 name: row.get(3)?,
                 description: row.get(4)?,
-                category_id: row.get(5).ok(), // category_id is optional
+                category_ids: None, // Placeholder, will be updated
             })
         })
-        .and_then(|rows| rows.collect())
         .map_err(|e| {
             error!("Database error while retrieving applications: {:?}", e);
             Status::InternalServerError
+        })?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| {
+            error!("Database error while collecting applications: {:?}", e);
+            Status::InternalServerError
         });
 
-    let applications = match applications_result {
+    let mut applications = match applications_result {
         Ok(apps) => apps,
         Err(status) => return Err(status),
     };
 
-    // Query to get all instructions
+    // Retrieve all category associations
+    let query = "SELECT application_id, category_id FROM CategoryApplication";
+    let mut stmt = match conn.prepare(query) {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            error!("Database error while preparing category query: {:?}", e);
+            return Err(Status::InternalServerError);
+        }
+    };
+
+    let mut category_map: HashMap<String, Vec<String>> = HashMap::new();
+
+    let category_result = stmt.query_map([], |row| {
+        let application_id: String = row.get(0)?;
+        let category_id: String = row.get(1)?;
+        Ok((application_id, category_id))
+    });
+
+    match category_result {
+        Ok(rows) => {
+            for row in rows {
+                match row {
+                    Ok((application_id, category_id)) => {
+                        category_map.entry(application_id).or_default().push(category_id);
+                    }
+                    Err(e) => {
+                        error!("Database error while processing category row: {:?}", e);
+                        return Err(Status::InternalServerError);
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            error!("Database error while retrieving categories: {:?}", e);
+            return Err(Status::InternalServerError);
+        }
+    }
+
+    // Retrieve all instructions
     let query = "SELECT application_id, path, arguments FROM Instructions";
     let mut stmt = match conn.prepare(query) {
         Ok(stmt) => stmt,
@@ -561,30 +642,40 @@ fn get_all_applications(
 
     let mut instructions_map: HashMap<String, InstructionsDetails> = HashMap::new();
 
-    let instructions_result: Result<(), Status> = stmt
-        .query_map([], |row| {
-            let application_id: String = row.get(0)?;
-            let instruction = InstructionsDetails {
-                path: row.get(1)?,
-                arguments: row.get(2).ok(),
-            };
-            instructions_map.insert(application_id, instruction);
-            Ok(())
-        })
-        .and_then(|rows| rows.collect())
-        .map_err(|e| {
-            error!("Database error while retrieving instructions: {:?}", e);
-            Status::InternalServerError
-        });
+    let instructions_result = stmt.query_map([], |row| {
+        let application_id: String = row.get(0)?;
+        let instruction = InstructionsDetails {
+            path: row.get(1)?,
+            arguments: row.get(2).ok(),
+        };
+        Ok((application_id, instruction))
+    });
 
-    if let Err(status) = instructions_result {
-        return Err(status);
+    match instructions_result {
+        Ok(rows) => {
+            for row in rows {
+                match row {
+                    Ok((application_id, instruction)) => {
+                        instructions_map.insert(application_id, instruction);
+                    }
+                    Err(e) => {
+                        error!("Database error while processing instruction row: {:?}", e);
+                        return Err(Status::InternalServerError);
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            error!("Database error while retrieving instructions: {:?}", e);
+            return Err(Status::InternalServerError);
+        }
     }
 
-    // Merge applications with their instructions
-    let applications_with_instructions: Vec<_> = applications
+    // Merge applications with their categories and instructions
+    let applications_with_details: Vec<_> = applications
         .into_iter()
-        .map(|app| {
+        .map(|mut app| {
+            app.category_ids = Some(category_map.remove(&app.id).unwrap_or_default());
             let instructions = instructions_map
                 .get(&app.id)
                 .cloned()
@@ -602,11 +693,65 @@ fn get_all_applications(
 
     Ok(Json(json!({
         "status": "success",
-        "applications": applications_with_instructions
+        "applications": applications_with_details
+    })))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/categories/add",
+    tag = "Category Management",
+    responses(
+        (status = 200, description = "Category added successfully"),
+        (status = 400, description = "Invalid category data"),
+        (status = 500, description = "Failed to add category")
+    ),
+    security(("session_id" = [])),
+    request_body = CategoryEntry
+)]
+#[post("/api/categories/add", data = "<category_data>")]
+fn add_category(
+    _session_id: SessionGuard,
+    category_data: Json<CategoryEntry>,
+    db: &rocket::State<Arc<DB>>,
+) -> Result<Json<serde_json::Value>, Status> {
+    let conn = db.conn.lock().unwrap();
+
+    // Validate user permissions
+    let actor = session_to_user(_session_id.0.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
+    let actor_role = user_role_search(actor.clone(), &conn);
+    let actor_role: i32 = actor_role.parse().expect("Not a valid number");
+
+    if actor.is_empty() || actor_role > 2 {
+        return Err(Status::Unauthorized); // Only Superadmins (1) & Admins (2) can create categories
+    }
+
+    let category_id = Uuid::new_v4().to_string();
+
+    let query = "INSERT INTO Category (id, name, description) VALUES (?1, ?2, ?3)";
+    let result = conn.execute(
+        query,
+        params![
+            &category_id,
+            &category_data.name,
+            &category_data.description.clone().unwrap_or("".to_string())
+        ],
+    );
+
+    if let Err(e) = result {
+        error!("Database error while inserting category: {:?}", e);
+        return Err(Status::InternalServerError);
+    }
+
+    Ok(Json(json!({
+        "status": "success",
+        "message": "Category added successfully",
+        "category_id": category_id
     })))
 }
 
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, get_process_status, stop_process, add_application, remove_application, get_application, get_all_applications]
+    routes![execute_program, get_process_status, stop_process, add_application, remove_application, get_application, get_all_applications, add_category]
 }

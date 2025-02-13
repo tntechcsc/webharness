@@ -142,8 +142,8 @@ pub struct ApplicationEntry {
     #[schema(example = "--arg1 --arg2")]
     pub arguments: Option<String>, // Optional arguments for the application
 
-    #[schema(example = "category-id-5678")]
-    pub category_id: Option<String>, // Optional category association
+    #[schema(example = json!(["category-id-5678", "category-id-9123"]))]
+    pub category_ids: Option<Vec<String>>, // Multiple category associations
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -165,11 +165,22 @@ pub struct ApplicationDetails {
     pub contact: String,
     pub name: String,
     pub description: String,
-    pub category_id: Option<String>,
+
+    #[schema(example = json!(["category-id-5678", "category-id-9123"]))]
+    pub category_ids: Option<Vec<String>>, // Multiple category associations
 }
 
 #[derive(Serialize, Deserialize, Clone, ToSchema)]
 pub struct InstructionsDetails {
     pub path: String,
     pub arguments: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct CategoryEntry {
+    #[schema(example = "Utilities")]
+    pub name: String,
+
+    #[schema(example = "Applications related to system utilities")]
+    pub description: Option<String>,
 }
