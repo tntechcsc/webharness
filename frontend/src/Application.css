@@ -4,6 +4,10 @@
     margin-left: 15rem; /* Makes space for sidebar */
   }
   
+  .button-group {
+    display: flex;
+    gap: 10px;
+  }
   /* Page Header */
   .app-header {
     font-size: 24px;
@@ -63,6 +67,7 @@
     cursor: pointer;
     border-radius: 4px;
     transition: background-color 0.3s ease;
+    
   }
   
   .view-button:hover {
