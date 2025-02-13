@@ -120,6 +120,7 @@ fn rocket() -> _ {
             crate::execution::remove_application,
             crate::execution::get_application,
             crate::execution::get_all_applications,
+            crate::execution::add_category,
         ),
         modifiers(&SecurityAddon),
     )]
