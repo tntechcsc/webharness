@@ -869,6 +869,55 @@ fn get_all_categories(
     })))
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/application/update",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "Updates program info"),
+        (status = 404, description = "Program not found")
+    ),
+    request_body = UpdateApplicationForm,
+    security(
+        ("session_id" = [])
+    ),
+    )]
+#[put("/api/password/reset", data = "<user_data>")]
+fn update_application(_session_id: SessionGuard, application_data: Json<UpdateApplicationForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let session_id = &_session_id.0;
+    
+    //session is that of the actor
+    let actor = session_to_user(session_id.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
+
+    
+    if actor == "" { //if theyre not real (real)
+        return Err(Status::NotFound);
+    }
+
+    let role = user_role_search(actor, &conn);
+
+    //if they're a viewer
+    if role == 3 {
+        return Err(Status::Unauthorized);
+    } 
+
+    ///---done with user authenticating and authorizating
+
+    
+    if let Some(name) = &application_data.name {
+        println!(name);
+    }
+
+
+
+    Ok(Json(json!({
+        "status": "success",
+        "message": "Application added successfully",
+    })));
+}
+
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
     routes![execute_program, get_process_status, stop_process, add_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories]

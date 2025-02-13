@@ -159,6 +159,30 @@ pub struct InstructionsEntry {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
+pub struct ApplicationUpdateForm {
+    #[schema(example = "UUID")]
+    pub id: String,
+
+    #[schema(example = "Calculator")]
+    pub name: String,
+
+    #[schema(example = "A simple calculator application.")]
+    pub description: String,
+
+    #[schema(example = "user-id-1234")]
+    pub user_id: String,
+
+    #[schema(example = "/path/to/executable")]
+    pub executable_path: String,
+
+    #[schema(example = "--arg1 --arg2")]
+    pub arguments: Option<String>, // Optional arguments for the application
+
+    #[schema(example = "category-id-5678")]
+    pub category_id: Option<String>, // Optional category association
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct ApplicationDetails {
     pub id: String,
     pub user_id: String,
