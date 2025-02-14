@@ -117,6 +117,7 @@ fn rocket() -> _ {
             crate::execution::get_process_status, 
             crate::execution::stop_process,
             crate::execution::add_application,
+            crate::execution::update_application,
             crate::execution::remove_application,
             crate::execution::get_application,
             crate::execution::get_all_applications,

@@ -872,7 +872,7 @@ fn get_all_categories(
 #[utoipa::path(
     put,
     path = "/api/application/update",
-    tag = "User Management",
+    tag = "Program Management",
     responses(
         (status = 200, description = "Updates program info"),
         (status = 404, description = "Program not found")
@@ -882,7 +882,7 @@ fn get_all_categories(
         ("session_id" = [])
     ),
     )]
-#[put("/api/password/reset", data = "<application_data>")]
+#[put("/api/application/update", data = "<application_data>")]
 fn update_application(_session_id: SessionGuard, application_data: Json<ApplicationUpdateForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let session_id = &_session_id.0;
@@ -910,15 +910,13 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
         println!("{}", name);
     }
 
-
-
-    Ok(Json(json!({
+    return Ok(Json(json!({
         "status": "success",
-        "message": "Application added successfully",
+        "message": "User logged in successfully",
     })));
 }
 
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, get_process_status, stop_process, add_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories]
+    routes![execute_program, get_process_status, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories]
 }

@@ -164,16 +164,16 @@ pub struct ApplicationUpdateForm {
     pub id: String,
 
     #[schema(example = "Calculator")]
-    pub name: String,
+    pub name: Option<String>, //not required
 
     #[schema(example = "A simple calculator application.")]
-    pub description: String,
+    pub description: Option<String>,
 
     #[schema(example = "user-id-1234")]
-    pub user_id: String,
+    pub user_id: Option<String>,
 
     #[schema(example = "/path/to/executable")]
-    pub executable_path: String,
+    pub executable_path: Option<String>,
 
     #[schema(example = "--arg1 --arg2")]
     pub arguments: Option<String>, // Optional arguments for the application
