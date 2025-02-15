@@ -184,3 +184,15 @@ pub struct CategoryEntry {
     #[schema(example = "Applications related to system utilities")]
     pub description: Option<String>,
 }
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct CategoryDetails {
+    #[schema(example = "category-id-1234")]
+    pub id: String,
+
+    #[schema(example = "Utilities")]
+    pub name: String,
+
+    #[schema(example = "Applications related to system utilities")]
+    pub description: Option<String>,
+}
