@@ -923,11 +923,9 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
     let fields = [
         ("name", &application_data.name),
         ("description", &application_data.description),
-        ("user_id", &application_data.user_id),
-        ("executable_path", &application_data.executable_path),
-        ("arguments", &application_data.arguments),
+        ("userId", &application_data.user_id),
     ];
-    let mut updateVector = Vec::<&String>::new();  // Creates an empty vector
+    let mut updateVector = Vec::<&dyn rusqlite::ToSql>::new();  // Creates an empty vector
     let mut i = 1;
     
     //let query = "UPDATE User SET pass_hash = ?1 WHERE username = ?2";
@@ -935,31 +933,28 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
     //"UPDATE Application SET {} = ?1 WHERE id = ?2", label
     for (label, field) in fields.iter() {
         if let Some(value) = field {
-            query = format!("{} {} = ?{}", query, label, i); // building our query
-            updateVector.push(value);
+            if i > 1 {
+                query.push_str(",");  // Add comma only after the first field
+            }
+            query = format!("{} {} = ?{}", query, label, i);
+            updateVector.push(value as &dyn rusqlite::ToSql);
             i += 1;
         }
     }
     query = format!("{} WHERE id = ?{}", query, i);
     let id: String = format!("{}", i);
-    updateVector.push(&id);
+    updateVector.push(&application_data.id);
     println!("{}", query);
-    let mut result = conn.execute(&query, params_from_iter(updateVector.iter()));
+    let mut result = conn.execute(&query, rusqlite::params_from_iter(updateVector.iter()));
 
     match result {
-        Ok(0) => {
-            // If no rows were affected, return 404 Not Found
-            Err(Status::NotFound)
-        }
-        Ok(_) => {
-            // Successfully updated the user, return 200 OK with a success message
-            Ok(Json(json!({
-                "status": "success",
-                "message": "Application Updated"
-            })))
-        }
-        Err(_) => {
-            // Database error, return 500 Internal Server Error
+        Ok(0) => Err(Status::NotFound),
+        Ok(_) => Ok(Json(json!({
+            "status": "success",
+            "message": "Application Updated"
+        }))),
+        Err(e) => {
+            eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
             Err(Status::InternalServerError)
         }
     }
