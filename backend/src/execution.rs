@@ -8,7 +8,7 @@ use rocket::Route;
 //for jsons
 use serde_json::json;
 //for our db connection
-use rusqlite::{Connection, Result, OptionalExtension};
+use rusqlite::{Connection, Result, OptionalExtension, params_from_iter};
 // for thread-safe access
 use std::sync::{Arc, Mutex}; 
 
@@ -870,7 +870,7 @@ fn get_all_categories(
 }
 
 #[utoipa::path(
-    put,
+    patch,
     path = "/api/application/update",
     tag = "Program Management",
     responses(
@@ -882,7 +882,7 @@ fn get_all_categories(
         ("session_id" = [])
     ),
     )]
-#[put("/api/application/update", data = "<application_data>")]
+#[patch("/api/application/update", data = "<application_data>")]
 fn update_application(_session_id: SessionGuard, application_data: Json<ApplicationUpdateForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let session_id = &_session_id.0;
@@ -902,18 +902,26 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
     if role == "3" {
         return Err(Status::Unauthorized);
     } 
-
-    ///---done with user authenticating and authorizating
-    let statement = "SELECT FROM Application WHERE id = ?1";
-    let mut stmt = conn.prepare(statement).unwrap();
-    match stmt.query_row(params![&application_data.id], |row| {
-        Ok(Application) {
-            //nothing just move on
+    //------------------------------------------- done with authentication and authorization
+    
+    let mut stmt = conn.prepare("SELECT * FROM Application WHERE id = ?1").unwrap();
+    let mut rows = stmt.query(&[&application_data.id]).unwrap();
+    match rows.next() { // Use match to handle the Option returned by next()
+        Ok(Some(unwrapped_row)) => { // If there is a row
+            //found
         }
-    }) {
-        Ok(_) => return Err(),
-        Err(_) => return Err(Status::NotFound),
+        Ok(None) => { // If no rows were returned
+            return Err(Status::NotFound);
+        }
+        Err(_) => { // Handle any potential errors from querying
+            return Err(Status::InternalServerError);
+        }
     }
+    
+
+    //------------------------------------------- done with checking the application
+
+    let mut statement: String = "UPDATE Application SET".to_string();
     
     let fields = [
         ("name", &application_data.name),
@@ -923,13 +931,22 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
         ("arguments", &application_data.arguments),
         ("category_id", &application_data.category_id),
     ];
+    let mut v = Vec::new();  // Creates an empty vector
+    let mut i = 1;
     
+    //    let mut stmt = conn.prepare("SELECT id FROM User WHERE username = ?1").unwrap(); //preparing a statement to query for their username
+    //      let mut result = stmt.query(&[&user_data.username]).unwrap(); // also whats very important is that usernames are unique
+    //"UPDATE Application SET {} = ?1 WHERE id = ?2", label
     for (label, field) in fields.iter() {
         if let Some(value) = field {
-            let statement = format!("UPDATE Application SET {} = ?1 WHERE id = ?2", label);
-            let result = conn.execute(&statement, params![value, &application_data.id]);
+            statement = format!("{} {} = ?{}", statement, label, i); // building our query
+            i += 1;
         }
     }
+    let mut stmt = conn.prepare(&statement).unwrap();
+    //let mut result = stmt.query(&input).unwrap(); 
+
+
 
     return Ok(Json(json!({
         "status": "success",
