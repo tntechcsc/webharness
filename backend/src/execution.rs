@@ -942,17 +942,71 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
         }
     }
     query = format!("{} WHERE id = ?{}", query, i);
-    let id: String = format!("{}", i);
+    let id: String = format!("{}", &application_data.id);
     updateVector.push(&application_data.id);
     println!("{}", query);
     let mut result = conn.execute(&query, rusqlite::params_from_iter(updateVector.iter()));
 
     match result {
+        Ok(0) => return Err(Status::NotFound),
+        Ok(_) => {
+
+        }
+        Err(e) => {
+            eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
+            return Err(Status::InternalServerError);
+        }
+    }
+
+    //-------------------------------------- Check instruction field
+
+    let mut stmt = conn.prepare("SELECT * FROM Instructions WHERE application_id = ?").unwrap();
+    let mut rows = stmt.query(&[&application_data.id]).unwrap();
+
+    if let Some(row) = rows.next().unwrap() {
+        println!("success");
+    } else {
+        return Err(Status::NotFound);
+    }
+
+    //------------------------------------ build query to update instruction field
+
+    let mut query: String = "UPDATE Instructions SET".to_string();
+    
+    let fields = [
+        ("path", &application_data.executable_path),
+        ("arguments", &application_data.arguments),
+    ];
+    let mut updateVector = Vec::<&dyn rusqlite::ToSql>::new();  // Creates an empty vector
+    let mut i = 1;
+    
+    //let query = "UPDATE User SET pass_hash = ?1 WHERE username = ?2";
+    //let result = conn.execute(query, &[&pass_hash, &target]);
+    //"UPDATE Application SET {} = ?1 WHERE id = ?2", label
+    for (label, field) in fields.iter() {
+        if let Some(value) = field {
+            if i > 1 {
+                query.push_str(",");  // Add comma only after the first field
+            }
+            query = format!("{} {} = ?{}", query, label, i);
+            updateVector.push(value as &dyn rusqlite::ToSql);
+            i += 1;
+        }
+    }
+    query = format!("{} WHERE application_id = ?{}", query, i);
+    let id: String = format!("{}", &application_data.id);
+    updateVector.push(&id);
+    println!("{}", query);
+    
+    let mut result = conn.execute(&query, rusqlite::params_from_iter(updateVector.iter()));
+
+    match result {
         Ok(0) => Err(Status::NotFound),
-        Ok(_) => Ok(Json(json!({
-            "status": "success",
-            "message": "Application Updated"
-        }))),
+        Ok(_) => {
+            Ok(Json(json!({
+                "status": "success"
+            })))
+        }//moveon to update instructions}
         Err(e) => {
             eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
             Err(Status::InternalServerError)
