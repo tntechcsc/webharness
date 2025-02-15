@@ -751,7 +751,74 @@ fn add_category(
     })))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/categories/{category_id}/delete",
+    tag = "Category Management",
+    responses(
+        (status = 200, description = "Category deleted successfully"),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "Category not found"),
+        (status = 500, description = "Failed to delete category")
+    ),
+    security(("session_id" = [])),
+    params(
+        ("category_id" = String, Path, description = "The ID of the category to delete")
+    )
+)]
+#[delete("/api/categories/<category_id>/delete")]
+fn delete_category(
+    _session_id: SessionGuard,
+    category_id: String,
+    db: &rocket::State<Arc<DB>>,
+) -> Result<Json<serde_json::Value>, Status> {
+    let conn = db.conn.lock().unwrap();
+
+    // Validate user permissions
+    let actor = session_to_user(_session_id.0.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
+    let actor_role = user_role_search(actor.clone(), &conn);
+    let actor_role: i32 = actor_role.parse().expect("Not a valid number");
+
+    if actor.is_empty() || actor_role > 2 {
+        return Err(Status::Unauthorized); // Only Superadmins (1) & Admins (2) can delete categories
+    }
+
+    // Check if category exists
+    let query = "SELECT COUNT(*) FROM Category WHERE id = ?1";
+    let category_exists: i64 = match conn.query_row(query, [&category_id], |row| row.get(0)) {
+        Ok(count) => count,
+        Err(_) => return Err(Status::InternalServerError),
+    };
+
+    if category_exists == 0 {
+        return Err(Status::NotFound);
+    }
+
+    // Delete from CategoryApplication first (prevents foreign key constraint failure)
+    let query = "DELETE FROM CategoryApplication WHERE category_id = ?1";
+    if let Err(e) = conn.execute(query, [&category_id]) {
+        error!("Database error while deleting category associations: {:?}", e);
+        return Err(Status::InternalServerError);
+    }
+
+    // Delete category from Category table
+    let query = "DELETE FROM Category WHERE id = ?1";
+    let result = conn.execute(query, [&category_id]);
+
+    if let Err(e) = result {
+        error!("Database error while deleting category: {:?}", e);
+        return Err(Status::InternalServerError);
+    }
+
+    Ok(Json(json!({
+        "status": "success",
+        "message": "Category deleted successfully",
+        "category_id": category_id
+    })))
+}
+
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, get_process_status, stop_process, add_application, remove_application, get_application, get_all_applications, add_category]
+    routes![execute_program, get_process_status, stop_process, add_application, remove_application, get_application, get_all_applications, add_category, delete_category]
 }

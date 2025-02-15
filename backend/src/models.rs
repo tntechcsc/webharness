@@ -133,10 +133,10 @@ pub struct ApplicationEntry {
     #[schema(example = "A simple calculator application.")]
     pub description: String,
 
-    #[schema(example = "user-id-1234")]
+    #[schema(example = "1")]
     pub user_id: String,
 
-    #[schema(example = "/path/to/executable")]
+    #[schema(example = "C:\\Windows\\System32\\notepad.exe")]
     pub executable_path: String,
 
     #[schema(example = "--arg1 --arg2")]
@@ -151,7 +151,7 @@ pub struct InstructionsEntry {
     #[schema(example = "instruction-id-1234")]
     pub id: String,
 
-    #[schema(example = "/path/to/executable")]
+    #[schema(example = "C:\\Windows\\System32\\notepad.exe")]
     pub path: String,
 
     #[schema(example = "--arg1 --arg2")]
