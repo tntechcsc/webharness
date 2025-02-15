@@ -904,24 +904,21 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
     } 
     //------------------------------------------- done with authentication and authorization
     
-    let mut stmt = conn.prepare("SELECT * FROM Application WHERE id = ?1").unwrap();
+    let mut stmt = conn.prepare("SELECT * FROM Application WHERE id = ?").unwrap();
     let mut rows = stmt.query(&[&application_data.id]).unwrap();
-    match rows.next() { // Use match to handle the Option returned by next()
-        Ok(Some(unwrapped_row)) => { // If there is a row
-            //found
-        }
-        Ok(None) => { // If no rows were returned
-            return Err(Status::NotFound);
-        }
-        Err(_) => { // Handle any potential errors from querying
-            return Err(Status::InternalServerError);
-        }
+
+    if let Some(row) = rows.next().unwrap() {
+        let id: String = row.get(0).unwrap();
+        println!("{}", id);
+    } else {
+        return Err(Status::NotFound);
     }
+
     
 
     //------------------------------------------- done with checking the application
 
-    let mut statement: String = "UPDATE Application SET".to_string();
+    let mut query: String = "UPDATE Application SET".to_string();
     
     let fields = [
         ("name", &application_data.name),
@@ -929,29 +926,43 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
         ("user_id", &application_data.user_id),
         ("executable_path", &application_data.executable_path),
         ("arguments", &application_data.arguments),
-        ("category_id", &application_data.category_id),
     ];
-    let mut v = Vec::new();  // Creates an empty vector
+    let mut updateVector = Vec::<&String>::new();  // Creates an empty vector
     let mut i = 1;
     
-    //    let mut stmt = conn.prepare("SELECT id FROM User WHERE username = ?1").unwrap(); //preparing a statement to query for their username
-    //      let mut result = stmt.query(&[&user_data.username]).unwrap(); // also whats very important is that usernames are unique
+    //let query = "UPDATE User SET pass_hash = ?1 WHERE username = ?2";
+    //let result = conn.execute(query, &[&pass_hash, &target]);
     //"UPDATE Application SET {} = ?1 WHERE id = ?2", label
     for (label, field) in fields.iter() {
         if let Some(value) = field {
-            statement = format!("{} {} = ?{}", statement, label, i); // building our query
+            query = format!("{} {} = ?{}", query, label, i); // building our query
+            updateVector.push(value);
             i += 1;
         }
     }
-    let mut stmt = conn.prepare(&statement).unwrap();
-    //let mut result = stmt.query(&input).unwrap(); 
+    query = format!("{} WHERE id = ?{}", query, i);
+    let id: String = format!("{}", i);
+    updateVector.push(&id);
+    println!("{}", query);
+    let mut result = conn.execute(&query, params_from_iter(updateVector.iter()));
 
-
-
-    return Ok(Json(json!({
-        "status": "success",
-        "message": "User logged in successfully",
-    })));
+    match result {
+        Ok(0) => {
+            // If no rows were affected, return 404 Not Found
+            Err(Status::NotFound)
+        }
+        Ok(_) => {
+            // Successfully updated the user, return 200 OK with a success message
+            Ok(Json(json!({
+                "status": "success",
+                "message": "Application Updated"
+            })))
+        }
+        Err(_) => {
+            // Database error, return 500 Internal Server Error
+            Err(Status::InternalServerError)
+        }
+    }
 }
 
 // Export the routes

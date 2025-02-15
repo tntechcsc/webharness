@@ -178,8 +178,7 @@ pub struct ApplicationUpdateForm {
     #[schema(example = "--arg1 --arg2")]
     pub arguments: Option<String>, // Optional arguments for the application
 
-    #[schema(example = "category-id-5678")]
-    pub category_id: Option<String>, // Optional category association
+    //TODO ADD CATEGORY AFTER ITS UPDATED
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
