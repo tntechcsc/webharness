@@ -904,10 +904,31 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
     } 
 
     ///---done with user authenticating and authorizating
-
+    let statement = "SELECT FROM Application WHERE id = ?1";
+    let mut stmt = conn.prepare(statement).unwrap();
+    match stmt.query_row(params![&application_data.id], |row| {
+        Ok(Application) {
+            //nothing just move on
+        }
+    }) {
+        Ok(_) => return Err(),
+        Err(_) => return Err(Status::NotFound),
+    }
     
-    if let Some(name) = &application_data.name {
-        println!("{}", name);
+    let fields = [
+        ("name", &application_data.name),
+        ("description", &application_data.description),
+        ("user_id", &application_data.user_id),
+        ("executable_path", &application_data.executable_path),
+        ("arguments", &application_data.arguments),
+        ("category_id", &application_data.category_id),
+    ];
+    
+    for (label, field) in fields.iter() {
+        if let Some(value) = field {
+            let statement = format!("UPDATE Application SET {} = ?1 WHERE id = ?2", label);
+            let result = conn.execute(&statement, params![value, &application_data.id]);
+        }
     }
 
     return Ok(Json(json!({
