@@ -122,6 +122,7 @@ fn rocket() -> _ {
             crate::execution::get_all_applications,
             crate::execution::add_category,
             crate::execution::delete_category,
+            crate::execution::get_all_categories,
         ),
         modifiers(&SecurityAddon),
     )]

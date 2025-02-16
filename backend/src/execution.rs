@@ -818,7 +818,58 @@ fn delete_category(
     })))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/categories",
+    tag = "Category Management",
+    responses(
+        (status = 200, description = "List of all categories retrieved successfully", body = [CategoryDetails]),
+        (status = 500, description = "Failed to retrieve categories")
+    ),
+    security(("session_id" = []))
+)]
+#[get("/api/categories")]
+fn get_all_categories(
+    _session_id: SessionGuard,
+    db: &rocket::State<Arc<DB>>,
+) -> Result<Json<serde_json::Value>, Status> {
+    let conn = db.conn.lock().unwrap();
+
+    let query = "SELECT id, name, description FROM Category";
+    let mut stmt = match conn.prepare(query) {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            error!("Database error while preparing category query: {:?}", e);
+            return Err(Status::InternalServerError);
+        }
+    };
+
+    let categories_result: Result<Vec<CategoryDetails>, _> = stmt
+        .query_map([], |row| {
+            Ok(CategoryDetails {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                description: row.get(2).ok(), // Description is optional
+            })
+        })
+        .and_then(|rows| rows.collect())
+        .map_err(|e| {
+            error!("Database error while retrieving categories: {:?}", e);
+            Status::InternalServerError
+        });
+
+    let categories = match categories_result {
+        Ok(cats) => cats,
+        Err(status) => return Err(status),
+    };
+
+    Ok(Json(json!({
+        "status": "success",
+        "categories": categories
+    })))
+}
+
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, get_process_status, stop_process, add_application, remove_application, get_application, get_all_applications, add_category, delete_category]
+    routes![execute_program, get_process_status, stop_process, add_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories]
 }
