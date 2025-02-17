@@ -438,7 +438,10 @@ fn reset_password(_session_id: SessionGuard, user_data: Json<ResetPasswordForm>,
         return Err(Status::NotFound);
     }
 
-    if !compare_roles(actor, target.clone(), &conn) {
+    if (actor == target) {
+        //alright
+    }
+    else if !compare_roles(actor, target.clone(), &conn) {
         return Err(Status::Unauthorized);
     }
 

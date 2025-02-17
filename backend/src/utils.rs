@@ -170,7 +170,8 @@ pub fn compare_roles(actor: String, target: String, conn: &std::sync::MutexGuard
     let actor_role: i32 = user_role_search(actor, &conn).parse().expect("Not a valid number");;
     let target_role: i32 = user_role_search(target, &conn).parse().expect("Not a valid number");;
 
-    if actor_role <= target_role {
+    //if actor has more or equal role than target or if the actor isnt a viewer
+    if actor_role <= target_role || actor_role != 3 {
         return true;
     }
     else {
