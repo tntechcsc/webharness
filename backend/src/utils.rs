@@ -166,11 +166,15 @@ pub fn has_role(username: String, role: String, conn: &std::sync::MutexGuard<'_,
     }
 }
 
-pub fn compare_roles(actor: String, target: String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool {
-    let actor_role: i32 = user_role_search(actor, &conn).parse().expect("Not a valid number");;
-    let target_role: i32 = user_role_search(target, &conn).parse().expect("Not a valid number");;
+pub fn compare_roles(actor: String, target: String, conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> bool { //made for reset password not thought out for anything else
+    let actor_role: i32 = user_role_search(actor.clone(), &conn).parse().expect("Not a valid number");;
+    let target_role: i32 = user_role_search(target.clone(), &conn).parse().expect("Not a valid number");;
 
-    if actor_role <= target_role {
+    //if actor has more or equal role than target or if the actor isnt a viewer
+    if actor == target {
+        return true; // trying to do so on their own
+    }
+    else if ( (actor_role <= target_role) && actor_role != 3 ) {
         return true;
     }
     else {
