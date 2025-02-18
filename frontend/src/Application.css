@@ -1,3 +1,30 @@
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* Add Application Button */
+.add-app-button {
+  background-color: #6FFB78;
+  color: #12255f ;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.add-app-button:hover {
+  background-color: #12255f;
+  color: #5fd066;
+}
+
+
+
 /* Container for the whole page */
 .application-container {
     padding: 20px;

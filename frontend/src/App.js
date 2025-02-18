@@ -5,8 +5,8 @@ import HomePage from "./pages/HomePage";
 import Application from "./pages/Application";
 import RoleManagement from "./pages/RoleManagement";
 import Navbar from "./components/Navbar";
-import ViewApplication from "./pages/ViewApplication"; // ✅ Import ViewApplication
-
+import ViewApplication from "./pages/ViewApplication";
+import AddApplication from "./pages/AddApplication";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,7 +33,8 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/applications" element={<Application />} />
                 <Route path="/role-management" element={<RoleManagement />} />
-                <Route path="/view-application/:id" element={<ViewApplication />} /> {/* ✅ New Route */}
+                <Route path="/view-application/:id" element={<ViewApplication />} /> 
+                <Route path="/add-application" element={<AddApplication />} />
               </Routes>
             </div>
           </div>

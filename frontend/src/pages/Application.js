@@ -5,27 +5,24 @@ import '../Application.css';
 function Application() {
   console.log("Application.js has loaded successfully!");  // Debug Log
 
-  // ✅ Hardcoded Mock Data (Remove this once the backend is ready)
-  const mockApplications = [
+  const [applications, setApplications] = useState([
     { id: 1, name: "Caves of Qud", type: "Desktop", description: "A roguelike adventure", status: "Active", path: "D:/Games/Caves of Qud/CoQ.exe" },
     { id: 2, name: "Test App", type: "Web", description: "Test Web Application", status: "Inactive", path: "C:/Program Files/TestApp/test.exe" },
     { id: 3, name: "Photo Editor", type: "Desktop", description: "Advanced image editing software", status: "Active", path: "C:/Programs/PhotoEditor/photo.exe" }
-  ];
+  ]);
 
-  const [applications, setApplications] = useState(mockApplications); // ✅ Default to mock data
   const [statusMessage, setStatusMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // ✅ Try to Fetch Applications from Backend (Overrides mock data if successful)
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/applications"); // Adjust API endpoint
+        const response = await fetch("http://localhost:3000/api/applications"); 
         if (!response.ok) {
           throw new Error("Failed to fetch applications");
         }
         const data = await response.json();
-        setApplications(data); // ✅ Replace mock data with real data
+        setApplications(data);
       } catch (error) {
         console.error("Error fetching applications:", error);
         setStatusMessage("Using mock data (backend unavailable).");
@@ -33,7 +30,7 @@ function Application() {
     };
 
     fetchApplications();
-  }, []); // Runs once when the component mounts
+  }, []);
 
   const runApplication = async (appPath) => {
     setStatusMessage("Running...");
@@ -55,16 +52,15 @@ function Application() {
     }
   };
 
-  // Filter applications based on search input
   const filteredApplications = applications.filter((app) =>
     app.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="application-container">
-      <h2 className="app-header">Application</h2>
+      <h2 className="app-header">Applications</h2>
       {statusMessage && <p className="status-message">{statusMessage}</p>}
-      
+
       {/* Search Bar */}
       <input
         type="text"
@@ -73,7 +69,7 @@ function Application() {
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
       />
-      
+
       <div className="app-table-container">
         <table className="app-table">
           <thead>
@@ -94,10 +90,10 @@ function Application() {
                 <td className={`status ${app.status.toLowerCase()}`}>{app.status}</td>
                 <td>
                   <div className="button-group">
-                    <button className="view-button" onClick={() => runApplication(app.path)}>
+                    <button className="run-button" onClick={() => runApplication(app.path)}>
                       Run
                     </button>
-                    <Link to={`/view-application/${app.id}`} className="view-button" style={{ textDecoration: 'none' }}>
+                    <Link to={`/view-application/${app.id}`} className="view-button">
                       View
                     </Link>
                   </div>
@@ -106,6 +102,11 @@ function Application() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      
+      <div className="button-container">
+        <Link to="/add-application" className="add-app-button">+ Add Application</Link>
       </div>
     </div>
   );
