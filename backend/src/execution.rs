@@ -1004,7 +1004,8 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
         Ok(0) => Err(Status::NotFound),
         Ok(_) => {
             Ok(Json(json!({
-                "status": "success"
+                "status": "success",
+                "message": "Successfully updated."
             })))
         }//moveon to update instructions}
         Err(e) => {
