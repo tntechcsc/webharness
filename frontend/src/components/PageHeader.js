@@ -5,8 +5,10 @@ const PageHeader = ({ title }) => {
   const [username, setUsername] = useState(null);
   const [role, setRole] = useState(null);
 
+  const baseURL = window.location.origin;
+
   useEffect(() => {
-    const uri = "http://localhost:3000/api/user/info";
+    const uri = `${baseURL}:3000/api/user/info`;
     let session_id = sessionStorage.getItem("session_id")
 
     if (!session_id) {
