@@ -5,28 +5,16 @@ import HomePage from "./pages/HomePage";
 import Application from "./pages/Application";
 import RoleManagement from "./pages/RoleManagement";
 import Navbar from "./components/Navbar";
-
+import ViewApplication from "./pages/ViewApplication"; // ✅ Import ViewApplication
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
 
-  // Simulate a delay before showing the page content
   useEffect(() => {
     setTimeout(() => {
       setIsLoading(false);
-    }, 3000); // Adjust timing as needed
+    }, 3000); // Simulating loading effect
   }, []);
-
-  
-  const applications = [
-   
-  ];
-
-  // Filter applications based on search input
-  const filteredApps = applications.filter((app) =>
-    app.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <>
@@ -38,18 +26,18 @@ function App() {
         </div>
       ) : (
         <Router>
-        <div className="d-flex min-vh-100 bg-dark text-light">
-          <Navbar />
-          <div className="flex-grow-1">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/applications" element={<Application />} />
-            <Route path="/role-management" element={<RoleManagement />} />
-          </Routes>
-
+          <div className="d-flex min-vh-100 bg-dark text-light">
+            <Navbar />
+            <div className="flex-grow-1">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/applications" element={<Application />} />
+                <Route path="/role-management" element={<RoleManagement />} />
+                <Route path="/view-application/:id" element={<ViewApplication />} /> {/* ✅ New Route */}
+              </Routes>
+            </div>
           </div>
-        </div>
-      </Router>
+        </Router>
       )}
     </>
   );

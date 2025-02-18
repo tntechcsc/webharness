@@ -1,17 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../Application.css';
 
 function Application() {
   console.log("Application.js has loaded successfully!");  // Debug Log
 
-  // ✅ Add the application list here
-  const [applications] = useState([
+  // ✅ Hardcoded Mock Data (Remove this once the backend is ready)
+  const mockApplications = [
     { id: 1, name: "Caves of Qud", type: "Desktop", description: "A roguelike adventure", status: "Active", path: "D:/Games/Caves of Qud/CoQ.exe" },
-    { id: 2, name: "Test App", type: "Web", description: "Test Web Application", status: "Inactive", path: "C:/Program Files/TestApp/test.exe" }
-  ]);
+    { id: 2, name: "Test App", type: "Web", description: "Test Web Application", status: "Inactive", path: "C:/Program Files/TestApp/test.exe" },
+    { id: 3, name: "Photo Editor", type: "Desktop", description: "Advanced image editing software", status: "Active", path: "C:/Programs/PhotoEditor/photo.exe" }
+  ];
+
+  const [applications, setApplications] = useState(mockApplications); // ✅ Default to mock data
   const [statusMessage, setStatusMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // ✅ Try to Fetch Applications from Backend (Overrides mock data if successful)
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const response = await fetch("http://localhost:3000/api/applications"); // Adjust API endpoint
+        if (!response.ok) {
+          throw new Error("Failed to fetch applications");
+        }
+        const data = await response.json();
+        setApplications(data); // ✅ Replace mock data with real data
+      } catch (error) {
+        console.error("Error fetching applications:", error);
+        setStatusMessage("Using mock data (backend unavailable).");
+      }
+    };
+
+    fetchApplications();
+  }, []); // Runs once when the component mounts
 
   const runApplication = async (appPath) => {
     setStatusMessage("Running...");
