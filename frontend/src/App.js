@@ -7,6 +7,8 @@ import RoleManagement from "./pages/RoleManagement";
 import Navbar from "./components/Navbar";
 import ViewApplication from "./pages/ViewApplication";
 import AddApplication from "./pages/AddApplication";
+import RegisterUser from "./pages/RegisterUser"; // ✅ Import RegisterUser.js
+
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,6 +37,7 @@ function App() {
                 <Route path="/role-management" element={<RoleManagement />} />
                 <Route path="/view-application/:id" element={<ViewApplication />} /> 
                 <Route path="/add-application" element={<AddApplication />} />
+                <Route path="/register-user" element={<RegisterUser />} /> {/* ✅ New Route */}
               </Routes>
             </div>
           </div>

@@ -71,7 +71,8 @@
   
   /* Alternating Row Colors */
   .app-table tr:nth-child(even) {
-    background-color: #f2f2f2;
+    
+    background-color: #12255f;
   }
   
   /* Status Colors */
@@ -87,8 +88,8 @@
   
   /* View Button */
   .view-button {
-    background-color: #12255f;
-    color: white;
+    background-color: #6FFB78;
+    color: black;
     border: none;
     padding: 8px 12px;
     cursor: pointer;
@@ -98,7 +99,7 @@
   }
   
   .view-button:hover {
-    background-color: #6FFB78;
+    background-color: #5fd066;
     color: black;
   }
   
