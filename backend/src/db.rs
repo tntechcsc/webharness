@@ -1,6 +1,7 @@
 use rusqlite::{Connection, Result, OptionalExtension}; // for our sqlite connection
 use std::sync::{Arc, Mutex};
 use bcrypt::{DEFAULT_COST, hash, verify};
+use uuid::Uuid;
 
 pub struct DB {
     pub conn: Mutex<Connection>, // rust complains if there is no thread safety with our connection
@@ -210,7 +211,74 @@ impl DB {
                 "INSERT OR IGNORE INTO UserRoles (userId, roleId) VALUES (?1, ?2)",
                 &["1", "1"],
             )?;
-        }
+
+
+            // =========================== TESTING DATA ===========================
+            // Create 5 test applications with userID 1 for national defense projects using incrementing integer IDs
+            conn_use.execute(
+                "INSERT OR IGNORE INTO Application (id, userId, contact, name, description) VALUES (1, '1', 'defense_contact_1', 'SeaGuardian', 'Naval surveillance and reconnaissance system.')",
+                [],
+            )?;
+            conn_use.execute(
+                "INSERT OR IGNORE INTO Application (id, userId, contact, name, description) VALUES (2, '1', 'defense_contact_2', 'HarpoonBlockII', 'Anti-ship missile system for littoral waters defense.')",
+                [],
+            )?;
+            conn_use.execute(
+                "INSERT OR IGNORE INTO Application (id, userId, contact, name, description) VALUES (3, '1', 'defense_contact_3', 'TridentII', 'Submarine-launched ballistic missile (SLBM) system.')",
+                [],
+            )?;
+            conn_use.execute(
+                "INSERT OR IGNORE INTO Application (id, userId, contact, name, description) VALUES (4, '1', 'defense_contact_4', 'AegisCombat', 'Integrated naval weapons system for missile defense.')",
+                [],
+            )?;
+            conn_use.execute(
+                "INSERT OR IGNORE INTO Application (id, userId, contact, name, description) VALUES (5, '1', 'defense_contact_5', 'TomahawkBlockV', 'Long-range, all-weather, subsonic cruise missile.')",
+                [],
+            )?;
+
+
+            // populate categories
+            conn_use.execute(
+                "INSERT OR IGNORE INTO Category (id, name, description) VALUES (1, 'Python', 'Applications built using the Python programming language.')",
+                [],
+            )?;
+            conn_use.execute(
+                "INSERT OR IGNORE INTO Category (id, name, description) VALUES (2, 'C++', 'Applications developed with the C++ programming language.')",
+                [],
+            )?;
+            conn_use.execute(
+                "INSERT OR IGNORE INTO Category (id, name, description) VALUES (3, 'Rust', 'Applications written in the Rust programming language.')",
+                [],
+            )?;
+
+            // associate applications with categories
+            conn_use.execute(
+                "INSERT OR IGNORE INTO CategoryApplication (category_id, application_id) VALUES (1, 1)",
+                [],
+            )?;
+            conn_use.execute(
+                "INSERT OR IGNORE INTO CategoryApplication (category_id, application_id) VALUES (2, 2)",
+                [],
+            )?;
+            conn_use.execute(
+                "INSERT OR IGNORE INTO CategoryApplication (category_id, application_id) VALUES (3, 3)",
+                [],
+            )?;
+
+            // Insert instructions for each application
+            conn_use.execute(
+                "INSERT OR IGNORE INTO Instructions (id, application_id, path, arguments) VALUES (1, 1, '/path/to/python/app', '--arg1 --arg2')",
+                [],
+            )?;
+            conn_use.execute(
+                "INSERT OR IGNORE INTO Instructions (id, application_id, path, arguments) VALUES (2, 2, '/path/to/cpp/app', '--flag1 --flag2')",
+                [],
+            )?;
+            conn_use.execute(
+                "INSERT OR IGNORE INTO Instructions (id, application_id, path, arguments) VALUES (3, 3, '/path/to/rust/app', '--option1 --option2')",
+                [],
+            )?;
+            }
 
         Ok(DB { conn })
     }
