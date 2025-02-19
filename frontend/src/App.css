@@ -107,8 +107,8 @@
 
 /* Main content area */
 .main-content {
-  margin-left: 15rem;
-  width: calc(100% - 15rem);
+  margin-left: 10rem;
+  width: calc(100% - 10rem);
   min-height: 100vh;
   display: flex;
   flex-direction: column;

@@ -1,5 +1,6 @@
 import placeholder from "../assets/profile-placeholder.png";
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const PageHeader = ({ title }) => {
   const [username, setUsername] = useState(null);
@@ -9,47 +10,50 @@ const PageHeader = ({ title }) => {
 
   useEffect(() => {
     const uri = `${baseURL}:3000/api/user/info`;
-    let session_id = sessionStorage.getItem("session_id")
+    let session_id = sessionStorage.getItem("session_id");
 
     if (!session_id) {
       return;
     }
 
-    //call endpoint to get username and role
     fetch(uri, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "x-session-id": session_id || ""
-      }
+        "x-session-id": session_id || "",
+      },
     })
       .then((res) => {
-        console.log(res);
         if (res.ok) {
-          res.json().then((user) => {
-            console.log("success", user);
-            setUsername(user.username);
-            setRole(user.roleName);
-          });
+          return res.json();
         } else {
-          console.log("failed");
+          throw new Error("Failed to fetch user data");
         }
-    });
-  }, [])
+      })
+      .then((user) => {
+        setUsername(user.username);
+        setRole(user.roleName);
+      })
+      .catch((error) => console.error(error));
+  }, []);
 
   return (
-    <>
-      <h1 className="page-header">{title}</h1>
-      <div className="profile-container">
-        <div className="username-container">
-          <span className="username">{username}</span>
-          <div className="role-subheader">
-            {role}
-          </div>
-        </div>  
-        <img src={placeholder} alt="Profile" className="profile-pic" />
+    <header className="d-flex justify-content-between align-items-center p-3 border-bottom bg-light w-100">
+      <h1 className="h3 text-primary">{title}</h1>
+      <div className="d-flex align-items-center">
+        <div className="text-end me-3">
+          <span className="d-block fw-bold text-muted">{username}</span>
+          <small className="text-muted">{role}</small>
+        </div>
+        <img
+          src={placeholder}
+          alt="Profile"
+          className="rounded-circle border"
+          width="50"
+          height="50"
+        />
       </div>
-    </>
+    </header>
   );
 };
 
