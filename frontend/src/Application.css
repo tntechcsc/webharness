@@ -1,0 +1,105 @@
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* Add Application Button */
+.add-app-button {
+  background-color: #6FFB78;
+  color: #12255f ;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.add-app-button:hover {
+  background-color: #12255f;
+  color: #5fd066;
+}
+
+
+
+/* Container for the whole page */
+.application-container {
+    padding: 20px;
+    margin-left: 15rem; /* Makes space for sidebar */
+  }
+  
+  .button-group {
+    display: flex;
+    gap: 10px;
+  }
+  /* Page Header */
+  .app-header {
+    font-size: 24px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  /* Table Container */
+  .app-table-container {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    color: black;
+  }
+  
+  /* Table Styling */
+  .app-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .app-table th, .app-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+  }
+  
+  /* Table Headers */
+  .app-table th {
+    background-color: #12255f;
+    color: white;
+  }
+  
+  /* Alternating Row Colors */
+  .app-table tr:nth-child(even) {
+    
+    background-color: #12255f;
+  }
+  
+  /* Status Colors */
+  .status.active {
+    color: green;
+    font-weight: bold;
+  }
+  
+  .status.inactive {
+    color: red;
+    font-weight: bold;
+  }
+  
+  /* View Button */
+  .view-button {
+    background-color: #6FFB78;
+    color: black;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+    
+  }
+  
+  .view-button:hover {
+    background-color: #5fd066;
+    color: black;
+  }
+  

@@ -1,0 +1,109 @@
+.role-management {
+  padding: 20px;
+  text-align: center;
+  ;
+}
+
+.search-bar {
+  width: 50%;
+  padding: 8px;
+  margin-bottom: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #12255f;
+  color: white;
+  margin-top: 20px;
+}
+
+table th,
+table td {
+  border: 1px solid white;
+  padding: 10px;
+  text-align: center;
+}
+
+table th {
+  background-color: #12255f;
+}
+
+.role-selection {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+input[type="radio"] {
+  display: none; /* Hide default radio */
+}
+
+.radio-label {
+  display: inline-block;
+  background-color: #6FFB78;
+  color: black;
+  padding: 6px 12px;
+  border-radius: 15px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+input[type="radio"]:checked + .radio-label {
+  background-color: #5fd066;
+  color: black;
+}
+
+.superadmin-label {
+  font-weight: bold;
+  color: yellow;
+}
+
+.reset-button {
+  background-color: #6FFB78;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+.reset-button:hover {
+  background-color: #5fd066;
+}
+
+/* Delete Button */
+.delete-button {
+  background-color: red;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 4px;
+  margin-left: 5px;
+}
+
+.delete-button:hover {
+  background-color: darkred;
+}
+
+/* Register User Button */
+.button-container {
+  margin-top: 20px;
+}
+
+.register-button {
+  background-color: #6FFB78;
+  color: black;
+  padding: 10px 15px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+}
+
+.register-button:hover {
+  background-color: #5fd066;
+}
