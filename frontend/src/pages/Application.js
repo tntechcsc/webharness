@@ -7,55 +7,96 @@ function Application() {
   console.log("Application.js has loaded successfully!"); // Debug Log
 
   const [applications, setApplications] = useState([]);
+  const [categories, setCategories] = useState({});
   const [statusMessage, setStatusMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch applications from the backend
   useEffect(() => {
-    const fetchApplications = async () => {
-      try {
-        let session_id = sessionStorage.getItem("session_id");
-        if (!session_id) {
-          console.error("No session ID found in sessionStorage.");
-          return;
-        }
-    
-        const response = await fetch(`http://localhost:3000/api/applications`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "x-session-id": session_id
-          }
-        });
-    
-        if (!response.ok) throw new Error("Failed to fetch applications");
-    
-        const data = await response.json();
-        setApplications(data.applications); // Update to use "applications" from the response
-      } catch (error) {
-        console.error("Error fetching applications:", error);
-        setStatusMessage("Using mock data (backend unavailable).");
-      }
-    };    
-
+    fetchCategories();
     fetchApplications();
   }, []);
 
+  // Fetch categories and store them in a dictionary for easy lookup. TODO: There is probably a better way of handling this
+  const fetchCategories = async () => {
+    try {
+      let session_id = sessionStorage.getItem("session_id");
+      const response = await fetch("http://localhost:3000/api/categories", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id,
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch categories");
+
+      const data = await response.json();
+      if (data.status === "success" && Array.isArray(data.categories)) {
+        const categoryMap = {};
+        data.categories.forEach((category) => {
+          categoryMap[category.id] = category.name;
+        });
+        setCategories(categoryMap);
+      } else {
+        throw new Error("Invalid categories data");
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  // Fetch applications
+  const fetchApplications = async () => {
+    try {
+      let session_id = sessionStorage.getItem("session_id");
+      if (!session_id) {
+        console.error("No session ID found in sessionStorage.");
+        return;
+      }
+
+      const response = await fetch("http://localhost:3000/api/applications", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id,
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch applications");
+
+      const data = await response.json();
+      setApplications(data.applications);
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      setStatusMessage("Using mock data (backend unavailable).");
+    }
+  };
+
   // Run an application
-  const runApplication = async (appPath) => {
-    setStatusMessage("Running...");
+  const runApplication = async (appId) => {
+    setStatusMessage("Starting application...");
 
     try {
-      const response = await fetch(`${window.origin}/api/execute`, {
+      let session_id = sessionStorage.getItem("session_id");
+      if (!session_id) {
+        setStatusMessage("Session ID is missing. Please log in.");
+        return;
+      }
+
+      const response = await fetch("http://localhost:3000/api/execute", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: appPath }),
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id,
+        },
+        body: JSON.stringify({ application_id: appId }), // Send application ID
       });
 
       if (response.ok) {
         setStatusMessage("Application started successfully.");
       } else {
-        setStatusMessage("Failed to start application.");
+        const errorData = await response.json();
+        setStatusMessage(`Failed to start application: ${errorData.message || "Unknown error"}`);
       }
     } catch (error) {
       setStatusMessage("Error: " + error.message);
@@ -87,7 +128,7 @@ function Application() {
             <thead>
               <tr>
                 <th>Application Name</th>
-                <th>Type (Categories)</th>
+                <th>Categories</th>
                 <th>Contact</th>
                 <th>Description</th>
                 <th>Status</th>
@@ -98,15 +139,19 @@ function Application() {
               {filteredApplications.map((app) => (
                 <tr key={app.application.id}>
                   <td>{app.application.name}</td>
-                  <td>{app.application.category_ids.join(", ")}</td> {/* Updated to use category_ids */}
-                  <td>{app.application.contact}</td>
+                  <td>
+                    {app.application.category_ids
+                      ?.map((id) => categories[id] || id) // Replace UUID with name
+                      .join(", ") || "N/A"}
+                  </td>
+                  <td>{app.application.contact || "N/A"}</td>
                   <td>{app.application.description}</td>
                   <td className={`status ${app.application.status?.toLowerCase() || "inactive"}`}>
                     {app.application.status || "Inactive"}
                   </td>
                   <td>
                     <div className="button-group">
-                      <button className="run-button" onClick={() => runApplication(app.instructions.path)}>
+                      <button className="run-button" onClick={() => runApplication(app.application.id)}>
                         Run
                       </button>
                       <Link to={`/view-application/${app.application.id}`} className="view-button">
