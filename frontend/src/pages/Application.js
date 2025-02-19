@@ -7,45 +7,14 @@ function Application() {
   console.log("Application.js has loaded successfully!"); // Debug Log
 
   const [applications, setApplications] = useState([]);
-  const [categories, setCategories] = useState({});
   const [statusMessage, setStatusMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    fetchCategories();
     fetchApplications();
   }, []);
 
-  // Fetch categories and store them in a dictionary for easy lookup. TODO: There is probably a better way of handling this
-  const fetchCategories = async () => {
-    try {
-      let session_id = sessionStorage.getItem("session_id");
-      const response = await fetch("http://localhost:3000/api/categories", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "x-session-id": session_id,
-        },
-      });
-
-      if (!response.ok) throw new Error("Failed to fetch categories");
-
-      const data = await response.json();
-      if (data.status === "success" && Array.isArray(data.categories)) {
-        const categoryMap = {};
-        data.categories.forEach((category) => {
-          categoryMap[category.id] = category.name;
-        });
-        setCategories(categoryMap);
-      } else {
-        throw new Error("Invalid categories data");
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    }
-  };
-
-  // Fetch applications
+  // Fetch applications (with category names included from the backend)
   const fetchApplications = async () => {
     try {
       let session_id = sessionStorage.getItem("session_id");
@@ -140,9 +109,9 @@ function Application() {
                 <tr key={app.application.id}>
                   <td>{app.application.name}</td>
                   <td>
-                    {app.application.category_ids
-                      ?.map((id) => categories[id] || id) // Replace UUID with name
-                      .join(", ") || "N/A"}
+                    {app.application.categories.length > 0
+                      ? app.application.categories.map((cat) => cat.name).join(", ")
+                      : "N/A"}
                   </td>
                   <td>{app.application.contact || "N/A"}</td>
                   <td>{app.application.description}</td>

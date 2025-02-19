@@ -24,8 +24,8 @@ const ViewApplication = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "x-session-id": session_id
-        }
+          "x-session-id": session_id,
+        },
       });
 
       if (!response.ok) {
@@ -53,29 +53,29 @@ const ViewApplication = () => {
     setStatusMessage("Starting application...");
 
     try {
-        let session_id = sessionStorage.getItem("session_id");
-        if (!session_id) {
-            setStatusMessage("Session ID is missing. Please log in.");
-            return;
-        }
+      let session_id = sessionStorage.getItem("session_id");
+      if (!session_id) {
+        setStatusMessage("Session ID is missing. Please log in.");
+        return;
+      }
 
-        const response = await fetch(`http://localhost:3000/api/execute`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-session-id": session_id
-            },
-            body: JSON.stringify({ application_id: application.id }) // Send application ID
-        });
+      const response = await fetch(`http://localhost:3000/api/execute`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id,
+        },
+        body: JSON.stringify({ application_id: application.id }), // Send application ID
+      });
 
-        if (response.ok) {
-            setStatusMessage("Application started successfully.");
-        } else {
-            const errorData = await response.json();
-            setStatusMessage(`Failed to start application: ${errorData.message || "Unknown error"}`);
-        }
+      if (response.ok) {
+        setStatusMessage("Application started successfully.");
+      } else {
+        const errorData = await response.json();
+        setStatusMessage(`Failed to start application: ${errorData.message || "Unknown error"}`);
+      }
     } catch (error) {
-        setStatusMessage("Error: " + error.message);
+      setStatusMessage("Error: " + error.message);
     }
   };
 
@@ -86,7 +86,7 @@ const ViewApplication = () => {
       let session_id = sessionStorage.getItem("session_id");
       const response = await fetch(`http://localhost:3000/api/applications/remove/${id}`, {
         method: "DELETE",
-        headers: { "x-session-id": session_id }
+        headers: { "x-session-id": session_id },
       });
 
       if (response.ok) {
@@ -116,7 +116,11 @@ const ViewApplication = () => {
           </tr>
           <tr>
             <td><strong>Application Categories:</strong></td>
-            <td>{application.category_ids ? application.category_ids.join(", ") : "None"}</td>
+            <td>
+              {application.categories && application.categories.length > 0
+                ? application.categories.map((cat) => cat.name).join(", ")
+                : "None"}
+            </td>
           </tr>
           <tr>
             <td><strong>Executable Path:</strong></td>

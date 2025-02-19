@@ -192,8 +192,11 @@ pub struct ApplicationDetails {
     pub name: String,
     pub description: String,
 
-    #[schema(example = json!(["category-id-5678", "category-id-9123"]))]
-    pub category_ids: Option<Vec<String>>, // Multiple category associations
+    #[schema(example = json!([
+        { "id": "category-id-5678", "name": "Utilities" },
+        { "id": "category-id-9123", "name": "Development" }
+    ]))]
+    pub categories: Vec<CategoryDetails>, // Now stores both category names & IDs
 }
 
 #[derive(Serialize, Deserialize, Clone, ToSchema)]

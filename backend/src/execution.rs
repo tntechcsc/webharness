@@ -463,14 +463,14 @@ fn get_application(
         }
     };
 
-    let application: ApplicationDetails = match stmt.query_row([&application_id], |row| {
+    let mut application: ApplicationDetails = match stmt.query_row([&application_id], |row| {
         Ok(ApplicationDetails {
             id: row.get(0)?,
             user_id: row.get(1)?,
             contact: row.get(2)?,
             name: row.get(3)?,
             description: row.get(4)?,
-            category_ids: None, // Placeholder, will be updated below
+            categories: vec![], // Placeholder, will be updated below
         })
     }) {
         Ok(app) => app,
@@ -481,8 +481,9 @@ fn get_application(
         }
     };
 
-    // Get category IDs for the application
-    let query = "SELECT category_id FROM CategoryApplication WHERE application_id = ?";
+    // Get category details (instead of just IDs)
+    let query = "SELECT c.id, c.name, c.description FROM CategoryApplication ca
+                 JOIN Category c ON ca.category_id = c.id WHERE ca.application_id = ?";
     let mut stmt = match conn.prepare(query) {
         Ok(stmt) => stmt,
         Err(e) => {
@@ -491,13 +492,19 @@ fn get_application(
         }
     };
 
-    let category_ids_result: Result<Vec<String>, _> = stmt
-        .query_map([&application_id], |row| row.get(0))
+    let category_result: Result<Vec<CategoryDetails>, _> = stmt
+        .query_map([&application_id], |row| {
+            Ok(CategoryDetails {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                description: row.get(2).ok(),
+            })
+        })
         .and_then(|rows| rows.collect());
 
-    let category_ids = match category_ids_result {
-        Ok(ids) if !ids.is_empty() => Some(ids),
-        _ => None, // No categories found
+    application.categories = match category_result {
+        Ok(categories) => categories,
+        Err(_) => vec![], // No categories found
     };
 
     // Get associated instructions
@@ -529,14 +536,7 @@ fn get_application(
 
     Ok(Json(json!({
         "status": "success",
-        "application": {
-            "id": application.id,
-            "user_id": application.user_id,
-            "contact": application.contact,
-            "name": application.name,
-            "description": application.description,
-            "category_ids": category_ids,  // Now returns multiple categories
-        },
+        "application": application,
         "instructions": instructions
     })))
 }
@@ -578,7 +578,7 @@ fn get_all_applications(
                 contact: row.get(2)?,
                 name: row.get(3)?,
                 description: row.get(4)?,
-                category_ids: None, // Placeholder, will be updated
+                categories: vec![], // Placeholder, will be updated
             })
         })
         .map_err(|e| {
@@ -597,7 +597,10 @@ fn get_all_applications(
     };
 
     // Retrieve all category associations
-    let query = "SELECT application_id, category_id FROM CategoryApplication";
+    let query = "
+        SELECT ca.application_id, c.id, c.name, c.description
+        FROM CategoryApplication ca
+        JOIN Category c ON ca.category_id = c.id";
     let mut stmt = match conn.prepare(query) {
         Ok(stmt) => stmt,
         Err(e) => {
@@ -606,20 +609,27 @@ fn get_all_applications(
         }
     };
 
-    let mut category_map: HashMap<String, Vec<String>> = HashMap::new();
+    let mut category_map: HashMap<String, Vec<CategoryDetails>> = HashMap::new();
 
     let category_result = stmt.query_map([], |row| {
         let application_id: String = row.get(0)?;
         let category_id: String = row.get(1)?;
-        Ok((application_id, category_id))
+        let category_name: String = row.get(2)?;
+        let category_description: Option<String> = row.get(3).ok();
+
+        Ok((application_id, CategoryDetails {
+            id: category_id,
+            name: category_name,
+            description: category_description,
+        }))
     });
 
     match category_result {
         Ok(rows) => {
             for row in rows {
                 match row {
-                    Ok((application_id, category_id)) => {
-                        category_map.entry(application_id).or_default().push(category_id);
+                    Ok((application_id, category)) => {
+                        category_map.entry(application_id).or_default().push(category);
                     }
                     Err(e) => {
                         error!("Database error while processing category row: {:?}", e);
@@ -679,7 +689,7 @@ fn get_all_applications(
     let applications_with_details: Vec<_> = applications
         .into_iter()
         .map(|mut app| {
-            app.category_ids = Some(category_map.remove(&app.id).unwrap_or_default());
+            app.categories = category_map.remove(&app.id).unwrap_or_default();
             let instructions = instructions_map
                 .get(&app.id)
                 .cloned()
