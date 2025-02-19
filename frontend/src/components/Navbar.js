@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import './Navbar.css';  
+import placeholder from "../assets/profile-placeholder.png";
 
 const Navbar = () => {
   return (
@@ -8,11 +8,20 @@ const Navbar = () => {
       {/* Sidebar/Navbar */}
       <div className="sidebar">
         <div className="logo-button">
-          <Link to="/" style={{ all: 'unset', cursor: 'pointer' }}>
+        <Link to="/profile" style={{ textDecoration: 'none' }} className="nav-button">
+            <img
+              src={placeholder}
+              alt="Profile"
+              className="rounded-circle border"
+              width="75"
+              height="75"
+            />
+          </Link>
+          <Link to="/" style={{ textDecoration: 'none' }} className="nav-button">
             <img 
               src="LogoHarness2.png" 
               alt="Logo" 
-              style={{ width: '10rem', height: '11rem'}} 
+              style={{ width: '8 rem', height: '10rem'}} 
             />
           </Link>
         </div>
