@@ -39,7 +39,7 @@ const PageHeader = ({ title }) => {
 
   return (
     <header className="d-flex justify-content-between align-items-center p-3 border-bottom bg-light w-100">
-      <h1 className="h3 text-primary">{title}</h1>
+      <h1 className="h3 text-muted">{title}</h1>
       <div className="d-flex align-items-center">
         <div className="text-end me-3">
           <span className="d-block fw-bold text-muted">{username}</span>
