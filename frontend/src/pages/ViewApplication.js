@@ -50,27 +50,32 @@ const ViewApplication = () => {
   };
 
   const runApplication = async () => {
-    if (!instructions.path) {
-      setStatusMessage("Error: No executable path found.");
-      return;
-    }
-
     setStatusMessage("Starting application...");
 
     try {
-      const response = await fetch("http://localhost:3000/api/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: instructions.path })
-      });
+        let session_id = sessionStorage.getItem("session_id");
+        if (!session_id) {
+            setStatusMessage("Session ID is missing. Please log in.");
+            return;
+        }
 
-      if (response.ok) {
-        setStatusMessage("Application started successfully.");
-      } else {
-        setStatusMessage("Failed to start application.");
-      }
+        const response = await fetch(`http://localhost:3000/api/execute`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-session-id": session_id
+            },
+            body: JSON.stringify({ application_id: application.id }) // Send application ID
+        });
+
+        if (response.ok) {
+            setStatusMessage("Application started successfully.");
+        } else {
+            const errorData = await response.json();
+            setStatusMessage(`Failed to start application: ${errorData.message || "Unknown error"}`);
+        }
     } catch (error) {
-      setStatusMessage("Error: " + error.message);
+        setStatusMessage("Error: " + error.message);
     }
   };
 
