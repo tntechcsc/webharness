@@ -302,8 +302,12 @@ fn add_application(
     if !std::path::Path::new(path).exists() {
         return Err(Status::BadRequest);
     }
+    
     let application_id = Uuid::new_v4().to_string();
     let instruction_id = Uuid::new_v4().to_string();
+
+    // Use provided contact or set to NULL
+    let contact = application_data.contact.as_deref();
 
     let query = "INSERT INTO Application (id, userId, contact, name, description) VALUES (?1, ?2, ?3, ?4, ?5)";
     let result = conn.execute(
@@ -311,7 +315,7 @@ fn add_application(
         params![
             &application_id,
             &application_data.user_id,
-            "email@email.com", // TODO: figure out how to get iser contact info.
+            contact, // Can be NULL if not provided
             &application_data.name,
             &application_data.description
         ],

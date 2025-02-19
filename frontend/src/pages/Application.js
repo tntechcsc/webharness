@@ -1,46 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import Layout from "./Layout";
-import '../Application.css';
+import "../Application.css";
 
 function Application() {
-  console.log("Application.js has loaded successfully!");  // Debug Log
+  console.log("Application.js has loaded successfully!"); // Debug Log
 
-  const [applications, setApplications] = useState([
-    { id: 1, name: "Caves of Qud", type: "Desktop", description: "A roguelike adventure", status: "Active", path: "D:/Games/Caves of Qud/CoQ.exe" },
-    { id: 2, name: "Test App", type: "Web", description: "Test Web Application", status: "Inactive", path: "C:/Program Files/TestApp/test.exe" },
-    { id: 3, name: "Photo Editor", type: "Desktop", description: "Advanced image editing software", status: "Active", path: "C:/Programs/PhotoEditor/photo.exe" }
-  ]);
-
+  const [applications, setApplications] = useState([]);
   const [statusMessage, setStatusMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Fetch applications from the backend
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/applications"); //switch all this to origin based routing
-        if (!response.ok) {
-          throw new Error("Failed to fetch applications");
+        let session_id = sessionStorage.getItem("session_id");
+        if (!session_id) {
+          console.error("No session ID found in sessionStorage.");
+          return;
         }
+    
+        const response = await fetch(`http://localhost:3000/api/applications`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": session_id
+          }
+        });
+    
+        if (!response.ok) throw new Error("Failed to fetch applications");
+    
         const data = await response.json();
-        setApplications(data);
+        setApplications(data.applications); // Update to use "applications" from the response
       } catch (error) {
         console.error("Error fetching applications:", error);
         setStatusMessage("Using mock data (backend unavailable).");
       }
-    };
+    };    
 
     fetchApplications();
   }, []);
 
+  // Run an application
   const runApplication = async (appPath) => {
     setStatusMessage("Running...");
 
     try {
-      const response = await fetch("http://localhost:3000/api/execute", {
+      const response = await fetch(`${window.origin}/api/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: appPath })
+        body: JSON.stringify({ path: appPath }),
       });
 
       if (response.ok) {
@@ -53,8 +62,9 @@ function Application() {
     }
   };
 
+  // Filter applications based on search input
   const filteredApplications = applications.filter((app) =>
-    app.name.toLowerCase().includes(searchTerm.toLowerCase())
+    app.application.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -71,12 +81,14 @@ function Application() {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
 
+        {/* Applications Table */}
         <div className="app-table-container">
           <table className="app-table">
             <thead>
               <tr>
                 <th>Application Name</th>
-                <th>Type</th>
+                <th>Type (Categories)</th>
+                <th>Contact</th>
                 <th>Description</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -84,17 +96,20 @@ function Application() {
             </thead>
             <tbody>
               {filteredApplications.map((app) => (
-                <tr key={app.id}>
-                  <td>{app.name}</td>
-                  <td>{app.type}</td>
-                  <td>{app.description}</td>
-                  <td className={`status ${app.status.toLowerCase()}`}>{app.status}</td>
+                <tr key={app.application.id}>
+                  <td>{app.application.name}</td>
+                  <td>{app.application.category_ids.join(", ")}</td> {/* Updated to use category_ids */}
+                  <td>{app.application.contact}</td>
+                  <td>{app.application.description}</td>
+                  <td className={`status ${app.application.status?.toLowerCase() || "inactive"}`}>
+                    {app.application.status || "Inactive"}
+                  </td>
                   <td>
                     <div className="button-group">
-                      <button className="run-button" onClick={() => runApplication(app.path)}>
+                      <button className="run-button" onClick={() => runApplication(app.instructions.path)}>
                         Run
                       </button>
-                      <Link to={`/view-application/${app.id}`} className="view-button">
+                      <Link to={`/view-application/${app.application.id}`} className="view-button">
                         View
                       </Link>
                     </div>
@@ -105,9 +120,11 @@ function Application() {
           </table>
         </div>
 
-        
+        {/* Add Application Button */}
         <div className="button-container">
-          <Link to="/add-application" className="add-app-button">+ Add Application</Link>
+          <Link to="/add-application" className="add-app-button">
+            + Add Application
+          </Link>
         </div>
       </div>
     </Layout>
