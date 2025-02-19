@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AddApplication.css"; // Import CSS
 
@@ -7,38 +7,129 @@ const AddApplication = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    type: "",
-    url: "",
-    responsible: ""
+    executable_path: "",
+    arguments: "",
+    category_ids: [],
+    contact: "",
   });
+
+  const [categories, setCategories] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [statusMessage, setStatusMessage] = useState("");
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  // Fetch available categories from backend
+  const fetchCategories = async () => {
+    try {
+      let session_id = sessionStorage.getItem("session_id");
+      const response = await fetch(`http://localhost:3000/api/categories`, {
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id
+        }
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch categories");
+
+      const data = await response.json();
+      if (data.status === "success" && Array.isArray(data.categories)) {
+        setCategories(data.categories);
+      } else {
+        throw new Error("Invalid categories data");
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  // Get current user ID before submitting
+  const fetchUserId = async () => {
+    try {
+      let session_id = sessionStorage.getItem("session_id");
+      if (!session_id) {
+        console.error("No session ID found in sessionStorage.");
+        return null;
+      }
+
+      const response = await fetch("http://localhost:3000/api/user/info", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id
+        }
+      });
+
+      if (!response.ok) throw new Error("Failed to get user session");
+
+      const data = await response.json();
+      return data.id;
+    } catch (error) {
+      console.error("Error fetching user ID:", error);
+      return null;
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleCategoryChange = (e) => {
+    const value = e.target.value;
+    setSelectedCategories(
+      selectedCategories.includes(value)
+        ? selectedCategories.filter((id) => id !== value)
+        : [...selectedCategories, value]
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setStatusMessage("Submitting...");
+
+    const user_id = await fetchUserId();
+    if (!user_id) {
+      setStatusMessage("Failed to retrieve user session.");
+      return;
+    }
+
+    const applicationData = {
+      ...formData,
+      user_id,
+      category_ids: selectedCategories.length > 0 ? selectedCategories : null,
+    };
+
     try {
-      const response = await fetch("http://localhost:3000/api/applications", {
+      let session_id = sessionStorage.getItem("session_id");
+      const response = await fetch(`http://localhost:3000/api/applications/add`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id
+        },
+        body: JSON.stringify(applicationData),
       });
 
+      const responseData = await response.json();
       if (response.ok) {
         alert("Application added successfully!");
         navigate("/applications");
       } else {
-        alert("Failed to add application.");
+        setStatusMessage(responseData.message || "Failed to add application.");
       }
     } catch (error) {
       console.error("Error:", error);
+      setStatusMessage("An error occurred while adding the application.");
     }
   };
 
   return (
     <div className="add-app-container">
       <h2 className="add-app-header">Add Application</h2>
+      {statusMessage && <p className="status-message">{statusMessage}</p>}
+
       <div className="form-container">
         <form onSubmit={handleSubmit}>
           <label>Application Name:</label>
@@ -47,16 +138,27 @@ const AddApplication = () => {
           <label>Application Description:</label>
           <input type="text" name="description" value={formData.description} onChange={handleChange} required />
 
-          <label>Application Type:</label>
-          <input type="text" name="type" value={formData.type} onChange={handleChange} required />
+          <label>Executable Path:</label>
+          <input type="text" name="executable_path" value={formData.executable_path} onChange={handleChange} required />
 
-          <label>Application URL:</label>
-          <input type="text" name="url" value={formData.url} onChange={handleChange} required />
+          <label>Arguments (Optional):</label>
+          <input type="text" name="arguments" value={formData.arguments} onChange={handleChange} />
 
           <label>Team/Individual Responsible:</label>
-          <input type="text" name="responsible" value={formData.responsible} onChange={handleChange} required />
+          <input type="text" name="contact" value={formData.contact} onChange={handleChange} required /> {/* New Field */}
 
-          <button type="submit" className="submit-button">Add Application</button>
+          <label>Categories:</label>
+          <select multiple onChange={handleCategoryChange} value={selectedCategories}>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+
+          <button type="submit" className="submit-button">
+            Add Application
+          </button>
         </form>
       </div>
     </div>

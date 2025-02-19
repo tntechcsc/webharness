@@ -1,73 +1,96 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import "./ViewApplication.css"; // Import CSS
 
 const ViewApplication = () => {
   const { id } = useParams(); // Get application ID from URL
-  const [statusMessage, setStatusMessage] = useState(""); // Status message
+  const [application, setApplication] = useState(null);
+  const [instructions, setInstructions] = useState({ path: "", arguments: "" }); // Ensure it's always an object
+  const [statusMessage, setStatusMessage] = useState("Loading application details...");
 
-  // Mock application data (Replace with API fetch if needed)
-  const applications = [
-    { 
-      id: 1, 
-      name: "Caves of Qud", 
-      description: "A roguelike adventure", 
-      type: "Desktop", 
-      url: "D:/Games/Caves of Qud/CoQ.exe", 
-      responsible: "Indie Dev Team", 
-      status: "Active" 
-    },
-    { 
-      id: 2, 
-      name: "Test App", 
-      description: "Test Web Application", 
-      type: "Web", 
-      url: "C:/Program Files/TestApp/test.exe", 
-      responsible: "QA Team", 
-      status: "Inactive" 
+  useEffect(() => {
+    fetchApplication();
+  }, []);
+
+  const fetchApplication = async () => {
+    try {
+      let session_id = sessionStorage.getItem("session_id");
+      if (!session_id) {
+        setStatusMessage("Unauthorized: No session ID found.");
+        return;
+      }
+
+      const response = await fetch(`http://localhost:3000/api/applications/${id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          setStatusMessage("Application not found.");
+        } else {
+          setStatusMessage("Failed to fetch application details.");
+        }
+        return;
+      }
+
+      const data = await response.json();
+
+      setApplication(data.application);
+      setInstructions(data.instructions || { path: "", arguments: "" }); // Ensure it always has a structure
+
+      setStatusMessage("");
+    } catch (error) {
+      console.error("Error fetching application:", error);
+      setStatusMessage("Error fetching application details.");
     }
-  ];
+  };
 
-  // Find the application by ID
-  const application = applications.find(app => app.id === parseInt(id));
-
-  if (!application) {
-    return <h2 className="error-message">Application not found</h2>;
-  }
-
-  // ✅ Function to Run Application (Mock API Request)
   const runApplication = async () => {
     setStatusMessage("Starting application...");
 
     try {
-      const response = await fetch("http://localhost:3000/api/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: application.url })
-      });
+        let session_id = sessionStorage.getItem("session_id");
+        if (!session_id) {
+            setStatusMessage("Session ID is missing. Please log in.");
+            return;
+        }
 
-      if (response.ok) {
-        setStatusMessage("Application started successfully.");
-      } else {
-        setStatusMessage("Failed to start application.");
-      }
+        const response = await fetch(`http://localhost:3000/api/execute`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-session-id": session_id
+            },
+            body: JSON.stringify({ application_id: application.id }) // Send application ID
+        });
+
+        if (response.ok) {
+            setStatusMessage("Application started successfully.");
+        } else {
+            const errorData = await response.json();
+            setStatusMessage(`Failed to start application: ${errorData.message || "Unknown error"}`);
+        }
     } catch (error) {
-      setStatusMessage("Error: " + error.message);
+        setStatusMessage("Error: " + error.message);
     }
   };
 
-  // ✅ Function to Remove Application (Mock API Request)
   const removeApplication = async () => {
     setStatusMessage("Removing application...");
 
     try {
-      const response = await fetch(`http://localhost:3000/api/remove/${application.id}`, {
-        method: "DELETE"
+      let session_id = sessionStorage.getItem("session_id");
+      const response = await fetch(`http://localhost:3000/api/applications/remove/${id}`, {
+        method: "DELETE",
+        headers: { "x-session-id": session_id }
       });
 
       if (response.ok) {
         setStatusMessage("Application removed successfully.");
-        // Redirect back to applications list after removal
         window.location.href = "/applications";
       } else {
         setStatusMessage("Failed to remove application.");
@@ -76,6 +99,10 @@ const ViewApplication = () => {
       setStatusMessage("Error: " + error.message);
     }
   };
+
+  if (!application) {
+    return <h2 className="error-message">{statusMessage || "Loading..."}</h2>;
+  }
 
   return (
     <div className="view-app-container">
@@ -88,31 +115,31 @@ const ViewApplication = () => {
             <td>{application.description}</td>
           </tr>
           <tr>
-            <td><strong>Application Type:</strong></td>
-            <td>{application.type}</td>
+            <td><strong>Application Categories:</strong></td>
+            <td>{application.category_ids ? application.category_ids.join(", ") : "None"}</td>
           </tr>
           <tr>
-            <td><strong>Application URL:</strong></td>
-            <td className="file-url">{application.url}</td>
+            <td><strong>Executable Path:</strong></td>
+            <td className="file-url">{instructions.path || "No path provided"}</td>
           </tr>
           <tr>
-            <td><strong>Team/Individual Responsible:</strong></td>
-            <td>{application.responsible}</td>
+            <td><strong>Arguments:</strong></td>
+            <td>{instructions.arguments || "None"}</td>
           </tr>
           <tr>
-            <td><strong>Application Status:</strong></td>
-            <td className={`status ${application.status.toLowerCase()}`}>{application.status}</td>
+            <td><strong>Contact:</strong></td>
+            <td>{application.contact || "Not provided"}</td>
           </tr>
         </tbody>
       </table>
 
-      {/* Status Message */}
       {statusMessage && <p className="status-message">{statusMessage}</p>}
 
-      {/* Buttons for Run & Remove */}
       <div className="button-group">
         <button className="remove-button" onClick={removeApplication}>Remove Application</button>
-        <button className="run-button" onClick={runApplication}>Run Application</button>
+        <button className="run-button" onClick={runApplication} disabled={!instructions.path}>
+          Run Application
+        </button>
       </div>
 
       <Link to="/applications" className="back-button">← Back to Applications</Link>

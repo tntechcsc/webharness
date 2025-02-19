@@ -136,6 +136,9 @@ pub struct ApplicationEntry {
     #[schema(example = "1")]
     pub user_id: String,
 
+    #[schema(example = "team@example.com")]
+    pub contact: Option<String>,
+
     #[schema(example = "C:\\Windows\\System32\\notepad.exe")]
     pub executable_path: String,
 
@@ -185,7 +188,7 @@ pub struct ApplicationUpdateForm {
 pub struct ApplicationDetails {
     pub id: String,
     pub user_id: String,
-    pub contact: String,
+    pub contact: Option<String>,
     pub name: String,
     pub description: String,
 
