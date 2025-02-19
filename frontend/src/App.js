@@ -9,6 +9,7 @@ import Navbar from "./components/Navbar";
 import Login from "./pages/login";
 import ViewApplication from "./pages/ViewApplication";
 import AddApplication from "./pages/AddApplication";
+import Profile from "./pages/Profile"
 import RegisterUser from "./pages/RegisterUser"; // ✅ Import RegisterUser.js
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
               <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
               <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
               <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} /> {/* ✅ New Route */}
+              <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
               <Route path="login" element={<Login />} />
             </Routes>
           </div>
