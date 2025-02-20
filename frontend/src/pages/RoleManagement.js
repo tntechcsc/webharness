@@ -8,12 +8,13 @@ import '../RoleManagement.css'; // Ensure CSS file exists
 const RoleManagement = () => {
   // ✅ Mock Data (Used if backend is down)
   const mockUsers = [
-    { id: 1, name: "Tommy", role: "Member", email: "tommy@example.com" },
-    { id: 2, name: "Hunter", role: "Admin", email: "hunter@example.com" },
-    { id: 3, name: "Jesus", role: "Member", email: "jesus@example.com" },
-    { id: 4, name: "Nate", role: "Member", email: "nate@example.com" },
-    { id: 5, name: "Burchfield", role: "SuperAdmin", email: "burchfield@example.com" }
+    { id: 1, username: "Tommy", role: "Member", email: "tommy@example.com" },
+    { id: 2, username: "Hunter", role: "Admin", email: "hunter@example.com" },
+    { id: 3, username: "Jesus", role: "Member", email: "jesus@example.com" },
+    { id: 4, username: "Nate", role: "Member", email: "nate@example.com" },
+    { id: 5, username: "Burchfield", role: "SuperAdmin", email: "burchfield@example.com" }
   ];
+
 
   const [users, setUsers] = useState(mockUsers); // ✅ Default to mock data
   const [searchTerm, setSearchTerm] = useState("");
@@ -27,7 +28,7 @@ const RoleManagement = () => {
     const fetchUsers = async () => {
       try {
         let session_id = sessionStorage.getItem("session_id");
-        let uri = `${baseURL}:3000/api/users/all`
+        let uri = `${baseURL}:3000/api/user/search/all`
         const response = await fetch(uri, {
           method: "GET",
           headers: {
@@ -38,7 +39,7 @@ const RoleManagement = () => {
 
         if (!response.ok) throw new Error("Failed to fetch users");
         const data = await response.json();
-        setUsers(data); // ✅ Replace mock data with backend data
+        setUsers(data.users); // ✅ Replace mock data with backend data
       } catch (err) {
         console.error("Error fetching users:", err);
         setError("Using mock data (backend unavailable).");
@@ -94,18 +95,9 @@ const RoleManagement = () => {
             <tbody>
               {users.map(user => (
                 <tr key={user.id}>
-                  <td>{user.name}</td>
+                  <td>{user.username}</td>
                   <td>{user.email}</td>
-                  <td>
-                    <label>
-                      <input type="radio" name={`role-${user.id}`} value="Member" checked={user.role === "Member"} onChange={() => handleRoleChange(user.id, "Member")} />
-                      Member
-                    </label>
-                    <label>
-                      <input type="radio" name={`role-${user.id}`} value="Admin" checked={user.role === "Admin"} onChange={() => handleRoleChange(user.id, "Admin")} />
-                      Admin
-                    </label>
-                  </td>
+                  <td>{user.roleName}</td>
                   <td>
                     <button className="reset-button" onClick={() => handleResetPassword(user.id)}>Reset Password</button>
                     <button className="delete-button" onClick={() => handleDeleteUser(user.id)}>❌</button>

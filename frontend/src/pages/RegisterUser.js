@@ -52,13 +52,7 @@ const RegisterUser = () => {
       <div className="d-flex align-items-center justify-content-between">
         <h2>Register New User</h2>
         <Button className="btn btn-danger p-2" onClick={() => {navigate("/role-management")}}>
-          <img
-            src={"/close-x-svgrepo-com.svg"}
-            alt="Profile"
-            className=""
-            width="20"
-            height="20"
-          />
+        ❌
         </Button>
       </div>
 
