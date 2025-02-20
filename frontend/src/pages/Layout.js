@@ -11,10 +11,10 @@ const Layout = ({ children, title }) => {
 
   return (
     <>
-      <div className="app-container">
+      <div className="">
         <Navbar />
-        <div className="main-content">
-          <div className="content-wrapper">
+        <div className="">
+          <div className="r">
             {children}
           </div>
         </div>

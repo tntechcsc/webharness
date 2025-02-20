@@ -34,33 +34,6 @@ const HomePage = () => {
 
   return (
   <Layout title="Welcome to Project Mangrove">
-    {/* Mini Panel with Search and Application List */}
-    <div className="mini-panel">
-      <h2>Application Panel</h2>
-      
-      {/* Search Bar */}
-      <input
-        type="text"
-        placeholder="Search Feature"
-        className="search-bar"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
-
-      {/* Application Table */}
-      <table className="app-table">
-        <tbody>
-          {filteredApps.map((app) => (
-            <tr key={app.id}>
-              <td className="app-name">{app.name}</td>
-              <td>
-                <button className="run-button">Run</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   </Layout> );
 };
 
