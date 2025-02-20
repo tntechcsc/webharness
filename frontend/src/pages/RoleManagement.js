@@ -100,7 +100,9 @@ const RoleManagement = () => {
                   <td>{user.roleName}</td>
                   <td>
                     <button className="reset-button" onClick={() => handleResetPassword(user.id)}>Reset Password</button>
-                    <button className="delete-button" onClick={() => handleDeleteUser(user.id)}>❌</button>
+                    <button className="delete-button" onClick={() => handleDeleteUser(user.id)}>
+                      <span style={{ color: "black", fontSize: "16px" }}>✕</span>
+                    </button>
                   </td>
                 </tr>
               ))}

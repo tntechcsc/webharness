@@ -33,8 +33,16 @@ const HomePage = () => {
   
 
   return (
-  <Layout title="Welcome to Project Mangrove">
-  </Layout> );
+    <Layout title="Welcome to Project Mangrove">
+      <div className="homepage-content">
+        <h1>Welcome to Project Mangrove!</h1>
+        <p>This application is a demonstration harness.  It is capable of handling the launch
+          of different applications (e.g. java applications, AR/VR applications, python scripts,
+          etc.), as well as having different user accounts with different roles.
+        </p>
+      </div>
+    </Layout>
+  );
 };
 
 

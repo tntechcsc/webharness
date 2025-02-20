@@ -52,7 +52,7 @@ const RegisterUser = () => {
       <div className="d-flex align-items-center justify-content-between">
         <h2>Register New User</h2>
         <Button className="btn btn-danger p-2" onClick={() => {navigate("/role-management")}}>
-        ❌
+          <span style={{ color: "black", fontSize: "18px" }}>✕</span>
         </Button>
       </div>
 
