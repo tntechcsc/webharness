@@ -106,7 +106,7 @@ const RoleManagement = () => {
 
           {/* ✅ Register User Button */}
           <div className="button-container">
-            <Link to="/register-user" className="register-button">
+            <Link to="/register-user" className="register-button text-decoration-none">
               Register User
             </Link>
           </div>

@@ -243,6 +243,10 @@ fn user_register(_session_id: SessionGuard, user_data: Json<UserInit>, db: &rock
     if actor == "" {
         return Err(Status::BadRequest);
     }
+    
+    if actor_role == 3 { // if they are a viewer
+        return Err(Status::Unauthorized);
+    }
 
     if actor_role > target_role {
         return Err(Status::Unauthorized);
