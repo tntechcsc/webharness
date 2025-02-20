@@ -75,9 +75,14 @@ function Application() {
     }
   };
 
-  // Filter applications based on search input
+  // Filter applications based on search input for name, cateogry, description, contact and status
   const filteredApplications = applications.filter((app) =>
-    app.application.name.toLowerCase().includes(searchTerm.toLowerCase())
+    app.application.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    app.application.categories.some((cat) =>
+      cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ) ||
+    (app.application.contact && app.application.contact.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (app.application.description && app.application.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
