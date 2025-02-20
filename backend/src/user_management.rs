@@ -45,6 +45,55 @@ use crate::SessionGuard;
 
 #[utoipa::path(
     get,
+    path = "/api/user/search/all",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "Users retrieved"),
+        (status = 400, description = "Bad Request")
+    ),
+    security(
+        ("session_id" = [])
+    ),
+)]
+#[get("/api/user/search/all")]
+fn user_all(_session_id: SessionGuard, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+
+    let mut stmt = conn.prepare("SELECT username, email, roleName FROM User NATURAL JOIN UserRoles NATURAL JOIN Roles").unwrap(); // Prepare your query
+    let mut rows = stmt.query([]).unwrap(); // Execute the query with no parameters
+
+    let mut users = Vec::new(); // A vector to hold the results
+
+    // Iterate over all rows and collect the results
+    while let Some(unwrapped_row) = rows.next().unwrap() {
+        let username: String = unwrapped_row.get(0).unwrap();
+        let email: String = unwrapped_row.get(1).unwrap();
+        let roleName: String = unwrapped_row.get(2).unwrap();
+
+        // Push each result into the vector
+        users.push(json!({
+            "username": username,
+            "email": email,
+            "roleName": roleName,
+        }));
+    }
+
+    if users.is_empty() {
+        // If no users are found, return a 404 Not Found
+        Err(Status::NotFound)
+    } else {
+        // Return all the users as a JSON array
+        Ok(Json(json!({
+            "status": "success",
+            "message": "Users retrieved",
+            "users": users,
+        })))
+    }
+}
+
+
+#[utoipa::path(
+    get,
     path = "/api/user/search/{username}",
     tag = "User Management",
     responses(
@@ -515,7 +564,7 @@ fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<ser
 
 // Export the routes
 pub fn user_management_routes() -> Vec<Route> {
-    routes![session_validate_api, user_search, user_info, user_role_search_api, user_register, user_login, user_logout, reset_password, user_delete]
+    routes![session_validate_api, user_all, user_search, user_info, user_role_search_api, user_register, user_login, user_logout, reset_password, user_delete]
 }
 
 pub struct UserSearchPaths;

@@ -19,12 +19,23 @@ const RoleManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const baseURL = window.location.origin;
+
 
   // ✅ Fetch users from backend, replacing mock data if successful
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/users");
+        let session_id = sessionStorage.getItem("session_id");
+        let uri = `${baseURL}:3000/api/users/all`
+        const response = await fetch(uri, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": session_id || "",
+          }
+        });
+
         if (!response.ok) throw new Error("Failed to fetch users");
         const data = await response.json();
         setUsers(data); // ✅ Replace mock data with backend data

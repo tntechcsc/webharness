@@ -112,6 +112,7 @@ fn rocket() -> _ {
             crate::user_management::reset_password, 
             crate::user_management::user_delete, 
             crate::user_management::user_logout,
+            crate::user_management::user_all,
 
             crate::execution::execute_program, 
             crate::execution::get_process_status, 
