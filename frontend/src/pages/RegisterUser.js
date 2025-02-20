@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../RegisterUser.css"; // Ensure this CSS file exists
+import "bootstrap/dist/css/bootstrap.min.css";
+import Button from "react-bootstrap/Button";
 
 const RegisterUser = () => {
   const navigate = useNavigate();
@@ -47,7 +49,19 @@ const RegisterUser = () => {
 
   return (
     <div className="register-container">
-      <h2>Register New User</h2>
+      <div className="d-flex align-items-center justify-content-between">
+        <h2>Register New User</h2>
+        <Button className="btn btn-danger p-2" onClick={() => {navigate("/role-management")}}>
+          <img
+            src={"/close-x-svgrepo-com.svg"}
+            alt="Profile"
+            className=""
+            width="20"
+            height="20"
+          />
+        </Button>
+      </div>
+
       <form onSubmit={handleSubmit}>
         <label>Username:</label>
         <input type="text" name="username" value={formData.username} onChange={handleChange} required />
