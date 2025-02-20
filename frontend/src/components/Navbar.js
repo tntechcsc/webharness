@@ -27,6 +27,7 @@ const Navbar = () => {
         </div>
         <Link to="/applications" style={{ textDecoration: 'none' }} className="nav-button">Application</Link>
         <Link to="/role-management" style={{ textDecoration: 'none' }} className="nav-button">Role Management</Link>
+        <Link to="/login" style={{ textDecoration: 'none' }} className="nav-button" onClick={() => {sessionStorage.removeItem("session_id");}}>Logout</Link>
       </div>
     </div>
   );
