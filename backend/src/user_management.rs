@@ -59,7 +59,7 @@ use crate::SessionGuard;
 fn user_all(_session_id: SessionGuard, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
 
-    let mut stmt = conn.prepare("SELECT id, username, email, roleName FROM User NATURAL JOIN UserRoles NATURAL JOIN Roles").unwrap(); // Prepare your query
+    let mut stmt = conn.prepare("SELECT U.id, U.username, U.email, R.roleName FROM User U JOIN UserRoles UR ON U.id = UR.userID JOIN Roles R ON UR.roleID = R.roleID;").unwrap(); // Prepare your query
     let mut rows = stmt.query([]).unwrap(); // Execute the query with no parameters
 
     let mut users = Vec::new(); // A vector to hold the results

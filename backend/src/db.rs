@@ -264,6 +264,14 @@ impl DB {
                 "INSERT OR IGNORE INTO CategoryApplication (category_id, application_id) VALUES (3, 3)",
                 [],
             )?;
+            conn_use.execute(
+                "INSERT OR IGNORE INTO CategoryApplication (category_id, application_id) VALUES (1, 4)",
+                [],
+            )?;
+            conn_use.execute(
+                "INSERT OR IGNORE INTO CategoryApplication (category_id, application_id) VALUES (2, 5)",
+                [],
+            )?;
 
             // Insert instructions for each application
             conn_use.execute(

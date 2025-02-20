@@ -2,7 +2,29 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import placeholder from "../assets/profile-placeholder.png";
 
+
 const Navbar = () => {
+  const handleLogout = async () => {
+    try {
+      let session_id = sessionStorage.getItem('session_id');
+      if (!session_id) {
+        console.error('No session ID found in sessionStorage.');
+        return;
+      }
+
+      const response = await fetch(`${window.location.origin}:3000/api/user/logout`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': sessionStorage.getItem('session_id')
+        }
+      });
+      sessionStorage.removeItem('session_id');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  }
+
   return (
     <div className="navbar">
       {/* Sidebar/Navbar */}
@@ -27,7 +49,7 @@ const Navbar = () => {
         </div>
         <Link to="/applications" style={{ textDecoration: 'none' }} className="nav-button">Application</Link>
         <Link to="/role-management" style={{ textDecoration: 'none' }} className="nav-button">Role Management</Link>
-        <Link to="/login" style={{ textDecoration: 'none' }} className="nav-button" onClick={() => {sessionStorage.removeItem("session_id");}}>Logout</Link>
+        <Link to="/login" style={{ textDecoration: 'none' }} className="nav-button" onClick={() => {handleLogout()}}>Logout</Link>
       </div>
     </div>
   );
