@@ -1,5 +1,6 @@
 import placeholder from "../assets/profile-placeholder.png";
 import { useState, useEffect } from "react";
+import { Link } from 'react-router-dom';
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const PageHeader = ({ title }) => {
@@ -45,13 +46,15 @@ const PageHeader = ({ title }) => {
           <span className="d-block fw-bold text-muted">{username}</span>
           <small className="text-muted">{role}</small>
         </div>
-        <img
-          src={placeholder}
-          alt="Profile"
-          className="rounded-circle border"
-          width="50"
-          height="50"
-        />
+        <Link to="/profile">
+          <img
+            src={placeholder}
+            alt="Profile"
+            className="rounded-circle border"
+            width="50"
+            height="50"
+          />
+        </Link>
       </div>
     </header>
   );

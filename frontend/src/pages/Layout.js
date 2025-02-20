@@ -14,9 +14,6 @@ const Layout = ({ children, title }) => {
       <div className="app-container">
         <Navbar />
         <div className="main-content">
-        <PageHeader 
-              title={title}
-            />
           <div className="content-wrapper">
             {children}
           </div>

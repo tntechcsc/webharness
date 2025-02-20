@@ -4,12 +4,12 @@ import { checkSession } from "../utils/authUtils"
 
 // Protected route component
 const ProtectedRoute = ({ element }) => {
-    const [isAuthenticated, setIsAuthenticated] = useState(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(null); // are they authenticated? also can use this for admin pages too
   
     useEffect(() => {
       const validateSession = async () => {
-        const isValid = await checkSession();
-        setIsAuthenticated(isValid);
+        const isValid = await checkSession(); // check if their session is valid
+        setIsAuthenticated(isValid); // if it is valid they are authenticated
       };
   
       validateSession();
