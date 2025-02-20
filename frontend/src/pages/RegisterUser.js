@@ -5,10 +5,13 @@ import "../RegisterUser.css"; // Ensure this CSS file exists
 const RegisterUser = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
-    role: "Member"
+    password: "password123",
+    role: "3",
+    username: "",
   });
+  const baseURL = window.location.origin;
+
 
   // Handles input field changes
   const handleChange = (e) => {
@@ -20,16 +23,22 @@ const RegisterUser = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:3000/api/register", {
+      const uri = `${baseURL}:3000/api/user/register`;
+      let session_id = sessionStorage.getItem("session_id");
+      const response = await fetch(uri, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id || "",
+        },
         body: JSON.stringify(formData)
       });
 
-      if (!response.ok) throw new Error("Failed to register user");
-
-      alert("User registered successfully!");
-      navigate("/role-management"); // Redirect back to Role Management
+      if (response.ok) {
+        alert("User registered successfully!");
+        navigate("/role-management");
+      }
+      else throw new Error("Failed to register user");
     } catch (err) {
       console.error("Error registering user:", err);
       alert("Failed to register user.");
@@ -40,16 +49,16 @@ const RegisterUser = () => {
     <div className="register-container">
       <h2>Register New User</h2>
       <form onSubmit={handleSubmit}>
-        <label>Name:</label>
-        <input type="text" name="name" value={formData.name} onChange={handleChange} required />
+        <label>Username:</label>
+        <input type="text" name="username" value={formData.username} onChange={handleChange} required />
 
         <label>Email:</label>
         <input type="email" name="email" value={formData.email} onChange={handleChange} required />
 
         <label>Role:</label>
         <select name="role" value={formData.role} onChange={handleChange}>
-          <option value="Member">Member</option>
-          <option value="Admin">Admin</option>
+          <option value="3">Viewer</option>
+          <option value="2">Admin</option>
         </select>
 
         <button type="submit" className="submit-button">Register</button>
