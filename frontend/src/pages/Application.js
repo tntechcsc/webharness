@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "./Layout";
+import { FaPlay, FaEye } from "react-icons/fa";
 import "../Application.css";
 
 function Application() {
@@ -58,7 +59,7 @@ function Application() {
           "Content-Type": "application/json",
           "x-session-id": session_id,
         },
-        body: JSON.stringify({ application_id: appId }), // Send application ID
+        body: JSON.stringify({ application_id: appId }),
       });
 
       if (response.ok) {
@@ -82,17 +83,24 @@ function Application() {
       <div className="application-container">
         {statusMessage && <p className="status-message">{statusMessage}</p>}
 
-        {/* Search Bar */}
-        <input
-          type="text"
-          placeholder="Search applications..."
-          className="search-bar"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-
-        {/* Applications Table */}
+        {/* The "card" containing search/add button/table */}
         <div className="app-table-container">
+          {/* Top bar with search input & Add Application button */}
+          <div className="app-table-header">
+            <input
+              type="text"
+              placeholder="Search applications..."
+              className="search-bar"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+
+            <Link to="/add-application" className="add-app-button">
+              + Add Application
+            </Link>
+          </div>
+
+          {/* The table */}
           <table className="app-table">
             <thead>
               <tr>
@@ -120,11 +128,19 @@ function Application() {
                   </td>
                   <td>
                     <div className="button-group">
-                      <button className="run-button" onClick={() => runApplication(app.application.id)}>
-                        Run
+                      <button
+                        className="run-button"
+                        onClick={() => runApplication(app.application.id)}
+                        title="Run"
+                      >
+                        <FaPlay />
                       </button>
-                      <Link to={`/view-application/${app.application.id}`} className="view-button">
-                        View
+                      <Link
+                        to={`/view-application/${app.application.id}`}
+                        className="view-button"
+                        title="View"
+                      >
+                        <FaEye />
                       </Link>
                     </div>
                   </td>
@@ -132,13 +148,6 @@ function Application() {
               ))}
             </tbody>
           </table>
-        </div>
-
-        {/* Add Application Button */}
-        <div className="button-container">
-          <Link to="/add-application" className="add-app-button">
-            + Add Application
-          </Link>
         </div>
       </div>
     </Layout>
