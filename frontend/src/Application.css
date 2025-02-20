@@ -104,3 +104,27 @@
     color: black;
   }
   
+/* Fix Option Text Color */
+.custom__option {
+  background-color: white !important;
+  color: black !important;
+  padding: 10px;
+}
+
+/* Hover Effect for Options */
+.custom__option:hover {
+  background-color: #6FFB78 !important;
+  color: #12255f !important;
+}
+
+/* Multi-Selected Items (Tags) */
+.custom__multi-value {
+  background-color: #6FFB78 !important;
+  color: black !important;
+  border-radius: 5px;
+}
+
+.custom__multi-value__remove:hover {
+  background-color: #12255f !important;
+  color: white !important;
+}

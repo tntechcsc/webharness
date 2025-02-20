@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import Select from "react-select";
 import "./AddApplication.css"; // Import CSS
 
 const AddApplication = () => {
@@ -9,7 +10,6 @@ const AddApplication = () => {
     description: "",
     executable_path: "",
     arguments: "",
-    category_ids: [],
     contact: "",
   });
 
@@ -21,7 +21,7 @@ const AddApplication = () => {
     fetchCategories();
   }, []);
 
-  // Fetch available categories from backend
+  // Fetch categories from backend
   const fetchCategories = async () => {
     try {
       let session_id = sessionStorage.getItem("session_id");
@@ -36,7 +36,7 @@ const AddApplication = () => {
 
       const data = await response.json();
       if (data.status === "success" && Array.isArray(data.categories)) {
-        setCategories(data.categories);
+        setCategories(data.categories.map(cat => ({ value: cat.id, label: cat.name })));
       } else {
         throw new Error("Invalid categories data");
       }
@@ -45,7 +45,7 @@ const AddApplication = () => {
     }
   };
 
-  // Get current user ID before submitting
+  // Fetch current user ID
   const fetchUserId = async () => {
     try {
       let session_id = sessionStorage.getItem("session_id");
@@ -76,13 +76,9 @@ const AddApplication = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleCategoryChange = (e) => {
-    const value = e.target.value;
-    setSelectedCategories(
-      selectedCategories.includes(value)
-        ? selectedCategories.filter((id) => id !== value)
-        : [...selectedCategories, value]
-    );
+  // Handle category selection using react-select
+  const handleCategoryChange = (selectedOptions) => {
+    setSelectedCategories(selectedOptions || []);
   };
 
   const handleSubmit = async (e) => {
@@ -98,7 +94,7 @@ const AddApplication = () => {
     const applicationData = {
       ...formData,
       user_id,
-      category_ids: selectedCategories.length > 0 ? selectedCategories : null,
+      category_ids: selectedCategories.map(option => option.value),
     };
 
     try {
@@ -145,16 +141,20 @@ const AddApplication = () => {
           <input type="text" name="arguments" value={formData.arguments} onChange={handleChange} />
 
           <label>Team/Individual Responsible:</label>
-          <input type="text" name="contact" value={formData.contact} onChange={handleChange} required /> {/* New Field */}
+          <input type="text" name="contact" value={formData.contact} onChange={handleChange} required />
 
           <label>Categories:</label>
-          <select multiple onChange={handleCategoryChange} value={selectedCategories}>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+          <div className="category-select">
+            <Select
+              isMulti
+              options={categories}
+              value={selectedCategories}
+              onChange={handleCategoryChange}
+              placeholder="Select categories"
+              className="custom-react-select"
+              classNamePrefix="custom"
+            />
+          </div>
 
           <button type="submit" className="submit-button">
             Add Application
