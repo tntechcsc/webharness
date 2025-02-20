@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import "./ViewApplication.css"; // Import CSS
 
+const baseURL = window.location.origin;
+
 const ViewApplication = () => {
   const { id } = useParams(); // Get application ID from URL
   const [application, setApplication] = useState(null);
@@ -20,7 +22,7 @@ const ViewApplication = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:3000/api/applications/${id}`, {
+      const response = await fetch(`${baseURL}:3000/api/applications/${id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -59,7 +61,7 @@ const ViewApplication = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:3000/api/execute`, {
+      const response = await fetch(`${baseURL}:3000/api/execute`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -84,7 +86,7 @@ const ViewApplication = () => {
 
     try {
       let session_id = sessionStorage.getItem("session_id");
-      const response = await fetch(`http://localhost:3000/api/applications/remove/${id}`, {
+      const response = await fetch(`${baseURL}:3000/api/applications/remove/${id}`, {
         method: "DELETE",
         headers: { "x-session-id": session_id },
       });

@@ -50,6 +50,8 @@
     border-radius: 8px;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
     color: black;
+    max-height: 900px; /* Set a max height for the table */
+    overflow-y: auto; /* Enable vertical scrolling */
   }
   
   /* Table Styling */
@@ -66,8 +68,11 @@
   
   /* Table Headers */
   .app-table th {
+    position: sticky;
+    top: 0;
     background-color: #12255f;
     color: white;
+    z-index: 2;
   }
   
   /* Alternating Row Colors */
@@ -127,4 +132,10 @@
 .custom__multi-value__remove:hover {
   background-color: #12255f !important;
   color: white !important;
+}
+
+@media (max-height: 800px) {
+  .app-table-container {
+    max-height: 500px; /* Adjust height for smaller screens */
+  }
 }

@@ -4,6 +4,8 @@ import Layout from "./Layout";
 import { FaPlay, FaEye } from "react-icons/fa";
 import "../Application.css";
 
+const baseURL = window.location.origin;
+
 function Application() {
   console.log("Application.js has loaded successfully!"); // Debug Log
 
@@ -24,7 +26,7 @@ function Application() {
         return;
       }
 
-      const response = await fetch("http://localhost:3000/api/applications", {
+      const response = await fetch(`${baseURL}:3000/api/applications`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -53,7 +55,7 @@ function Application() {
         return;
       }
 
-      const response = await fetch("http://localhost:3000/api/execute", {
+      const response = await fetch(`${baseURL}:3000/api/execute`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
