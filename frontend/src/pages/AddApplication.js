@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Select from "react-select";
 import "./AddApplication.css"; // Import CSS
 
+const baseURL = window.location.origin;
+
 const AddApplication = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -25,7 +27,7 @@ const AddApplication = () => {
   const fetchCategories = async () => {
     try {
       let session_id = sessionStorage.getItem("session_id");
-      const response = await fetch(`http://localhost:3000/api/categories`, {
+      const response = await fetch(`${baseURL}:3000/api/categories`, {
         headers: {
           "Content-Type": "application/json",
           "x-session-id": session_id
@@ -54,7 +56,7 @@ const AddApplication = () => {
         return null;
       }
 
-      const response = await fetch("http://localhost:3000/api/user/info", {
+      const response = await fetch(`${baseURL}:3000/api/user/info`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -99,7 +101,7 @@ const AddApplication = () => {
 
     try {
       let session_id = sessionStorage.getItem("session_id");
-      const response = await fetch(`http://localhost:3000/api/applications/add`, {
+      const response = await fetch(`${baseURL}:3000/api/applications/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
