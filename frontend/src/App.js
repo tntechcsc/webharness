@@ -14,13 +14,13 @@ import RegisterUser from "./pages/RegisterUser"; // ✅ Import RegisterUser.js
 
 function App() {
   const [atLogin, setAtLogin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const location = useLocation(); // Hook to get the current location/pathname
   // Simulate a delay before showing the page content
   useEffect(() => {
     setTimeout(() => {
       setIsLoading(false);
-    }, 3000); // Simulating loading effect
+    }, 500); // Simulating loading effect
   }, []);
 
   return (
