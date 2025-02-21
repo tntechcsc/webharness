@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import  ProtectedRoute  from "./components/ProtectedRoute"
 import './App.css'; // Ensure your styles are linked correctly
 import { BrowserRouter as Router, Route, Routes, useLocation  } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import Application from "./pages/Application";
 import RoleManagement from "./pages/RoleManagement";
-import Navbar from "./components/Navbar";
 import Login from "./pages/login";
 import ViewApplication from "./pages/ViewApplication";
 import AddApplication from "./pages/AddApplication";
 import Profile from "./pages/Profile"
 import RegisterUser from "./pages/RegisterUser"; // ✅ Import RegisterUser.js
+import { checkSession } from "./utils/authUtils"
+
+
 
 function App() {
   const [atLogin, setAtLogin] = useState(false);
