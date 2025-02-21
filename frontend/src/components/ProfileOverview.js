@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import Image from 'react-bootstrap/Image';
+
 
 const ProfileOverview = () => {
     const [name, setName] = useState("John Doe");
@@ -28,7 +28,8 @@ const ProfileOverview = () => {
                     setName(data.username);
                     setEmail(data.email);
                     setRole(data.roleName);
-                }
+                } //maybe we need to check if the session id was invalid and if so redirect them to the login page and delete their session storage for session id
+
             } catch (error) {
                 console.log("ERROR: " + error);
             }
