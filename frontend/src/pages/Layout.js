@@ -15,6 +15,7 @@ const Layout = ({ children, title }) => {
         const isValid = await checkSession(); // check if their session is valid
         if (!isValid) {
           window.location.href = "/login"
+          sessionStorage.removeItem("session_id");
         }
       };
       validateSession();
