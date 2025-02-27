@@ -60,11 +60,11 @@ const Navbar = () => {
 
         <ListItem disablePadding>
 
-          <ListItemButton>
+          <ListItemButton component={Link} to="/role-management">
             <ListItemIcon>
               <SettingsIcon />
             </ListItemIcon>
-            <ListItemText primary="Settings" />
+            <ListItemText primary="Role Management" />
           </ListItemButton>
 
         </ListItem>
