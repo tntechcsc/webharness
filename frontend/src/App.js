@@ -8,47 +8,47 @@ import RoleManagement from "./pages/RoleManagement";
 import Login from "./pages/login";
 import ViewApplication from "./pages/ViewApplication";
 import AddApplication from "./pages/AddApplication";
-import Profile from "./pages/Profile"
 import RegisterUser from "./pages/RegisterUser"; // ✅ Import RegisterUser.js
 import { checkSession } from "./utils/authUtils"
-
-
+import { ThemeProvider } from '@mui/material/styles';
+import theme from './theme';  // Your custom MUI theme (optional) // does nothing
 
 function App() {
   const [atLogin, setAtLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const location = useLocation(); // Hook to get the current location/pathname
-  // Simulate a delay before showing the page content
+  // checking auth every minute
   useEffect(() => {
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 500); // Simulating loading effect
+    const interval = setInterval(() => {
+      console.log('This will be called every minute');
+      const validateSession = async () => {
+        const isValid = await checkSession(); // check if their session is valid
+        if (!isValid) {
+          window.location.href = "/login"
+          sessionStorage.removeItem("session_id");
+        }
+      };
+      validateSession();
+    }, 1000*120); // 1 second * 120 -> 120 seconds -> every 2 minutes
+  
+    return () => clearInterval(interval);
   }, []);
 
   return (
     <>
-      {isLoading ? (
-        <div className="loading-container">
-          <img src='LogoHarness2.png' alt="Loading Logo" className="loading-logo" />
-          <p className='loading-text'> Loading Project Mangrove </p>
-          <div className="spinner"></div>
+      <div className="d-flex min-vh-100 bg-dark text-light">
+        <div className="flex-grow-1">
+          <Routes>
+            <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />
+            <Route path="role-management" element={<ProtectedRoute element={<RoleManagement />} />} />
+            <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
+            <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
+            <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
+            <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} /> {/* ✅ New Route */}
+            <Route path="login" element={<Login />} />
+          </Routes>
         </div>
-      ) : (
-        <div className="d-flex min-vh-100 bg-dark text-light">
-          <div className="flex-grow-1">
-            <Routes>
-              <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />
-              <Route path="role-management" element={<ProtectedRoute element={<RoleManagement />} />} />
-              <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
-              <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
-              <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
-              <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} /> {/* ✅ New Route */}
-              <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
-              <Route path="login" element={<Login />} />
-            </Routes>
-          </div>
-        </div>
-      )}
+      </div>
     </>
   );
 }
@@ -56,8 +56,10 @@ function App() {
 // Wrap the App component with the Router to provide routing context
 export default function WrappedApp() {
   return (
-    <Router>
-      <App />
-    </Router>
+    <ThemeProvider theme={theme}>
+      <Router>
+        <App />
+        </Router>
+    </ThemeProvider>
   );
 }

@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import Layout from "./Layout";
+import Navbar from "../components/Navbar";
+import Topbar from "../components/Topbar";
+import { Box, Container, Button, Typography, Divider, Grid } from "@mui/material";
 import { FaPlay, FaEye } from "react-icons/fa";
-import "../Application.css";
+import { useTheme } from "@mui/material/styles";
+import DataTable from "react-data-table-component"; // Import DataTable
+import "bootstrap/dist/css/bootstrap.min.css";
+
 
 const baseURL = window.location.origin;
 
@@ -12,6 +17,7 @@ function Application() {
   const [applications, setApplications] = useState([]);
   const [statusMessage, setStatusMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const theme = useTheme();
 
   useEffect(() => {
     fetchApplications();
@@ -75,7 +81,7 @@ function Application() {
     }
   };
 
-  // Filter applications based on search input for name, cateogry, description, contact and status
+  // Filter applications based on search input
   const filteredApplications = applications.filter((app) =>
     app.application.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.application.categories.some((cat) =>
@@ -85,79 +91,115 @@ function Application() {
     (app.application.description && app.application.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  return (
-    <Layout title="Applications">
-      <div className="application-container">
-        {statusMessage && <p className="status-message">{statusMessage}</p>}
-
-        {/* The "card" containing search/add button/table */}
-        <div className="app-table-container">
-          {/* Top bar with search input & Add Application button */}
-          <div className="app-table-header">
-            <input
-              type="text"
-              placeholder="Search applications..."
-              className="search-bar"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-
-            <Link to="/add-application" className="add-app-button">
-              + Add Application
-            </Link>
-          </div>
-
-          {/* The table */}
-          <table className="app-table">
-            <thead>
-              <tr>
-                <th>Application Name</th>
-                <th>Categories</th>
-                <th>Contact</th>
-                <th>Description</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredApplications.map((app) => (
-                <tr key={app.application.id}>
-                  <td>{app.application.name}</td>
-                  <td>
-                    {app.application.categories.length > 0
-                      ? app.application.categories.map((cat) => cat.name).join(", ")
-                      : "N/A"}
-                  </td>
-                  <td>{app.application.contact || "N/A"}</td>
-                  <td>{app.application.description}</td>
-                  <td className={`status ${app.application.status?.toLowerCase() || "inactive"}`}>
-                    {app.application.status || "Inactive"}
-                  </td>
-                  <td>
-                    <div className="button-group">
-                      <button
-                        className="run-button"
-                        onClick={() => runApplication(app.application.id)}
-                        title="Run"
-                      >
-                        <FaPlay />
-                      </button>
-                      <Link
-                        to={`/view-application/${app.application.id}`}
-                        className="view-button"
-                        title="View"
-                      >
-                        <FaEye />
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  // Define columns for DataTable
+  const columns = [
+    {
+      name: "Application Name",
+      selector: (row) => row.application.name,
+      sortable: true,
+    },
+    {
+      name: "Categories",
+      selector: (row) =>
+        row.application.categories.length > 0
+          ? row.application.categories.map((cat) => cat.name).join(", ")
+          : "N/A",
+      sortable: true,
+    },
+    {
+      name: "Contact",
+      selector: (row) => row.application.contact || "N/A",
+      sortable: true,
+    },
+    {
+      name: "Description",
+      selector: (row) => row.application.description,
+      sortable: true,
+    },
+    {
+      name: "Status",
+      selector: (row) => row.application.status || "Inactive",
+      sortable: true,
+      cell: (row) => (
+        <div className={`status ${row.application.status?.toLowerCase() || "inactive"}`}>
+          {row.application.status || "Inactive"}
         </div>
-      </div>
-    </Layout>
+      ),
+    },
+    {
+      name: "Actions",
+      cell: (row) => (
+        <div className="button-group">
+          <Container sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}>
+            <button
+              className="run-button"
+              onClick={() => runApplication(row.application.id)}
+              title="Run"
+            >
+              <FaPlay />
+            </button>
+            <Link
+              to={`/view-application/${row.application.id}`}
+              className="view-button"
+              title="View"
+            >
+              <FaEye />
+            </Link>
+          </Container>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", backgroundColor: theme.palette.background.default }}>
+      <Navbar /> {/* Vertical navbar */}
+
+      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <Topbar /> {/* Horizontal navbar */}
+
+        <Container sx={{ mt: 5, ml: 2, maxWidth: "xl" }}>
+          {statusMessage && <Typography variant="body1" sx={{ mb: 2 }}>{statusMessage}</Typography>}
+
+          <Grid container spacing={3}>
+            {/* The applications table */}
+            <Grid item xs={12}>
+              <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: "8px" }}>
+                <Typography variant="h6">Applications Overview</Typography>
+                <Divider sx={{ my: 2 }} />
+
+                {/* Search bar and Add Application button */}
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                  <Button variant="contained" className="ms-4" component={Link} to="/add-application">+ Add Application</Button>
+                </Box>
+
+                {/* DataTable for applications */}
+                <Container> {/* So the borderRadius above doesnt apply duh */}
+                  <DataTable
+                    columns={columns}
+                    data={filteredApplications}
+                    pagination
+                    highlightOnHover
+                    responsive
+                    subHeader
+                    subHeaderComponent={
+                      <input
+                        type="text"
+                        placeholder="Search applications..."
+                        className="searchbar"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{ padding: "10px", width: "100%" }}
+                      />
+                    }
+                  />
+                </Container>
+              </Box>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+    </Box>
   );
 }
 

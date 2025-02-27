@@ -1,6 +1,4 @@
 import { useEffect, autoRefreshTime } from 'react';
-import PageHeader from '../components/PageHeader';
-import Navbar from '../components/Navbar';
 import { checkSession } from "../utils/authUtils"
 
 
@@ -26,13 +24,8 @@ const Layout = ({ children, title }) => {
 
   return (
     <>
-      <div className="app-container">
-        <Navbar />
-        <div className="main-content">
-          <div className="content-wrapper">
-            {children}
-          </div>
-        </div>
+      <div>
+        {children}
       </div>
     </>
   );
