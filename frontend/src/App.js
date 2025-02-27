@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import  ProtectedRoute  from "./components/ProtectedRoute"
-import './App.css'; // Ensure your styles are linked correctly
 import { BrowserRouter as Router, Route, Routes, useLocation  } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import Application from "./pages/Application";
