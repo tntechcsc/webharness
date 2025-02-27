@@ -113,34 +113,34 @@ const ViewApplication = () => {
   return (
     <Container maxWidth="md">
       <Box sx={{ mt: 5, padding: 3, backgroundColor: "#fff", borderRadius: "8px", boxShadow: 3 }}>
-        <Typography variant="h4" gutterBottom>{application.name}</Typography>
+        <Typography variant="h4" gutterBottom sx={{ color: "text.secondary" }}>{application.name}</Typography>
 
         <TableContainer>
           <Table>
             <TableBody>
               <TableRow>
-                <TableCell><strong>Application Description:</strong></TableCell>
-                <TableCell>{application.description}</TableCell>
+                <TableCell sx={{ color: "text.secondary" }}><strong>Application Description:</strong></TableCell>
+                <TableCell sx={{ color: "text.secondary" }}>{application.description}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell><strong>Application Categories:</strong></TableCell>
-                <TableCell>
+                <TableCell sx={{ color: "text.secondary" }}><strong>Application Categories:</strong></TableCell>
+                <TableCell sx={{ color: "text.secondary" }}>
                   {application.categories && application.categories.length > 0
                     ? application.categories.map((cat) => cat.name).join(", ")
                     : "None"}
                 </TableCell>
               </TableRow>
               <TableRow>
-                <TableCell><strong>Executable Path:</strong></TableCell>
-                <TableCell>{instructions.path || "No path provided"}</TableCell>
+                <TableCell sx={{ color: "text.secondary" }}><strong>Executable Path:</strong></TableCell>
+                <TableCell sx={{ color: "text.secondary" }}>{instructions.path || "No path provided"}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell><strong>Arguments:</strong></TableCell>
-                <TableCell>{instructions.arguments || "None"}</TableCell>
+                <TableCell sx={{ color: "text.secondary" }}><strong>Arguments:</strong></TableCell>
+                <TableCell sx={{ color: "text.secondary" }}>{instructions.arguments || "None"}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell><strong>Contact:</strong></TableCell>
-                <TableCell>{application.contact || "Not provided"}</TableCell>
+                <TableCell sx={{ color: "text.secondary" }}><strong>Contact:</strong></TableCell>
+                <TableCell sx={{ color: "text.secondary" }}>{application.contact || "Not provided"}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
