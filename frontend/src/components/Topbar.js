@@ -3,6 +3,7 @@ import { AppBar, Toolbar, IconButton, Typography } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useTheme } from "@mui/material/styles";
+import logo from "../assets/LogoHarness.jpeg";
 
 
 
@@ -74,6 +75,8 @@ const Topbar = () => {
   return (
     <AppBar position="static" sx={{backgroundColor: theme.palette.primary.main}}>
         <Toolbar variant="dense">
+          {/* Logo Section*/}
+          <img src={logo} alt="Logo" style={{ height: 60 }}/>
             <Typography variant="body1" color="inherit" sx={{ marginLeft: "auto" }}>
                 {role}
             </Typography>

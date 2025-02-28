@@ -9,8 +9,37 @@ import ViewApplication from "./pages/ViewApplication";
 import AddApplication from "./pages/AddApplication";
 import RegisterUser from "./pages/RegisterUser"; // ✅ Import RegisterUser.js
 import { checkSession } from "./utils/authUtils"
-import { ThemeProvider } from '@mui/material/styles';
-import theme from './theme';  // Your custom MUI theme (optional) // does nothing
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#12255f",
+    },
+    secondary: {
+      main: "#12255f",
+    },
+    background: {
+      default: "#121212",
+      paper: "#1d1d1d",
+    },
+    text: {
+      primary: "#ffffff",
+      secondary: "#b0b0b0",
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#ffffff",
+          color: "#ffffff",
+        },
+      },
+    },
+  },
+});
 
 function App() {
   const [atLogin, setAtLogin] = useState(false);
