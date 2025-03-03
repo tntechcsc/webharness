@@ -1,8 +1,15 @@
 import React from "react";
 import axios from "axios";
 import "./login.css"; // Assuming you save your CSS in Login.css
+import Button from "@mui/material/Button";
+import Alert from '@mui/material/Alert';
+
 
 const Login = () => {
+
+  const [loginSuccess, setLoginSuccess] = React.useState("");
+  const [loginError, setLoginError] = React.useState("");
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -18,12 +25,15 @@ const Login = () => {
         //document.getElementById("token").innerText = JSON.stringify(response.data.session_id);
         // store session token in sessionStorage
         sessionStorage.setItem("session_id", response.data.session_id);
-
+        setLoginSuccess(true);
+        setLoginError("");
         // Handle success by redirecting to /
         window.location.href = "/";
       })
       .catch(error => {
         console.error("Login error:", error);
+        setLoginError("Login Failed. Please check your username and password.");
+        setLoginSuccess(false);
         // Handle error (e.g., display error message)
       });
   };
@@ -37,7 +47,8 @@ const Login = () => {
           <input className="input mb-3" name="username" placeholder="Username" type="username" required />
           <input className="input mb-3" name="password" placeholder="Password" type="password" required />
           <button type="submit" className="button">Log In →</button>
-          <div id="token"></div>
+          {loginError && <Alert variant="filled" severity="error" style={{ marginTop: '20px' }}>{loginError}</Alert>}
+          {loginSuccess && <Alert variant="filled" severity="success" style={{ marginTop: '20px' }}>Login Successful!</Alert>}
         </div>
       </form>
     </div>
