@@ -1,5 +1,4 @@
-import React from "react";
-import { useState } from "react";
+import React, {useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -12,7 +11,16 @@ const Navbar = () => {
   const theme = useTheme();
   const drawerWidth = 200;
   const collapsedWidth = 60;
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(() => {
+    // Retrieve the draawer state from localStorage
+    const savedState = localStorage.getItem("drawerOpen");
+    return savedState === null ? true : JSON.parse(savedState);
+  });
+
+  useEffect(() => {
+    // Save the drawer state to localStorage whenever it chaanges
+    localStorage.setItem("drawerOpen", JSON.stringify(open));
+  }, [open]);
 
   return (
     <Drawer
