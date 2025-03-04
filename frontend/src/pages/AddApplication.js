@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Box, Container, TextField, MenuItem, Button, Typography, CircularProgress, Paper, IconButton } from "@mui/material";
 import { FaPlus } from "react-icons/fa";
+import { IoReturnDownBackSharp } from "react-icons/io5";
 import Select from "react-select";
 import { useTheme } from "@mui/material/styles";
 import getReactSelectStyles from "./../reactSelectStyles"; // Import the styles
@@ -139,7 +140,6 @@ const AddApplication = () => {
   return (
     <Container maxWidth="sm">
       <Box component={Paper} sx={{ mt: 5, padding: 3, backgroundColor: theme.palette.background.paper, textColor: theme.palette.text.primary, borderRadius: "8px", boxShadow: 3 }}>
-        
         <Typography variant="h4" gutterBottom sx={{textColor: theme.palette.text.primary}}>Add Application</Typography>
         
         {statusMessage && (
@@ -217,6 +217,13 @@ const AddApplication = () => {
             {loading ? <CircularProgress size={24} /> : <IconButton><FaPlus /></IconButton>}
           </Button>
         </form>
+        <Box sx={{ mt: 3 }}>
+          <Link to="/applications">
+            <Button variant="outlined" color="secondary">
+              <IconButton><IoReturnDownBackSharp /></IconButton>
+            </Button>
+          </Link>
+        </Box>
       </Box>
     </Container>
   );

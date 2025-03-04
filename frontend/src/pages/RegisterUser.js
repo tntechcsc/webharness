@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Box, Container, TextField, Button, Typography, CircularProgress, IconButton } from "@mui/material";
 import { FaPlus } from "react-icons/fa";
+import { IoReturnDownBackSharp } from "react-icons/io5";
+
 import Select from "react-select";
 import { useTheme } from "@mui/material/styles";
 import getReactSelectStyles from "./../reactSelectStyles"; // Import the styles
@@ -125,6 +127,13 @@ const RegisterUser = () => {
             {loading ? <CircularProgress size={24} /> : <IconButton><FaPlus /></IconButton>}
           </Button>
         </form>
+        <Box sx={{ mt: 3 }}>
+            <Link to="/role-management">
+              <Button variant="outlined" color="secondary">
+                <IconButton><IoReturnDownBackSharp /></IconButton>
+              </Button>
+            </Link>
+          </Box>
       </Box>
     </Container>
   );
