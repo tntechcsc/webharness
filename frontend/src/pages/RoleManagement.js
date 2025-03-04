@@ -35,6 +35,7 @@ const RoleManagement = () => {
         if (!response.ok) throw new Error('Failed to fetch users');
         const data = await response.json();
         setUsers(data.users);
+        console.log(users);
       } catch (err) {
         console.error('Error fetching users:', err);
       } finally {
@@ -63,7 +64,7 @@ const RoleManagement = () => {
   const filteredUsers = users.filter((user) =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
+    user.roleNameName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const sortedUsers = filteredUsers.sort((a, b) => {
@@ -77,10 +78,10 @@ const RoleManagement = () => {
         ? a.email.localeCompare(b.email)
         : b.email.localeCompare(a.email);
     }
-    if (orderBy === 'role') {
+    if (orderBy === 'roleName') {
       return order === 'asc'
-        ? a.role.localeCompare(b.role)
-        : b.role.localeCompare(a.role);
+        ? a.roleName.localeCompare(b.roleName)
+        : b.roleName.localeCompare(a.roleName);
     }
     return 0;
   });
@@ -149,9 +150,9 @@ const RoleManagement = () => {
                         </TableCell>
                         <TableCell>
                           <TableSortLabel
-                            active={orderBy === 'role'}
-                            direction={orderBy === 'role' ? order : 'asc'}
-                            onClick={() => handleRequestSort('role')}
+                            active={orderBy === 'roleName'}
+                            direction={orderBy === 'roleName' ? order : 'asc'}
+                            onClick={() => handleRequestSort('roleName')}
                           >
                             Role
                           </TableSortLabel>
@@ -164,7 +165,7 @@ const RoleManagement = () => {
                         <TableRow key={user.id}>
                           <TableCell>{user.username}</TableCell>
                           <TableCell>{user.email}</TableCell>
-                          <TableCell>{user.role}</TableCell>
+                          <TableCell>{user.roleName}</TableCell>
                           <TableCell>
                             <Button variant="outlined" onClick={() => handleResetPassword(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px' }}>
                               <IconButton aria-label="delete">
