@@ -1,27 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Button, Typography, Grid, Divider } from '@mui/material';
+import { Box, Container, Button, Typography, Grid, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, TablePagination, TableSortLabel, IconButton } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
-import DataTable from 'react-data-table-component'; // Import DataTable
-import Navbar from '../components/Navbar';  // Adjust the path as needed
-import Topbar from '../components/Topbar';  // Adjust the path as needed
+import { FaTrashAlt, FaUserLock } from 'react-icons/fa'; // Add icons for actions
+import { LuClipboardPenLine } from "react-icons/lu";
+import Navbar from '../components/Navbar';
+import Topbar from '../components/Topbar';
 
 const baseURL = window.location.origin;
 
 const RoleManagement = () => {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [order, setOrder] = useState('asc');
+  const [orderBy, setOrderBy] = useState('username');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const theme = useTheme();
 
-  // ✅ Fetch users from backend or use mock data
+  // Fetch users data
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         let session_id = sessionStorage.getItem('session_id');
-        let uri = `${baseURL}:3000/api/user/search/all`;
-        const response = await fetch(uri, {
+        const response = await fetch(`${baseURL}:3000/api/user/search/all`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -32,9 +35,9 @@ const RoleManagement = () => {
         if (!response.ok) throw new Error('Failed to fetch users');
         const data = await response.json();
         setUsers(data.users);
+        console.log(users);
       } catch (err) {
         console.error('Error fetching users:', err);
-        setError('Using mock data (backend unavailable).');
       } finally {
         setLoading(false);
       }
@@ -43,115 +46,152 @@ const RoleManagement = () => {
     fetchUsers();
   }, []);
 
-  // Update user role
-  const handleRoleChange = (userId, newRole) => {
-    setUsers(users.map(user => user.id === userId ? { ...user, role: newRole } : user));
-    console.log(`Updated role for user ${userId} to ${newRole}`);
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
   };
 
-  // Delete user
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const filteredUsers = users.filter((user) =>
+    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.roleName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const sortedUsers = filteredUsers.sort((a, b) => {
+    if (orderBy === 'username') {
+      return order === 'asc'
+        ? a.username.localeCompare(b.username)
+        : b.username.localeCompare(a.username);
+    }
+    if (orderBy === 'email') {
+      return order === 'asc'
+        ? a.email.localeCompare(b.email)
+        : b.email.localeCompare(a.email);
+    }
+    if (orderBy === 'roleName') {
+      return order === 'asc'
+        ? a.roleName.localeCompare(b.roleName)
+        : b.roleName.localeCompare(a.roleName);
+    }
+    return 0;
+  });
+
   const handleDeleteUser = (userId) => {
     setUsers(users.filter(user => user.id !== userId));
     console.log(`Deleted user with ID: ${userId}`);
   };
 
-  // Reset password
   const handleResetPassword = (userId) => {
     alert(`Password reset for user ID: ${userId}`);
   };
 
-  const columns = [
-    {
-      name: 'Username',
-      selector: (row) => row.username,
-      sortable: true,
-    },
-    {
-      name: 'Email',
-      selector: (row) => row.email,
-      sortable: true,
-    },
-    {
-      name: 'Role',
-      selector: (row) => row.role,
-      sortable: true,
-    },
-    {
-      name: 'Actions',
-      cell: (row) => (
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button onClick={() => handleResetPassword(row.id)} variant="outlined" size="small">
-            Reset Password
-          </Button>
-          <Button onClick={() => handleDeleteUser(row.id)} variant="contained" size="small" color="error">
-            Delete
-          </Button>
-        </Box>
-      ),
-    },
-  ];
-
-  const filteredUsers = users.filter((user) =>
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", backgroundColor: theme.palette.background.default}}>
-      {/* Navbar */}
+    <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
       <Navbar />
-
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Topbar */}
+      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         <Topbar />
 
         <Container sx={{ mt: 5, ml: 2, maxWidth: 'xl' }}>
-
           <Grid container spacing={3}>
             <Grid item xs={12}>
               <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: '8px' }}>
-                <Typography>Users Overview</Typography>
+                <Typography variant="h6">Users Overview</Typography>
                 <Divider sx={{ my: 2 }} />
 
-                {/* Search bar and Register User button */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Button
                     variant="contained"
                     color="primary"
-                    sx={{ ml: 2 }}
                     component={Link}
                     to="/register-user"
                   >
                     Register
                   </Button>
+                  <TextField
+                    label="Search users..."
+                    variant="outlined"
+                    size="small"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </Box>
 
-                <Container>
-                  {/* DataTable for users */}
-                  <DataTable
-                    columns={columns}
-                    data={filteredUsers}
-                    pagination
-                    highlightOnHover
-                    responsive
-                    subHeader
-                    subHeaderComponent={
-                      <input
-                        type="text"
-                        placeholder="Search users..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{
-                          padding: '10px',
-                          width: '100%',
-                          border: `1px solid ${theme.palette.divider}`,
-                          borderRadius: '4px',
-                        }}
-                      />
-                    }
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>
+                          <TableSortLabel
+                            active={orderBy === 'username'}
+                            direction={orderBy === 'username' ? order : 'asc'}
+                            onClick={() => handleRequestSort('username')}
+                          >
+                            Username
+                          </TableSortLabel>
+                        </TableCell>
+                        <TableCell>
+                          <TableSortLabel
+                            active={orderBy === 'email'}
+                            direction={orderBy === 'email' ? order : 'asc'}
+                            onClick={() => handleRequestSort('email')}
+                          >
+                            Email
+                          </TableSortLabel>
+                        </TableCell>
+                        <TableCell>
+                          <TableSortLabel
+                            active={orderBy === 'roleName'}
+                            direction={orderBy === 'roleName' ? order : 'asc'}
+                            onClick={() => handleRequestSort('roleName')}
+                          >
+                            Role
+                          </TableSortLabel>
+                        </TableCell>
+                        <TableCell>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {sortedUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>{user.username}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.roleName}</TableCell>
+                          <TableCell sx={{ display: "   ", justifyContent: "" }}>
+                            <Button variant="outlined" onClick={() => handleResetPassword(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px' }}>
+                              <IconButton aria-label="delete">
+                                <LuClipboardPenLine />
+                              </IconButton>
+                            </Button>
+                            <Button variant="contained" color="error" onClick={() => handleDeleteUser(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', marginLeft: "10px" }}>
+                              <IconButton aria-label="delete">
+                                <FaTrashAlt />
+                              </IconButton>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <TablePagination
+                    rowsPerPageOptions={[5, 10, 25]}
+                    component="div"
+                    count={filteredUsers.length}
+                    rowsPerPage={rowsPerPage}
+                    page={page}
+                    onPageChange={handleChangePage}
+                    onRowsPerPageChange={handleChangeRowsPerPage}
                   />
-                </Container>
+                </TableContainer>
               </Box>
             </Grid>
           </Grid>
