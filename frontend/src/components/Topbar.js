@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AppBar, Toolbar, IconButton, Typography } from "@mui/material";
+import { AppBar, Toolbar, IconButton, Typography, Box } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useTheme } from "@mui/material/styles";
@@ -77,9 +77,16 @@ const Topbar = () => {
         <Toolbar variant="dense">
           {/* Logo Section*/}
           <img src={logo} alt="Logo" style={{ height: 60 }}/>
-            <Typography variant="body1" color="inherit" sx={{ marginLeft: "auto" }}>
-                {role}
+          {username && (
+          <Box sx={{ marginLeft: "auto", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <Typography variant="body1" color="inherit">
+              {username}
             </Typography>
+            <Typography variant="caption" color="inherit">
+              {role}
+            </Typography>
+          </Box>
+        )}
         </Toolbar>
     </AppBar>
   );
