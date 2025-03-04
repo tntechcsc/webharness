@@ -237,7 +237,7 @@ function Application() {
                           <TableCell>{row.application.contact || "N/A"}</TableCell>
                           <TableCell>{row.application.description}</TableCell>
                           <TableCell>{row.application.status || "Inactive"}</TableCell>
-                          <TableCell>
+                          <TableCell sx={{ display: "", justifyContent: "" }}>{/*our action buttons */}
                           <Button variant="contained" color="success" onClick={() => runApplication(row.application.id)} title="Run" size="small" style={{ backgroundColor: '#75ea81', padding: '2px 0px' }}>
                               <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
                                 <FaPlay />

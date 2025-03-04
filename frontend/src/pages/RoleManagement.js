@@ -64,7 +64,7 @@ const RoleManagement = () => {
   const filteredUsers = users.filter((user) =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.roleNameName.toLowerCase().includes(searchTerm.toLowerCase())
+    user.roleName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const sortedUsers = filteredUsers.sort((a, b) => {
@@ -166,7 +166,7 @@ const RoleManagement = () => {
                           <TableCell>{user.username}</TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.roleName}</TableCell>
-                          <TableCell>
+                          <TableCell sx={{ display: "   ", justifyContent: "" }}>
                             <Button variant="outlined" onClick={() => handleResetPassword(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px' }}>
                               <IconButton aria-label="delete">
                                 <LuClipboardPenLine />
