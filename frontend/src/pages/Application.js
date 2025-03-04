@@ -65,8 +65,9 @@ function Application() {
     }
   };
 
-  const handleAction = async (appId, action) => {
-    setStatusMessage(`Performing action: ${action}...`);
+  const runApplication = async (appId) => {
+    setStatusMessage("Starting application...");
+
     try {
       let session_id = sessionStorage.getItem("session_id");
       if (!session_id) {
@@ -74,20 +75,20 @@ function Application() {
         return;
       }
 
-      const response = await fetch(`${baseURL}:3000/api/action`, {
+      const response = await fetch(`${baseURL}:3000/api/execute`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-session-id": session_id,
         },
-        body: JSON.stringify({ application_id: appId, action }),
+        body: JSON.stringify({ application_id: appId }),
       });
 
       if (response.ok) {
-        setStatusMessage(`Action '${action}' executed successfully.`);
+        setStatusMessage("Application started successfully.");
       } else {
         const errorData = await response.json();
-        setStatusMessage(`Failed to execute action: ${errorData.message || "Unknown error"}`);
+        setStatusMessage(`Failed to start application: ${errorData.message || "Unknown error"}`);
       }
     } catch (error) {
       setStatusMessage("Error: " + error.message);
@@ -158,7 +159,7 @@ function Application() {
                           <TableCell>{row.application.description}</TableCell>
                           <TableCell>{row.application.status || "Inactive"}</TableCell>
                           <TableCell>
-                            <IconButton onClick={() => handleAction(row.application.id, "run")} title="Run">
+                            <IconButton onClick={() => runApplication(row.application.id)} title="Run">
                               <FaPlay />
                             </IconButton>
                             <IconButton component={Link} to={`/view-application/${row.application.id}`} title="View">
