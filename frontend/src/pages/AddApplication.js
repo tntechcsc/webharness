@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Box, Container, TextField, MenuItem, Button, Typography, CircularProgress } from "@mui/material";
+import { useNavigate, Link } from "react-router-dom";
+import { Box, Container, TextField, MenuItem, Button, Typography, CircularProgress, Paper, IconButton } from "@mui/material";
+import { FaPlus } from "react-icons/fa";
+import { IoReturnDownBackSharp } from "react-icons/io5";
 import Select from "react-select";
+import { useTheme } from "@mui/material/styles";
+import getReactSelectStyles from "./../reactSelectStyles"; // Import the styles
+
 
 const baseURL = window.location.origin;
 
@@ -19,6 +24,8 @@ const AddApplication = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [statusMessage, setStatusMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  const theme = useTheme();
 
   useEffect(() => {
     fetchCategories();
@@ -129,10 +136,11 @@ const AddApplication = () => {
     }
   };
 
+  //sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: "8px" }}
   return (
     <Container maxWidth="sm">
-      <Box sx={{ mt: 5, padding: 3, backgroundColor: "#fff", borderRadius: "8px", boxShadow: 3 }}>
-        <Typography variant="h4" gutterBottom>Add Application</Typography>
+      <Box component={Paper} sx={{ mt: 5, padding: 3, backgroundColor: theme.palette.background.paper, textColor: theme.palette.text.primary, borderRadius: "8px", boxShadow: 3 }}>
+        <Typography variant="h4" gutterBottom sx={{textColor: theme.palette.text.primary}}>Add Application</Typography>
         
         {statusMessage && (
           <Typography variant="body2" color="error" sx={{ mb: 2 }}>
@@ -195,16 +203,7 @@ const AddApplication = () => {
             placeholder="Select categories"
             className="custom-react-select"
             classNamePrefix="custom"
-            styles={{
-              container: (provided) => ({
-                ...provided,
-                marginBottom: "16px",
-              }),
-              option: (provided, state) => ({
-                ...provided,
-                color: "#808080", // Darker text color for options
-              }),
-            }}
+            styles={getReactSelectStyles(theme)}
           />
 
           <Button
@@ -215,9 +214,16 @@ const AddApplication = () => {
             sx={{ py: 1.5, mt: 2 }}
             disabled={loading}
           >
-            {loading ? <CircularProgress size={24} /> : "Add Application"}
+            {loading ? <CircularProgress size={24} /> : <IconButton><FaPlus /></IconButton>}
           </Button>
         </form>
+        <Box sx={{ mt: 3 }}>
+          <Link to="/applications">
+            <Button variant="outlined" color="secondary">
+              <IconButton><IoReturnDownBackSharp /></IconButton>
+            </Button>
+          </Link>
+        </Box>
       </Box>
     </Container>
   );

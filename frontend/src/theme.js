@@ -3,20 +3,19 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 // Define your custom MUI theme using Bootswatch's colors
 const theme = createTheme({
   palette: {
-    mode: "dark", // Slate is a dark theme
     primary: {
-      main: "#5A6268", // Muted slate grayish-blue (primary accent)
+      main: "#12255f",
     },
     secondary: {
-      main: "#495057", // Dark gray for secondary elements
+      main: "#12255f",
     },
     background: {
-      default: "#343a40", // Dark background color, close to Slate's main background
-      paper: "#495057", // Slightly lighter gray for paper/card elements
+      default: "#121212",
+      paper: "#1d1d1d",
     },
     text: {
-      primary: "#f8f9fa", // Light text color for better contrast
-      secondary: "#adb5bd", // Subtle, muted secondary text
+      primary: "#ffffff",
+      secondary: "#b0b0b0",
     },
   },
   typography: {
@@ -24,95 +23,60 @@ const theme = createTheme({
     h1: {
       fontWeight: 600,
       fontSize: "2.25rem",
-      color: "#f8f9fa", // Light text for headings
+      color: "#ffffff",
     },
     h2: {
       fontWeight: 600,
       fontSize: "1.875rem",
-      color: "#f8f9fa",
+      color: "#ffffff",
     },
     h3: {
       fontWeight: 500,
       fontSize: "1.5rem",
-      color: "#f8f9fa",
+      color: "#ffffff",
     },
     h4: {
       fontWeight: 500,
       fontSize: "1.25rem",
-      color: "#f8f9fa",
+      color: "#ffffff",
     },
     h5: {
       fontWeight: 400,
       fontSize: "1.125rem",
-      color: "#f8f9fa",
+      color: "#ffffff",
     },
     h6: {
       fontWeight: 400,
       fontSize: "1rem",
-      color: "#f8f9fa",
+      color: "#ffffff",
     },
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: "none", // Normal text case (no all-caps)
-          borderRadius: 8, // Rounded buttons
-          padding: "8px 16px", // Padding for buttons
+          backgroundColor: "#75ea81", // Default button background
+          textColor: "#12255f", // Default text/icon color
+          padding: "2px 0px", // Custom padding
+          fontWeight: "bold", // Button text bold
           "&:hover": {
-            backgroundColor: "#6c757d", // Muted color on hover
+            backgroundColor: "#5fcf69", // Slightly darker on hover
           },
-          "&:active": {
-            backgroundColor: "#5a6268", // Darker shade when pressed
-          },
+        },
+        contained: {
+          backgroundColor: "#75ea81", // Ensures consistency for contained buttons
+          color: "#12255f", // Default text/icon color
+          fontWeight: "bold", // Button text bold
         },
       },
     },
-    MuiCard: {
+    MuiIconButton: {
       styleOverrides: {
         root: {
-          borderRadius: 12, // Rounded card corners
-          backgroundColor: "#495057", // Slightly lighter gray for cards
-          boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)", // Subtle shadow
+          color: "#12255f", // Default icon button color
           "&:hover": {
-            boxShadow: "0 6px 15px rgba(0, 0, 0, 0.2)", // Slightly deeper shadow on hover
+            color: "#0d1d4d", // Darker on hover
           },
-        },
-      },
-    },
-    MuiAppBar: {
-      styleOverrides: {
-        root: {
-          backgroundColor: "#5A6268", // Muted slate blue for the app bar
-          boxShadow: "none", // Remove default shadow
-        },
-      },
-    },
-    MuiTypography: {
-      styleOverrides: {
-        h1: {
-          fontWeight: 600,
-          color: "#f8f9fa", // Light text for headings
-        },
-        h2: {
-          fontWeight: 600,
-          color: "#f8f9fa",
-        },
-        h3: {
-          fontWeight: 600,
-          color: "#f8f9fa",
-        },
-        h4: {
-          fontWeight: 500,
-          color: "#f8f9fa",
-        },
-        h5: {
-          fontWeight: 400,
-          color: "#f8f9fa",
-        },
-        h6: {
-          fontWeight: 400,
-          color: "#f8f9fa",
         },
       },
     },
@@ -120,16 +84,38 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           "& .MuiInputBase-input": {
-            color: "#000000", // Set text color to white for input fields
+            color: "#ffffff",
           },
           "& .MuiInputLabel-root": {
-            color: "#adb5bd", // Muted color for labels
+            color: "#ffffff", // Default label color
           },
           "& .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#adb5bd", // Border color for input fields
+            borderColor: "#ffffff",
           },
           "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#6c757d", // Focused state border color
+            borderColor: "#ffffff",
+          },
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#ffffff", // Border color on hover
+          },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#ffffff", // Border color on focus
+          },
+          // Label color change on focus
+          "& .MuiInputLabel-root.Mui-focused": {
+            color: "#75ea81", // Color of the label when input is focused
+          },
+        },
+      },
+    },
+    MuiTablePagination: {
+      styleOverrides: {
+        selectIcon: {
+          color: '#ffffff', // This will change the color of the page select dropdown icon
+        },
+        navigation: {
+          '& .MuiPaginationItem-previousNext': {
+            color: '#ffffff', // This changes the color of the previous/next page arrows
           },
         },
       },
