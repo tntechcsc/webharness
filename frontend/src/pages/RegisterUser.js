@@ -1,11 +1,17 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Container, TextField, Button, Typography, CircularProgress } from "@mui/material";
+import { Box, Container, TextField, Button, Typography, CircularProgress, IconButton } from "@mui/material";
+import { FaPlus } from "react-icons/fa";
 import Select from "react-select";
+import { useTheme } from "@mui/material/styles";
+import getReactSelectStyles from "./../reactSelectStyles"; // Import the styles
+
 
 const baseURL = window.location.origin;
 
 const RegisterUser = () => {
+  const theme = useTheme();
+
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
@@ -57,7 +63,7 @@ const RegisterUser = () => {
 
   return (
     <Container maxWidth="sm">
-      <Box sx={{ mt: 5, padding: 3, backgroundColor: "#fff", borderRadius: "8px", boxShadow: 3 }}>
+      <Box sx={{ mt: 5, padding: 3, backgroundColor: theme.palette.background.paper, textColor: theme.palette.text.primary, borderRadius: "8px", boxShadow: 3 }}>
         <Typography variant="h4" gutterBottom>Register New User</Typography>
 
         {statusMessage && (
@@ -105,52 +111,7 @@ const RegisterUser = () => {
             placeholder="Select role"
             className="custom-react-select"
             classNamePrefix="custom"
-            styles={{
-              container: (provided) => ({
-                ...provided,
-                marginBottom: "16px",
-              }),
-              control: (provided) => ({
-                ...provided,
-                borderRadius: "4px",
-                borderColor: "#ccc", // Default border color
-                '&:hover': {
-                  borderColor: "#1976d2", // Highlight border on hover
-                },
-              }),
-              option: (provided, state) => ({
-                ...provided,
-                color: state.isSelected ? "#fff" : "#000", // White text when selected
-                backgroundColor: state.isSelected ? "#1976d2" : "transparent", // Default MUI blue background when selected
-                '&:hover': {
-                  backgroundColor: state.isSelected ? "#1976d2" : "#f5f5f5", // Light grey background when hovering over non-selected option
-                },
-              }),
-              singleValue: (provided) => ({
-                ...provided,
-                color: "#1976d2", // Color of the selected value (matches MUI default blue)
-              }),
-              dropdownIndicator: (provided) => ({
-                ...provided,
-                color: "#1976d2", // Dropdown indicator color
-                '&:hover': {
-                  color: "#1976d2", // Maintain color when hovering
-                },
-              }),
-              indicatorSeparator: (provided) => ({
-                ...provided,
-                backgroundColor: "#1976d2", // Separator color
-              }),
-              menu: (provided) => ({
-                ...provided,
-                borderRadius: "4px",
-                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)", // Optional: Add some shadow for better visibility
-              }),
-              placeholder: (provided) => ({
-                ...provided,
-                color: "#808080", // Placeholder text color
-              }),
-            }}
+            styles={getReactSelectStyles(theme)}
           />
 
           <Button
@@ -161,7 +122,7 @@ const RegisterUser = () => {
             sx={{ py: 1.5, mt: 2 }}
             disabled={loading}
           >
-            {loading ? <CircularProgress size={24} /> : "Register"}
+            {loading ? <CircularProgress size={24} /> : <IconButton><FaPlus /></IconButton>}
           </Button>
         </form>
       </Box>

@@ -162,7 +162,7 @@ function Application() {
 
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: "8px" }}>
+              <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, textColor: theme.palette.text.primary, borderRadius: "8px" }}>
                 <Typography variant="h6">Applications Overview</Typography>
                 <Divider sx={{ my: 2 }} />
 

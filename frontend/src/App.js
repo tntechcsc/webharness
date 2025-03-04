@@ -9,9 +9,10 @@ import ViewApplication from "./pages/ViewApplication";
 import AddApplication from "./pages/AddApplication";
 import RegisterUser from "./pages/RegisterUser"; // ✅ Import RegisterUser.js
 import { checkSession } from "./utils/authUtils"
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
+import theme from "./theme";
 
-
+/* should probably put theme into theme.js not here
 const theme = createTheme({
   palette: {
     primary: {
@@ -40,6 +41,7 @@ const theme = createTheme({
     },
   },
 });
+*/
 
 function App() {
   const [atLogin, setAtLogin] = useState(false);

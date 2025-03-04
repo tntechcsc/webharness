@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link as RouterLink } from "react-router-dom";
-import { Box, Container, Typography, Table, TableBody, TableCell, TableContainer, TableRow, Button, CircularProgress } from "@mui/material";
+import { Box, Container, Typography, Table, TableBody, TableCell, TableContainer, TableRow, Button, CircularProgress, IconButton } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { IoReturnDownBackSharp, IoTrashBinOutline } from "react-icons/io5";
+import { FaPlay, FaEye, FaPlus  } from "react-icons/fa";
+
 
 const baseURL = window.location.origin;
 
 const ViewApplication = () => {
+  const theme = useTheme();
   const { id } = useParams(); // Get application ID from URL
   const [application, setApplication] = useState(null);
   const [instructions, setInstructions] = useState({ path: "", arguments: "" });
@@ -112,35 +117,35 @@ const ViewApplication = () => {
 
   return (
     <Container maxWidth="md">
-      <Box sx={{ mt: 5, padding: 3, backgroundColor: "#fff", borderRadius: "8px", boxShadow: 3 }}>
-        <Typography variant="h4" gutterBottom sx={{ color: "text.secondary" }}>{application.name}</Typography>
+      <Box sx={{ mt: 5, padding: 3, backgroundColor: theme.palette.background.paper, textColor: theme.palette.text.primary, borderRadius: "8px", boxShadow: 3 }}>
+        <Typography variant="h4" gutterBottom >{application.name}</Typography>
 
         <TableContainer>
           <Table>
             <TableBody>
               <TableRow>
-                <TableCell sx={{ color: "text.secondary" }}><strong>Application Description:</strong></TableCell>
-                <TableCell sx={{ color: "text.secondary" }}>{application.description}</TableCell>
+                <TableCell ><strong>Application Description:</strong></TableCell>
+                <TableCell >{application.description}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell sx={{ color: "text.secondary" }}><strong>Application Categories:</strong></TableCell>
-                <TableCell sx={{ color: "text.secondary" }}>
+                <TableCell ><strong>Application Categories:</strong></TableCell>
+                <TableCell >
                   {application.categories && application.categories.length > 0
                     ? application.categories.map((cat) => cat.name).join(", ")
                     : "None"}
                 </TableCell>
               </TableRow>
               <TableRow>
-                <TableCell sx={{ color: "text.secondary" }}><strong>Executable Path:</strong></TableCell>
-                <TableCell sx={{ color: "text.secondary" }}>{instructions.path || "No path provided"}</TableCell>
+                <TableCell ><strong>Executable Path:</strong></TableCell>
+                <TableCell >{instructions.path || "No path provided"}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell sx={{ color: "text.secondary" }}><strong>Arguments:</strong></TableCell>
-                <TableCell sx={{ color: "text.secondary" }}>{instructions.arguments || "None"}</TableCell>
+                <TableCell ><strong>Arguments:</strong></TableCell>
+                <TableCell >{instructions.arguments || "None"}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell sx={{ color: "text.secondary" }}><strong>Contact:</strong></TableCell>
-                <TableCell sx={{ color: "text.secondary" }}>{application.contact || "Not provided"}</TableCell>
+                <TableCell ><strong>Contact:</strong></TableCell>
+                <TableCell >{application.contact || "Not provided"}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -150,22 +155,22 @@ const ViewApplication = () => {
 
         <Box sx={{ mt: 3 }}>
           <Button variant="contained" color="error" onClick={removeApplication} sx={{ mr: 2 }}>
-            Remove Application
+            <IconButton><IoTrashBinOutline /></IconButton>
           </Button>
           <Button
             variant="contained"
-            color="primary"
+            color="error"
             onClick={runApplication}
             disabled={!instructions.path}
           >
-            Run Application
+            <IconButton><FaPlay /></IconButton>
           </Button>
         </Box>
 
         <Box sx={{ mt: 3 }}>
           <RouterLink to="/applications">
             <Button variant="outlined" color="secondary">
-              ← Back to Applications
+              <IconButton><IoReturnDownBackSharp /></IconButton>
             </Button>
           </RouterLink>
         </Box>
