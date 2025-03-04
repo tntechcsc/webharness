@@ -238,12 +238,16 @@ function Application() {
                           <TableCell>{row.application.description}</TableCell>
                           <TableCell>{row.application.status || "Inactive"}</TableCell>
                           <TableCell>
-                            <IconButton onClick={() => runApplication(row.application.id)} title="Run">
-                              <FaPlay />
-                            </IconButton>
-                            <IconButton component={Link} to={`/view-application/${row.application.id}`} title="View">
-                              <FaEye />
-                            </IconButton>
+                          <Button variant="contained" color="success" onClick={() => runApplication(row.application.id)} title="Run" size="small" style={{ backgroundColor: '#75ea81', padding: '2px 0px' }}>
+                              <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
+                                <FaPlay />
+                              </IconButton>
+                            </Button>
+                            <Button variant="contained" color="success" component={Link} to={`/view-application/${row.application.id}`} size="small" title="View" style={{ backgroundColor: '#75ea81', padding: '2px 0px', marginLeft: "5px" }}>
+                              <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
+                                <FaEye />
+                              </IconButton>
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
