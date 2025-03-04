@@ -19,6 +19,7 @@ import {
   TextField,
   IconButton,
   TablePagination,
+  TableSortLabel
 } from "@mui/material";
 import { FaPlay, FaEye } from "react-icons/fa";
 import { useTheme } from "@mui/material/styles";
@@ -33,6 +34,8 @@ function Application() {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [order, setOrder] = useState('asc');
+  const [orderBy, setOrderBy] = useState('name');
   const theme = useTheme();
 
   useEffect(() => {
@@ -113,6 +116,39 @@ function Application() {
     setPage(0);
   };
 
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const sortedApplications = filteredApplications.sort((a, b) => {
+    if (orderBy === 'name') {
+      return order === 'asc'
+        ? a.application.name.localeCompare(b.application.name)
+        : b.application.name.localeCompare(a.application.name);
+    } else if (orderBy === 'categories') {
+      const aCategories = a.application.categories.map(cat => cat.name).join(", ");
+      const bCategories = b.application.categories.map(cat => cat.name).join(", ");
+      return order === 'asc'
+        ? aCategories.localeCompare(bCategories)
+        : bCategories.localeCompare(aCategories);
+    } else if (orderBy === 'contact') {
+      return order === 'asc'
+        ? (a.application.contact || "").localeCompare(b.application.contact || "")
+        : (b.application.contact || "").localeCompare(a.application.contact || "");
+    } else if (orderBy === 'description') {
+      return order === 'asc'
+        ? (a.application.description || "").localeCompare(b.application.description || "")
+        : (b.application.description || "").localeCompare(a.application.description || "");
+    } else if (orderBy === 'status') {
+      return order === 'asc'
+        ? (a.application.status || "Inactive").localeCompare(b.application.status || "Inactive")
+        : (b.application.status || "Inactive").localeCompare(a.application.status || "Inactive");
+    }
+    return 0;
+  });
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
       <Navbar />
@@ -142,16 +178,56 @@ function Application() {
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Application Name</TableCell>
-                        <TableCell>Categories</TableCell>
-                        <TableCell>Contact</TableCell>
-                        <TableCell>Description</TableCell>
-                        <TableCell>Status</TableCell>
+                        <TableCell>
+                          <TableSortLabel
+                            active={orderBy === 'name'}
+                            direction={orderBy === 'name' ? order : 'asc'}
+                            onClick={() => handleRequestSort('name')}
+                          >
+                            Application Name
+                          </TableSortLabel>
+                        </TableCell>
+                        <TableCell>
+                          <TableSortLabel
+                            active={orderBy === 'categories'}
+                            direction={orderBy === 'categories' ? order : 'asc'}
+                            onClick={() => handleRequestSort('categories')}
+                          >
+                            Categories
+                          </TableSortLabel>
+                        </TableCell>
+                        <TableCell>
+                          <TableSortLabel
+                            active={orderBy === 'contact'}
+                            direction={orderBy === 'contact' ? order : 'asc'}
+                            onClick={() => handleRequestSort('contact')}
+                          >
+                            Contact
+                          </TableSortLabel>
+                        </TableCell>
+                        <TableCell>
+                          <TableSortLabel
+                            active={orderBy === 'description'}
+                            direction={orderBy === 'description' ? order : 'asc'}
+                            onClick={() => handleRequestSort('description')}
+                          >
+                            Description
+                          </TableSortLabel>
+                        </TableCell>
+                        <TableCell>
+                          <TableSortLabel
+                            active={orderBy === 'status'}
+                            direction={orderBy === 'status' ? order : 'asc'}
+                            onClick={() => handleRequestSort('status')}
+                          >
+                            Status
+                          </TableSortLabel>
+                        </TableCell>
                         <TableCell>Actions</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {filteredApplications.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
+                      {sortedApplications.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
                         <TableRow key={row.application.id}>
                           <TableCell>{row.application.name}</TableCell>
                           <TableCell>{row.application.categories.map((cat) => cat.name).join(", ") || "N/A"}</TableCell>
