@@ -33,14 +33,12 @@ const Login = () => {
         sessionStorage.setItem("session_id", response.data.session_id);
         setLoginSuccess(true);
         setLoginError("");
-        // Handle success by redirecting to /
         window.location.href = "/";
       })
       .catch(error => {
         console.error("Login error:", error);
         setLoginError("Login Failed. Please check your username and password.");
         setLoginSuccess(false);
-        // Handle error (e.g., display error message)
       });
   };
 
