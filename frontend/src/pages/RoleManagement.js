@@ -167,12 +167,12 @@ const RoleManagement = () => {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.roleName}</TableCell>
                           <TableCell sx={{ display: "   ", justifyContent: "" }}>
-                            <Button variant="outlined" onClick={() => handleResetPassword(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px' }}>
+                            <Button variant="outlined" onClick={() => handleResetPassword(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton aria-label="delete">
                                 <LuClipboardPenLine />
                               </IconButton>
                             </Button>
-                            <Button variant="contained" color="error" onClick={() => handleDeleteUser(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', marginLeft: "10px" }}>
+                            <Button variant="contained" color="error" onClick={() => handleDeleteUser(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton aria-label="delete">
                                 <FaTrashAlt />
                               </IconButton>
