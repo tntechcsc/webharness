@@ -87,7 +87,7 @@ const theme = createTheme({
             color: "#ffffff",
           },
           "& .MuiInputLabel-root": {
-            color: "#ffffff",
+            color: "#ffffff", // Default label color
           },
           "& .MuiOutlinedInput-notchedOutline": {
             borderColor: "#ffffff",
@@ -100,6 +100,10 @@ const theme = createTheme({
           },
           "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
             borderColor: "#ffffff", // Border color on focus
+          },
+          // Label color change on focus
+          "& .MuiInputLabel-root.Mui-focused": {
+            color: "#75ea81", // Color of the label when input is focused
           },
         },
       },
