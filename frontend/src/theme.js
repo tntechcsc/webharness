@@ -3,7 +3,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 // Define your custom MUI theme using Bootswatch's colors
 const theme = createTheme({
   palette: {
-    mode: "dark", // Slate is a dark theme
+    mode: "light", // Slate is a dark theme
     primary: {
       main: "#5A6268", // Muted slate grayish-blue (primary accent)
     },

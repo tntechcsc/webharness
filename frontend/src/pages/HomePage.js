@@ -1,109 +1,133 @@
-import React from "react";
-import "../App"; // Ensure your styles are linked correctly
+import React, { useState } from "react";
+import "../App"; 
 import Navbar from "../components/Navbar";
 import Topbar from "../components/Topbar";
-import { Box, Container, Typography, Divider, Card, CardContent, Grid, CircularProgress, List, ListItem, ListItemText } from "@mui/material";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Box, Container, Typography, Card, CardContent, Grid, List, ListItem, ListItemText, Divider, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import "bootstrap/dist/css/bootstrap.min.css";
 
+// Mock Data 
+const totalApplications = 15;
+const totalUsersRegistered = 80;
 
-// Fake data
-const totalApplications = 50;
-const activeApplications = 30;
-const failedApplicationsData = [
-  { date: "Feb 20", count: 4 },
-  { date: "Feb 21", count: 8 },
-  { date: "Feb 22", count: 2 },
-  { date: "Feb 23", count: 6 },
-];
-
-const recentLogins = [
-  { user: "John Doe", time: "2025-02-24 10:15 AM" },
-  { user: "Jane Smith", time: "2025-02-24 09:45 AM" },
-  { user: "Alice Johnson", time: "2025-02-23 08:30 PM" },
+const allApplications = [
+  "Aegis Combat System", "SPY-6", "Tomahawk Program", "Sub-Ballistic"
 ];
 
 const HomePage = () => {
   const theme = useTheme();
+  const [applicationsInUse, setApplicationsInUse] = useState([...allApplications]);
+  const [systemLogs, setSystemLogs] = useState(["[System] Monitoring system activity..."]);
+  const [isNavOpen, setIsNavOpen] = useState(true);
 
+
+
+  const handleStopApplication = (appToStop) => {
+    setApplicationsInUse(applicationsInUse.filter(app => app !== appToStop));
+    setSystemLogs(prevLogs => [`[Stopped] ${appToStop} has been terminated.`, ...prevLogs]); // Add log entry
+  };
+
+  
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", backgroundColor: theme.palette.background.default}}>
+    <Box sx={{ display: "flex", minHeight: "100vh", color: "#12255f", overflow: "hidden", backgroundColor: theme.palette.background.default }}>
       <Navbar /> {/* Vertical navbar */}
 
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <Topbar /> {/* Horizontal navbar */}
 
-        <Container sx={{ mt: 5, ml: 2, maxWidth: "xl" }}>
-          <Grid container spacing={3}>
-            {/* Large Centered Card for Active Applications */}
-            <Grid item xs={12} md={6}>
-              <Card sx={{ textAlign: "center", p: 3 }}>
+        <Container sx={{ mt: 5, maxWidth: "xl" }}>
+          <Grid container spacing={3} justifyContent="center" alignItems="stretch"> 
+            
+            {/* Applications Active Card */}
+            <Grid item xs={12} md={4}> 
+              <Card sx={{ p: 3, backgroundColor: "#12255f", color: "white", height: "100%" }}>
                 <CardContent>
-                  <Typography variant="h6">Applications in Usage</Typography>
-                  <CircularProgress variant="determinate" value={(activeApplications / totalApplications) * 100} size={120} thickness={5} />
-                  <Typography variant="h5" sx={{ mt: 2 }}>
-                    {activeApplications}/{totalApplications}
+                  <Typography variant="h6">
+                    Currently, there are <span style={{ color: "#6FFB78", fontWeight: "bold" }}>{applicationsInUse.length}</span> applications active.
                   </Typography>
+
+                  {/* Divider */}
+                  <Divider sx={{ my: 2, backgroundColor: "white" }} />
+
+                  {/* Active Applications List */}
+                  <Typography variant="h6">Active Applications</Typography>
+                  <Box sx={{ maxHeight: "250px", overflowY: "auto", border: "1px solid #ddd", borderRadius: "5px", p: 2, backgroundColor: "white" }}>
+                    <List>
+                      {applicationsInUse.map((app, index) => (
+                        <ListItem 
+                          key={index} 
+                          sx={{ display: "flex", justifyContent: "space-between", borderBottom: index !== applicationsInUse.length - 1 ? "1px solid #ddd" : "none" }}
+                        >
+                          <ListItemText primary={app} sx={{ color: "black", fontWeight: "bold" }} />
+                          <Button 
+                            variant="contained" 
+                            color="error" 
+                            size="small" 
+                            onClick={() => handleStopApplication(app)}
+                          >
+                            Stop
+                          </Button>
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>
 
-            {/* Bar Chart for Failed Applications */}
-            <Grid item xs={12} md={6}>
-              <Card sx={{ p: 2 }}>
-                <CardContent>
-                  <Typography variant="h6">Failed Applications</Typography>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={failedApplicationsData}>
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#ff6961" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Two Smaller Cards for Recent Logins & Placeholder for Additional Data */}
-            <Grid item xs={12} sm={6} md={4}>
-              <Card sx={{ p: 2 }}>
-                <CardContent>
-                  <Typography variant="h6">Recent Logins</Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <List>
-                    {recentLogins.map((login, index) => (
-                      <ListItem key={index}>
-                        <ListItemText primary={login.user} secondary={login.time} />
-                      </ListItem>
-                    ))}
-                  </List>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={4}>
-              <Card sx={{ p: 2 }}>
-                <CardContent>
-                  <Typography variant="h6">Upcoming Events</Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography variant="body2">No events scheduled.</Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Full-width Card for Additional Info or Logs */}
-            <Grid item xs={12} md={8}>
-              <Card sx={{ p: 2 }}>
+           
+            {/* System Logs Card */}
+            <Grid item xs={12} md={4}>
+              <Card sx={{ p: 3, backgroundColor: "#12255f", color: "white", height: "100%" }}>
                 <CardContent>
                   <Typography variant="h6">System Logs</Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography variant="body2">[System] All services running smoothly.</Typography>
-                  <Typography variant="body2">[Security] No unauthorized access detected.</Typography>
+                  <Divider sx={{ my: 2, backgroundColor: "white" }} />
+                  <Box sx={{ maxHeight: "250px", overflowY: "auto", p: 2, backgroundColor: "white", borderRadius: "5px" }}>
+                    <List>
+                      {systemLogs.map((log, index) => (
+                        <ListItem key={index}>
+                          <ListItemText primary={log} sx={{ color: "black", fontWeight: "bold" }} />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>
+
+            
+            <Grid item xs={12} md={4}>
+              <Grid container spacing={3} direction="column"> 
+
+                {/* Total Applicants Card */}
+                <Grid item xs={12}>
+                  <Card sx={{ p: 3, backgroundColor: "#12255f", color: "white" }}>
+                    <CardContent>
+                      <Typography variant="h6">Total Applications</Typography>
+                      <Divider sx={{ my: 2, backgroundColor: "white" }} />
+                      <Typography variant="h4" sx={{ fontWeight: "bold", color: "#6FFB78" }}>
+                        {totalApplications}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Total Users Registered Card */}
+                <Grid item xs={12}>
+                  <Card sx={{ p: 3, backgroundColor: "#12255f", color: "white" }}>
+                    <CardContent>
+                      <Typography variant="h6">Total Users Registered</Typography>
+                      <Divider sx={{ my: 2, backgroundColor: "white" }} />
+                      <Typography variant="h4" sx={{ fontWeight: "bold", color: "#6FFB78" }}>
+                        {totalUsersRegistered}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+              </Grid>
+            </Grid>
+
           </Grid>
         </Container>
       </Box>

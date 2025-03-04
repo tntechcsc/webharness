@@ -1,19 +1,30 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton } from "@mui/material";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import SettingsIcon from "@mui/icons-material/Settings";
-import PersonIcon from "@mui/icons-material/Person";
-import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon } from "@mui/icons-material";
+import HomeIcon from '@mui/icons-material/Home';
+import ViewListIcon from "@mui/icons-material/ViewList"
+import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount";
+import HelpCenterIcon from '@mui/icons-material/HelpCenter';
+import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon, GridView } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
-
 
 const Navbar = () => {
   const theme = useTheme();
   const drawerWidth = 200;
   const collapsedWidth = 60;
-  const [open, setOpen] = useState(true)
+
+
+  // To keep the NAVBAR the same status 
+  const [open, setOpen] = useState(() => {
+    const savedState = localStorage.getItem("drawerOpen");
+    return savedState === null ? true : JSON.parse(savedState);
+  });
+
+
+  useEffect(() => {
+    localStorage.setItem("drawerOpen", JSON.stringify(open));
+  }, [open]);
+
 
   return (
     <Drawer
@@ -26,49 +37,112 @@ const Navbar = () => {
           width: open ? drawerWidth : collapsedWidth,
           transition: "width 0.3s ease-in-out",
           overflowX: "hidden",
-          backgroundColor: theme.palette.secondary.main
+          backgroundColor: "#12255f", // Dark blue background
+          borderRight: "2px solid #ffffff", // White border on the right side
+          boxShadow: "2px 0px 10px rgba(0, 0, 0, 0.2)", // Subtle shadow effect
         },
       }}
     >
-
+      {/* Toggle Button */}
       <IconButton onClick={() => setOpen(!open)} sx={{ margin: "10px" }}>
         {open ? <ChevronLeftIcon /> : <MenuIcon />}
       </IconButton>
 
+      {/* Sidebar Menu  */}
       <List>
+        {/* Home Button */}
         <ListItem disablePadding>
-
-          <ListItemButton component={Link} to="/">
+          <ListItemButton
+            component={Link}
+            to="/"
+            sx={{
+              borderTop:"1px solid #ffffff",
+              borderBottom: "1px solid #ffffff", // Border line below
+              "&:hover": {
+                backgroundColor: "#6FFB78",
+                color: "#fff",
+                transition: "background-color 0.3s ease-in-out",
+              },
+            }}
+          >
             <ListItemIcon>
-              <DashboardIcon />
+              <HomeIcon sx={{ color: "white" }} />
             </ListItemIcon>
-            <ListItemText primary="Dashboard" />
+            <ListItemText primary="Home" sx={{ color: "white" }} />
           </ListItemButton>
-
         </ListItem>
 
+        {/* Applications Button */}
         <ListItem disablePadding>
+      <ListItemButton
+    component={Link}
+    to="/applications"
+    sx={{
+      borderBottom: "1px solid rgb(255, 255, 255)",
+      "&:hover": {
+        backgroundColor: "#6FFB78",
+        color: "#fff",
+        transition: "background-color 0.3s ease-in-out",
+      },
+    }}
+  >
+    <ListItemIcon>
+      <ViewListIcon sx={{ color: "white" }} /> 
+    </ListItemIcon>
+    <ListItemText primary="Application" sx={{ color: "white" }} />
+  </ListItemButton>
+</ListItem>
 
-          <ListItemButton component={Link} to="/applications">
-            <ListItemIcon>
-              <PersonIcon />
-            </ListItemIcon>
-            <ListItemText primary="Program" />
-          </ListItemButton>
-
-        </ListItem>
-
+        {/* Role Management Button */}
         <ListItem disablePadding>
+  <ListItemButton
+    component={Link}
+    to="/role-management"
+    sx={{
+      borderBottom: "1px solid rgb(255, 255, 255)",
+      "&:hover": {
+        backgroundColor: "#6FFB78",
+        transition: "background-color 0.3s ease-in-out, color 0.3s ease-in-out",
+      },
+    }}
+  >
+    <ListItemIcon sx={{ color: "white" }}>
+      <SupervisorAccountIcon /> 
+    </ListItemIcon>
+    <ListItemText
+      primary="Role Management"
+      sx={{
+        color: "white",
+        "& .MuiListItemText-primary": { transition: "color 0.3s ease-in-out" },
+      }}
+    />
+  </ListItemButton>
+</ListItem>
 
-          <ListItemButton component={Link} to="/role-management">
-            <ListItemIcon>
-              <SettingsIcon />
-            </ListItemIcon>
-            <ListItemText primary="Role Management" />
-          </ListItemButton>
-
-        </ListItem>
-
+<ListItem disablePadding>
+  <ListItemButton
+    component={Link}
+    to="/help" // actual help page route
+    sx={{
+      borderBottom: "1px solid rgb(255, 255, 255)",
+      "&:hover": {
+        backgroundColor: "#6FFB78",
+        transition: "background-color 0.3s ease-in-out, color 0.3s ease-in-out",
+      },
+    }}
+  >
+    <ListItemIcon sx={{ color: "white" }}>
+      <HelpCenterIcon /> 
+    </ListItemIcon>
+    <ListItemText
+      primary="Help"
+      sx={{
+        color: "white",
+        "& .MuiListItemText-primary": { transition: "color 0.3s ease-in-out" },
+      }}
+    />
+  </ListItemButton>
+</ListItem>
       </List>
     </Drawer>
   );
