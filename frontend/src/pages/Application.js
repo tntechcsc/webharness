@@ -107,22 +107,24 @@ function Application() {
     (app.application.description && app.application.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleChangePage = (event, newPage) => {
+  const handleChangePage = (event, newPage) => { //used to handle pagination of our table -> sets the new page to be shown
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event) => {
+  const handleChangeRowsPerPage = (event) => { //handles change of amount of rows per page
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
-  const handleRequestSort = (property) => {
+  const handleRequestSort = (property) => { //handles the sorting of tables
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
   };
 
-  const sortedApplications = filteredApplications.sort((a, b) => {
+  //const orderBy = 'categories';
+  //const order = 'desc';
+  const sortedApplications = filteredApplications.sort((a, b) => { // array of sorted applications
     if (orderBy === 'name') {
       return order === 'asc'
         ? a.application.name.localeCompare(b.application.name)
@@ -150,12 +152,13 @@ function Application() {
   });
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}> {/* Boilter plate for our page content*/}
       <Navbar />
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         <Topbar />
-        <Container sx={{ mt: 5, ml: 2, maxWidth: "xl" }}>
-          {statusMessage && <Typography variant="body1" sx={{ mb: 2 }}>{statusMessage}</Typography>}
+
+        <Container sx={{ mt: 5, ml: 2, maxWidth: "xl" }}> {/* Effectively our main content page */}
+          {statusMessage && <Typography variant="body1" sx={{ mb: 2 }}>{statusMessage}</Typography>} {/*TODO replace with swal or something */}
 
           <Grid container spacing={3}>
             <Grid item xs={12}>
@@ -164,7 +167,7 @@ function Application() {
                 <Divider sx={{ my: 2 }} />
 
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                  <Button variant="contained" component={Link} to="/add-application">+ Add Application</Button>
+                  <Button variant="contained" component={Link} to="/add-application">+ Add Application</Button> {/*Buton to add new application */}
                   <TextField
                     label="Search applications..."
                     variant="outlined"
@@ -174,12 +177,12 @@ function Application() {
                   />
                 </Box>
 
-                <TableContainer component={Paper}>
-                  <Table>
-                    <TableHead>
+                <TableContainer component={Paper}>{/*our table container that holds our info. paper is mui effect to make the page look like paper */}
+                  <Table> {/*Our table definition */}
+                    <TableHead>{/*our table header */}
                       <TableRow>
-                        <TableCell>
-                          <TableSortLabel
+                        <TableCell>{/*our label sorting logic */}
+                          <TableSortLabel 
                             active={orderBy === 'name'}
                             direction={orderBy === 'name' ? order : 'asc'}
                             onClick={() => handleRequestSort('name')}
@@ -226,8 +229,8 @@ function Application() {
                         <TableCell>Actions</TableCell>
                       </TableRow>
                     </TableHead>
-                    <TableBody>
-                      {sortedApplications.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
+                    <TableBody>{/*Table body*/}
+                      {sortedApplications.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => ( //further filters our sorted array to only show the rows we want which are determined by the page and rows per page
                         <TableRow key={row.application.id}>
                           <TableCell>{row.application.name}</TableCell>
                           <TableCell>{row.application.categories.map((cat) => cat.name).join(", ") || "N/A"}</TableCell>
@@ -246,12 +249,12 @@ function Application() {
                       ))}
                     </TableBody>
                   </Table>
-                  <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    component="div"
-                    count={filteredApplications.length}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
+                  <TablePagination //table pagination logic
+                    rowsPerPageOptions={[5, 10, 25]} //options for rows per page
+                    component="div" //type of component it is
+                    count={filteredApplications.length} //how long it should be
+                    rowsPerPage={rowsPerPage} //# of rows per page
+                    page={page} //current page
                     onPageChange={handleChangePage}
                     onRowsPerPageChange={handleChangeRowsPerPage}
                   />
