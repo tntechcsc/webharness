@@ -39,41 +39,47 @@ const HomePage = () => {
           <Grid container spacing={3} justifyContent="center" alignItems="stretch"> 
             
             {/* Applications Active Card */}
-            <Grid item xs={12} md={4}> 
-              <Card sx={{ p: 3, backgroundColor: "#12255f", color: "white", height: "100%" }}>
-                <CardContent>
-                  <Typography variant="h6">
-                    Currently, there are <span style={{ color: "#6FFB78", fontWeight: "bold" }}>{applicationsInUse.length}</span> applications active.
-                  </Typography>
+            {/* Applications Active Card */}
+<Grid item xs={12} md={4}> 
+      <Card sx={{ p: 3, backgroundColor: "#12255f", color: "white", height: "100%" }}>
+        <CardContent>
+          <Typography variant="h6">
+            Currently, there are <span style={{ color: "#6FFB78", fontWeight: "bold" }}>{applicationsInUse.length}</span> applications active.
+          </Typography>
 
-                  {/* Divider */}
-                  <Divider sx={{ my: 2, backgroundColor: "white" }} />
+          {/* Divider */}
+          <Divider sx={{ my: 2, backgroundColor: "white" }} />
 
-                  {/* Active Applications List */}
-                  <Typography variant="h6">Active Applications</Typography>
-                  <Box sx={{ maxHeight: "250px", overflowY: "auto", border: "1px solid #ddd", borderRadius: "5px", p: 2, backgroundColor: "white" }}>
-                    <List>
-                      {applicationsInUse.map((app, index) => (
-                        <ListItem 
-                          key={index} 
-                          sx={{ display: "flex", justifyContent: "space-between", borderBottom: index !== applicationsInUse.length - 1 ? "1px solid #ddd" : "none" }}
-                        >
-                          <ListItemText primary={app} sx={{ color: "black", fontWeight: "bold" }} />
-                          <Button 
-                            variant="contained" 
-                            color="error" 
-                            size="small" 
-                            onClick={() => handleStopApplication(app)}
-                          >
-                            Stop
-                          </Button>
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+          {/* Active Applications List */}
+          <Typography variant="h6">Active Applications</Typography>
+          <Box sx={{ maxHeight: "250px", overflowY: "auto", border: "1px solid #ddd", borderRadius: "5px", p: 2, backgroundColor: "white" }}>
+            <List>
+              {applicationsInUse.map((app, index) => (
+                <ListItem 
+                  key={index} 
+                  sx={{ display: "flex", justifyContent: "space-between", borderBottom: index !== applicationsInUse.length - 1 ? "1px solid #ddd" : "none" }}
+                >
+                  <ListItemText primary={app} sx={{ color: "black", fontWeight: "bold" }} />
+                  <Button 
+                    variant="contained" 
+                    size="small"
+                    onClick={() => handleStopApplication(app)}
+                    sx={{
+                      backgroundColor: "red", // ✅ Solid red background
+                      color: "white", // ✅ White text for contrast
+                      "&:hover": { backgroundColor: "#b30000" } // ✅ Darker red on hover
+                    }}
+                  >
+                    Stop
+                  </Button>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        </CardContent>
+      </Card>
+</Grid>
+
 
            
             {/* System Logs Card */}
