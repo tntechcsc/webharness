@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton } from "@mui/material";
 import HomeIcon from '@mui/icons-material/Home';
@@ -35,7 +36,7 @@ const Navbar = () => {
         flexShrink: 0,
         "& .MuiDrawer-paper": {
           width: open ? drawerWidth : collapsedWidth,
-          transition: "width 0.3s ease-in-out",
+          transition: "width 0.3s ease-in-out, background-color 0.3s ease-in-out",
           overflowX: "hidden",
           backgroundColor: "#12255f", // Dark blue background
           borderRight: "2px solid #ffffff", // White border on the right side
