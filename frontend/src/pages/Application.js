@@ -2,28 +2,43 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Topbar from "../components/Topbar";
-import { Box, Container, Button, Typography, Divider, Grid } from "@mui/material";
+import {
+  Box,
+  Container,
+  Button,
+  Typography,
+  Divider,
+  Grid,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
+  IconButton,
+  TablePagination,
+} from "@mui/material";
 import { FaPlay, FaEye } from "react-icons/fa";
 import { useTheme } from "@mui/material/styles";
-import DataTable from "react-data-table-component"; // Import DataTable
-import "bootstrap/dist/css/bootstrap.min.css";
-
 
 const baseURL = window.location.origin;
 
 function Application() {
-  console.log("Application.js has loaded successfully!"); // Debug Log
+  console.log("Application.js has loaded successfully!");
 
   const [applications, setApplications] = useState([]);
   const [statusMessage, setStatusMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const theme = useTheme();
 
   useEffect(() => {
     fetchApplications();
   }, []);
 
-  // Fetch applications (with category names included from the backend)
   const fetchApplications = async () => {
     try {
       let session_id = sessionStorage.getItem("session_id");
@@ -46,14 +61,12 @@ function Application() {
       setApplications(data.applications);
     } catch (error) {
       console.error("Error fetching applications:", error);
-      setStatusMessage("Using mock data (backend unavailable).");
+      setStatusMessage("Using mock data (backend unavailable). ");
     }
   };
 
-  // Run an application
-  const runApplication = async (appId) => {
-    setStatusMessage("Starting application...");
-
+  const handleAction = async (appId, action) => {
+    setStatusMessage(`Performing action: ${action}...`);
     try {
       let session_id = sessionStorage.getItem("session_id");
       if (!session_id) {
@@ -61,27 +74,26 @@ function Application() {
         return;
       }
 
-      const response = await fetch(`${baseURL}:3000/api/execute`, {
+      const response = await fetch(`${baseURL}:3000/api/action`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-session-id": session_id,
         },
-        body: JSON.stringify({ application_id: appId }),
+        body: JSON.stringify({ application_id: appId, action }),
       });
 
       if (response.ok) {
-        setStatusMessage("Application started successfully.");
+        setStatusMessage(`Action '${action}' executed successfully.`);
       } else {
         const errorData = await response.json();
-        setStatusMessage(`Failed to start application: ${errorData.message || "Unknown error"}`);
+        setStatusMessage(`Failed to execute action: ${errorData.message || "Unknown error"}`);
       }
     } catch (error) {
       setStatusMessage("Error: " + error.message);
     }
   };
 
-  // Filter applications based on search input
   const filteredApplications = applications.filter((app) =>
     app.application.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.application.categories.some((cat) =>
@@ -91,109 +103,82 @@ function Application() {
     (app.application.description && app.application.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Define columns for DataTable
-  const columns = [
-    {
-      name: "Application Name",
-      selector: (row) => row.application.name,
-      sortable: true,
-    },
-    {
-      name: "Categories",
-      selector: (row) =>
-        row.application.categories.length > 0
-          ? row.application.categories.map((cat) => cat.name).join(", ")
-          : "N/A",
-      sortable: true,
-    },
-    {
-      name: "Contact",
-      selector: (row) => row.application.contact || "N/A",
-      sortable: true,
-    },
-    {
-      name: "Description",
-      selector: (row) => row.application.description,
-      sortable: true,
-    },
-    {
-      name: "Status",
-      selector: (row) => row.application.status || "Inactive",
-      sortable: true,
-      cell: (row) => (
-        <div className={`status ${row.application.status?.toLowerCase() || "inactive"}`}>
-          {row.application.status || "Inactive"}
-        </div>
-      ),
-    },
-    {
-      name: "Actions",
-      cell: (row) => (
-        <div className="button-group">
-          <Container sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}>
-            <button
-              className="run-button"
-              onClick={() => runApplication(row.application.id)}
-              title="Run"
-            >
-              <FaPlay />
-            </button>
-            <Link
-              to={`/view-application/${row.application.id}`}
-              className="view-button"
-              title="View"
-            >
-              <FaEye />
-            </Link>
-          </Container>
-        </div>
-      ),
-    },
-  ];
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", backgroundColor: theme.palette.background.default }}>
-      <Navbar /> {/* Vertical navbar */}
-
-      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <Topbar /> {/* Horizontal navbar */}
-
+    <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
+      <Navbar />
+      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+        <Topbar />
         <Container sx={{ mt: 5, ml: 2, maxWidth: "xl" }}>
           {statusMessage && <Typography variant="body1" sx={{ mb: 2 }}>{statusMessage}</Typography>}
 
           <Grid container spacing={3}>
-            {/* The applications table */}
             <Grid item xs={12}>
               <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: "8px" }}>
                 <Typography variant="h6">Applications Overview</Typography>
                 <Divider sx={{ my: 2 }} />
 
-                {/* Search bar and Add Application button */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                  <Button variant="contained" className="ms-4" component={Link} to="/add-application">+ Add Application</Button>
+                  <Button variant="contained" component={Link} to="/add-application">+ Add Application</Button>
+                  <TextField
+                    label="Search applications..."
+                    variant="outlined"
+                    size="small"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </Box>
 
-                {/* DataTable for applications */}
-                <Container> {/* So the borderRadius above doesnt apply duh */}
-                  <DataTable
-                    columns={columns}
-                    data={filteredApplications}
-                    pagination
-                    highlightOnHover
-                    responsive
-                    subHeader
-                    subHeaderComponent={
-                      <input
-                        type="text"
-                        placeholder="Search applications..."
-                        className="searchbar"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{ padding: "10px", width: "100%" }}
-                      />
-                    }
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Application Name</TableCell>
+                        <TableCell>Categories</TableCell>
+                        <TableCell>Contact</TableCell>
+                        <TableCell>Description</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredApplications.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
+                        <TableRow key={row.application.id}>
+                          <TableCell>{row.application.name}</TableCell>
+                          <TableCell>{row.application.categories.map((cat) => cat.name).join(", ") || "N/A"}</TableCell>
+                          <TableCell>{row.application.contact || "N/A"}</TableCell>
+                          <TableCell>{row.application.description}</TableCell>
+                          <TableCell>{row.application.status || "Inactive"}</TableCell>
+                          <TableCell>
+                            <IconButton onClick={() => handleAction(row.application.id, "run")} title="Run">
+                              <FaPlay />
+                            </IconButton>
+                            <IconButton component={Link} to={`/view-application/${row.application.id}`} title="View">
+                              <FaEye />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <TablePagination
+                    rowsPerPageOptions={[5, 10, 25]}
+                    component="div"
+                    count={filteredApplications.length}
+                    rowsPerPage={rowsPerPage}
+                    page={page}
+                    onPageChange={handleChangePage}
+                    onRowsPerPageChange={handleChangeRowsPerPage}
                   />
-                </Container>
+                </TableContainer>
               </Box>
             </Grid>
           </Grid>
