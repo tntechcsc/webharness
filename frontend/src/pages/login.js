@@ -55,12 +55,12 @@ const Login = () => {
         <img src="LogoHarness2.png" alt="Logo" className="logo" style={{ maxWidth: '200px', maxHeight: '200px' }}/>
         <div style={{ fontSize: '32px', color: '#6ffb78' }}>Mangrove</div>
         <div className="d-flex flex-column align-items-center">
-          <input className="input mb-3" name="username" placeholder="Username" type="text" required onKeyUp={handleCapsLock} />
+          <input className="input mb-3" name="username" placeholder="Username" type="text" required onKeyUp={handleCapsLock} style={{border: '2px solid #75ea81', borderRadius: '.25rem', padding: '.375rem .75rem', outlineColor: '#75ea81'}} />
           <div className="input-group mb-1 position-relative">
-            <input className="input form-control" name="password" placeholder="Password" type={showPassword ? "text" : "password"} required onKeyUp={handleCapsLock} />
+            <input className="input" name="password" placeholder="Password" type={showPassword ? "text" : "password"} required onKeyUp={handleCapsLock} style={{border: '2px solid #75ea81', borderRadius: '.25rem', padding: '.375rem .75rem', outlineColor: '#6ffb78'}} />
             <div className="position-absolute top-50 end-0 translate-middle-y pe-0">
               <FormControlLabel
-                control={<Checkbox icon={<VisibilityOff />} checkedIcon={<Visibility />} onChange={togglePasswordVisibility} />}
+                control={<Checkbox icon={<VisibilityOff style={{ color: 'rgba(0, 0, 0, 0.54)' }} />} checkedIcon={<Visibility />} onChange={togglePasswordVisibility} />}
                 label=""
               />
             </div>
