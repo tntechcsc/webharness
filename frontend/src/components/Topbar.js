@@ -105,6 +105,7 @@ const Topbar = () => {
               <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} sx={{ mt: 1 }}>
                 <MenuItem onClick={() => window.location.href = "/profile"}>View Profile</MenuItem>
                 <MenuItem onClick={() => {
+                  handleMenuClose();
                   withReactContent(Swal).fire({
                         title: <i>Warning</i>,
                         text: "Are you sure you log out?",
