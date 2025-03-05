@@ -3,10 +3,11 @@ import { useNavigate, Link } from "react-router-dom";
 import { Box, Container, TextField, Button, Typography, CircularProgress, IconButton } from "@mui/material";
 import { FaPlus } from "react-icons/fa";
 import { IoReturnDownBackSharp } from "react-icons/io5";
-
 import Select from "react-select";
 import { useTheme } from "@mui/material/styles";
 import getReactSelectStyles from "./../reactSelectStyles"; // Import the styles
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
 
 
 const baseURL = window.location.origin;
@@ -32,7 +33,6 @@ const RegisterUser = () => {
   // Handles form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatusMessage("Submitting...");
     setLoading(true);
 
     try {
@@ -48,17 +48,28 @@ const RegisterUser = () => {
       });
 
       if (response.ok) {
-        setStatusMessage("User registered successfully!");
         setLoading(false);
-        navigate("/role-management");
+        withReactContent(Swal).fire({
+          title: <i>Success</i>,
+          text: formData.username + " has been added!",
+          icon: "success",
+        }).then(() => navigate("/role-management"));
       } else {
         const data = await response.json();
-        setStatusMessage(data.message || "Failed to register user.");
+         withReactContent(Swal).fire({
+          title: <i>Failure</i>,
+          text: "Error with registering " + formData.username,
+          icon: "error",
+        })
         setLoading(false);
       }
     } catch (error) {
       console.error("Error registering user:", error);
-      setStatusMessage("An error occurred while registering the user.");
+       withReactContent(Swal).fire({
+                title: <i>Failure</i>,
+                text: "Error with registering " + formData.username,
+                icon: "error",
+              })
       setLoading(false);
     }
   };
