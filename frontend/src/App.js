@@ -10,6 +10,7 @@ import AddApplication from "./pages/AddApplication";
 import RegisterUser from "./pages/RegisterUser"; // ✅ Import RegisterUser.js
 import { checkSession } from "./utils/authUtils"
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import Profile from "./pages/Profile";
 
 
 const theme = createTheme({
@@ -73,6 +74,7 @@ function App() {
             <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
             <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
             <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} /> {/* ✅ New Route */}
+            <Route path="/profile" element={<Profile />} />
             <Route path="login" element={<Login />} />
           </Routes>
         </div>
