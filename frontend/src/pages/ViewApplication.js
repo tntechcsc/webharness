@@ -132,6 +132,20 @@ const ViewApplication = () => {
     }
   };
   
+  const handleRemoveClick = async () => {
+    withReactContent(Swal).fire({
+      title: <i>Warning</i>,
+      text: "Are you sure you want to delete " + application.name + "?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes",
+      cancelButtonText: "No",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        removeApplication();
+      }
+    });
+  }
 
   if (loading) {
     return <CircularProgress />;
@@ -180,7 +194,7 @@ const ViewApplication = () => {
         {statusMessage && <Typography variant="body2" color="error" sx={{ mt: 2 }}>{statusMessage}</Typography>}
 
         <Box sx={{ mt: 3 }}>
-          <Button variant="contained" color="error" onClick={removeApplication} sx={{ mr: 2 }}>
+          <Button variant="contained" color="error" onClick={handleRemoveClick} sx={{ mr: 2 }}>
             <IconButton><IoTrashBinOutline /></IconButton>
           </Button>
           <Button
