@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { AppBar, Toolbar, IconButton, Typography, Box } from "@mui/material";
+import { AppBar, Toolbar, IconButton, Typography, Box, Avatar, Menu, MenuItem } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useTheme } from "@mui/material/styles";
 import logo from "../assets/LogoHarness.jpeg";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
 
 
@@ -41,9 +42,10 @@ const Topbar = () => {
     const theme = useTheme();
     const [username, setUsername] = useState(null);
     const [role, setRole] = useState(null);
-  
+    const [profilePic, setProfilePic] = useState(null); //Placeholder for profile picture
     const baseURL = window.location.origin;
-  
+    const [anchorEl, setAnchorEl] = useState(null); // Controls dropdown visibility
+
     useEffect(() => {
       const uri = `${baseURL}:3000/api/user/info`;
       let session_id = sessionStorage.getItem("session_id");
@@ -72,24 +74,45 @@ const Topbar = () => {
         })
         .catch((error) => console.error(error));
     }, []);
-  return (
-    <AppBar position="static" sx={{backgroundColor: theme.palette.primary.main}}>
-        <Toolbar variant="dense">
-          {/* Logo Section*/}
-          <img src={logo} alt="Logo" style={{ height: 60 }}/>
-          {username && (
-          <Box sx={{ marginLeft: "auto", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <Typography variant="body1" color="inherit">
-              {username}
-            </Typography>
-            <Typography variant="caption" color="inherit">
-              {role}
-            </Typography>
+
+    // Open & Close dropdown menu
+    const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
+    const handleMenuClose = () => setAnchorEl(null);
+
+    return (
+      <AppBar position="static" sx={{ backgroundColor: theme.palette.primary.main }}>
+        <Toolbar variant="dense" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          {/* Logo Section */}
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <img src={logo} alt="Logo" style={{ height: 50, marginRight: 10 }} />
+            <Typography variant="h6" color="inherit">Mangrove</Typography>
           </Box>
-        )}
+  
+          {username && (
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", marginLeft: "auto" }}>
+              {/*Profile Button */}
+              <IconButton onClick={handleMenuOpen} sx={{ padding: 0 }}>
+                <Avatar src={profilePic} sx={{ width: 40, height: 40 }}>
+                  {!profilePic && <AccountCircleIcon sx={{ fontSize: 40 }} />} {/* Default icon*/}
+                </Avatar>
+              </IconButton>
+  
+              {/* Username & Role */}
+              <Typography variant="body2" color="inherit">{username}</Typography>
+  
+              {/* Dropdown Menu */}
+              <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} sx={{ mt: 1 }}>
+                <MenuItem onClick={() => window.location.href = "/profile"}>View Profile</MenuItem>
+                <MenuItem onClick={() => {
+                  sessionStorage.clear();
+                  window.location.href = "/login";
+                }}>Logout</MenuItem>
+              </Menu>
+            </Box>
+          )}
         </Toolbar>
-    </AppBar>
-  );
-};
+      </AppBar>
+    );
+  };
 
 export default Topbar;
