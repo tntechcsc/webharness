@@ -21,7 +21,7 @@ import {
   TablePagination,
   TableSortLabel
 } from "@mui/material";
-import { FaPlay, FaEye } from "react-icons/fa";
+import { FaPlay, FaEye, FaPlus  } from "react-icons/fa";
 import { useTheme } from "@mui/material/styles";
 
 const baseURL = window.location.origin;
@@ -162,12 +162,16 @@ function Application() {
 
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: "8px" }}>
+              <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, textColor: theme.palette.text.primary, borderRadius: "8px" }}>
                 <Typography variant="h6">Applications Overview</Typography>
                 <Divider sx={{ my: 2 }} />
 
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                  <Button variant="contained" component={Link} to="/add-application">+ Add Application</Button> {/*Buton to add new application */}
+                  <Button variant="contained" component={Link} to="/add-application" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                    <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
+                      <FaPlus  />
+                    </IconButton>
+                  </Button> {/*Buton to add new application */}
                   <TextField
                     label="Search applications..."
                     variant="outlined"
@@ -238,12 +242,12 @@ function Application() {
                           <TableCell>{row.application.description}</TableCell>
                           <TableCell>{row.application.status || "Inactive"}</TableCell>
                           <TableCell sx={{ display: "", justifyContent: "" }}>{/*our action buttons */}
-                          <Button variant="contained" color="success" onClick={() => runApplication(row.application.id)} title="Run" size="small" style={{ backgroundColor: '#75ea81', padding: '2px 0px' }}>
+                            <Button variant="contained" color="success" onClick={() => runApplication(row.application.id)} title="Run" size="small" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
                                 <FaPlay />
                               </IconButton>
                             </Button>
-                            <Button variant="contained" color="success" component={Link} to={`/view-application/${row.application.id}`} size="small" title="View" style={{ backgroundColor: '#75ea81', padding: '2px 0px', marginLeft: "5px" }}>
+                            <Button variant="contained" color="success" component={Link} to={`/view-application/${row.application.id}`} size="small" title="View" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
                                 <FaEye />
                               </IconButton>

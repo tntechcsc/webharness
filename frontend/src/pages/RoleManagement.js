@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Container, Button, Typography, Grid, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, TablePagination, TableSortLabel, IconButton } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
-import { FaTrashAlt, FaUserLock } from 'react-icons/fa'; // Add icons for actions
+import { FaTrashAlt, FaPlus } from 'react-icons/fa'; // Add icons for actions
 import { LuClipboardPenLine } from "react-icons/lu";
 import Navbar from '../components/Navbar';
 import Topbar from '../components/Topbar';
@@ -114,8 +114,11 @@ const RoleManagement = () => {
                     color="primary"
                     component={Link}
                     to="/register-user"
+                    style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}
                   >
-                    Register
+                    <IconButton>
+                      <FaPlus />
+                    </IconButton>
                   </Button>
                   <TextField
                     label="Search users..."
@@ -167,12 +170,12 @@ const RoleManagement = () => {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.roleName}</TableCell>
                           <TableCell sx={{ display: "   ", justifyContent: "" }}>
-                            <Button variant="outlined" onClick={() => handleResetPassword(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px' }}>
+                            <Button variant="outlined" onClick={() => handleResetPassword(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton aria-label="delete">
                                 <LuClipboardPenLine />
                               </IconButton>
                             </Button>
-                            <Button variant="contained" color="error" onClick={() => handleDeleteUser(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', marginLeft: "10px" }}>
+                            <Button variant="contained" color="error" onClick={() => handleDeleteUser(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton aria-label="delete">
                                 <FaTrashAlt />
                               </IconButton>
