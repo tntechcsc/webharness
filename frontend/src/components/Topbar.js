@@ -7,6 +7,7 @@ import logo from "../assets/LogoHarness.jpeg";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import { handleLogout } from "../utils/authUtils";
 
 
 
@@ -106,8 +107,10 @@ const Topbar = () => {
               <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} sx={{ mt: 1 }}>
                 <MenuItem onClick={() => window.location.href = "/profile"}>View Profile</MenuItem>
                 <MenuItem onClick={() => {
-                  sessionStorage.clear(); //we have a logout function bro
-                  window.location.href = "/login";
+                  handleLogout().then(() => {
+                    sessionStorage.clear(); //we have a logout function bro
+                    window.location.href = "/login";
+                  });
                 }}>Logout</MenuItem>
               </Menu>
             </Box>
