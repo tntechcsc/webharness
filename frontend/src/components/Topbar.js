@@ -5,8 +5,9 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { useTheme } from "@mui/material/styles";
 import logo from "../assets/LogoHarness.jpeg";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-
-
+import { handleLogout } from "../utils/authUtils";
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
 
 const Topbar = () => {
   /*
@@ -104,8 +105,21 @@ const Topbar = () => {
               <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} sx={{ mt: 1 }}>
                 <MenuItem onClick={() => window.location.href = "/profile"}>View Profile</MenuItem>
                 <MenuItem onClick={() => {
-                  sessionStorage.clear();
-                  window.location.href = "/login";
+                  withReactContent(Swal).fire({
+                        title: <i>Warning</i>,
+                        text: "Are you sure you log out?",
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonText: "Yes",
+                        cancelButtonText: "No",
+                      }).then((result) => {
+                        if (result.isConfirmed) {
+                          handleLogout().then(() => {
+                            sessionStorage.clear(); //we have a logout function bro
+                            window.location.href = "/login";
+                          });
+                        }
+                      });
                 }}>Logout</MenuItem>
               </Menu>
             </Box>

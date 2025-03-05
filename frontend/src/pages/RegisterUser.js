@@ -93,15 +93,6 @@ const RegisterUser = () => {
             required
             sx={{ mb: 2 }}
           />
-          <TextField
-            fullWidth
-            label="Password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            sx={{ mb: 2 }}
-          />
           <Typography variant="subtitle1" sx={{ mb: 1 }}>Role:</Typography>
           <Select
             options={[
