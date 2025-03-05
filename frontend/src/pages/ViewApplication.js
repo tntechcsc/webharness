@@ -4,6 +4,8 @@ import { Box, Container, Typography, Table, TableBody, TableCell, TableContainer
 import { useTheme } from "@mui/material/styles";
 import { IoReturnDownBackSharp, IoTrashBinOutline } from "react-icons/io5";
 import { FaPlay, FaEye, FaPlus  } from "react-icons/fa";
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
 
 
 const baseURL = window.location.origin;
@@ -15,6 +17,7 @@ const ViewApplication = () => {
   const [instructions, setInstructions] = useState({ path: "", arguments: "" });
   const [statusMessage, setStatusMessage] = useState("Loading application details...");
   const [loading, setLoading] = useState(false);
+  
 
   useEffect(() => {
     fetchApplication();
@@ -59,7 +62,6 @@ const ViewApplication = () => {
   };
 
   const runApplication = async () => {
-    setStatusMessage("Starting application...");
     try {
       let session_id = sessionStorage.getItem("session_id");
       if (!session_id) {
@@ -77,18 +79,28 @@ const ViewApplication = () => {
       });
 
       if (response.ok) {
-        setStatusMessage("Application started successfully.");
+        withReactContent(Swal).fire({
+          title: <i>Success</i>,
+          text: application.name + " has been started successfully!",
+          icon: "success",
+        })
       } else {
-        const errorData = await response.json();
-        setStatusMessage(`Failed to start application: ${errorData.message || "Unknown error"}`);
+        withReactContent(Swal).fire({
+          title: <i>Failure</i>,
+          text: application.name + " failed to start.",
+          icon: "error",
+        })
       }
     } catch (error) {
-      setStatusMessage("Error: " + error.message);
+      withReactContent(Swal).fire({
+        title: <i>Failure</i>,
+        text: application.name + " failed to start.",
+        icon: "error",
+      })
     }
   };
 
   const removeApplication = async () => {
-    setStatusMessage("Removing application...");
     try {
       let session_id = sessionStorage.getItem("session_id");
       const response = await fetch(`${baseURL}:3000/api/applications/remove/${id}`, {
@@ -97,15 +109,29 @@ const ViewApplication = () => {
       });
 
       if (response.ok) {
-        setStatusMessage("Application removed successfully.");
-        window.location.href = "/applications";
+        withReactContent(Swal).fire({
+          title: <i>Success</i>,
+          text: application.name + " has been deleted successfully!",
+          icon: "success",
+        }).then(() => {
+          window.location.href = "/applications";
+        });
       } else {
-        setStatusMessage("Failed to remove application.");
+        withReactContent(Swal).fire({
+          title: <i>Failure</i>,
+          text: "Failed to delete " + application.name,
+          icon: "error",
+        })
       }
     } catch (error) {
-      setStatusMessage("Error: " + error.message);
+      withReactContent(Swal).fire({
+        title: <i>Failure</i>,
+        text: "Failed to delete " + application.name,
+        icon: "error",
+      })
     }
   };
+  
 
   if (loading) {
     return <CircularProgress />;
