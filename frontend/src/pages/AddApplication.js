@@ -183,6 +183,7 @@ const AddApplication = () => {
             fullWidth
             label="Executable Path"
             name="executable_path"
+            placeholder="C:\Windows\system32\notepad.exe"
             value={formData.executable_path}
             onChange={handleChange}
             required
