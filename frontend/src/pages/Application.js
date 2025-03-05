@@ -23,6 +23,8 @@ import {
 } from "@mui/material";
 import { FaPlay, FaEye, FaPlus  } from "react-icons/fa";
 import { useTheme } from "@mui/material/styles";
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
 
 const baseURL = window.location.origin;
 
@@ -68,7 +70,7 @@ function Application() {
     }
   };
 
-  const runApplication = async (appId) => {
+  const runApplication = async (appId, appName) => {
     setStatusMessage("Starting application...");
 
     try {
@@ -88,13 +90,25 @@ function Application() {
       });
 
       if (response.ok) {
-        setStatusMessage("Application started successfully.");
+        withReactContent(Swal).fire({
+          title: <i>Success</i>,
+          text: appName + " has been started successfully!",
+          icon: "success",
+        })
       } else {
         const errorData = await response.json();
-        setStatusMessage(`Failed to start application: ${errorData.message || "Unknown error"}`);
+        withReactContent(Swal).fire({
+          title: <i>Failure</i>,
+          text: appName + " failed to start.",
+          icon: "error",
+        })
       }
     } catch (error) {
-      setStatusMessage("Error: " + error.message);
+      withReactContent(Swal).fire({
+        title: <i>Failure</i>,
+        text: appName + " failed to start.",
+        icon: "error",
+      })
     }
   };
 
@@ -242,7 +256,7 @@ function Application() {
                           <TableCell>{row.application.description}</TableCell>
                           <TableCell>{row.application.status || "Inactive"}</TableCell>
                           <TableCell sx={{ display: "", justifyContent: "" }}>{/*our action buttons */}
-                            <Button variant="contained" color="success" onClick={() => runApplication(row.application.id)} title="Run" size="small" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                            <Button variant="contained" color="success" onClick={() => runApplication(row.application.id, row.application.name)} title="Run" size="small" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
                                 <FaPlay />
                               </IconButton>
