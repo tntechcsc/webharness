@@ -21,6 +21,13 @@ export const startTutorialManually = (currentPage) => {
       { element: "#run-button", intro: "Click this button to start an application." },
       { element: "#view-button", intro: "Click this button to view an application in detail." },
     ];
+  } else if (currentPage === "role-management") {
+    steps = [
+      { element: "#register-user", intro: "Click here to register a new user." },
+      { element: "#search-users", intro: "Click here to search for a user." },
+      { element: "#reset-password", intro: "Click here to reset the users password. This will give the user a new auto-generated password" },
+      { element: "#delete-user", intro: "Click here to delete this user." },
+    ];
   }
 
   if (steps.length > 0) {

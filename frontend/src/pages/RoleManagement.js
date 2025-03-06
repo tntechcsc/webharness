@@ -110,6 +110,7 @@ const RoleManagement = () => {
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Button
+                    id="register-user"
                     variant="contained"
                     color="primary"
                     component={Link}
@@ -121,6 +122,7 @@ const RoleManagement = () => {
                     </IconButton>
                   </Button>
                   <TextField
+                    id="search-users"
                     label="Search users..."
                     variant="outlined"
                     size="small"
@@ -164,18 +166,18 @@ const RoleManagement = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {sortedUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user) => (
+                      {sortedUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user, index) => (
                         <TableRow key={user.id}>
                           <TableCell>{user.username}</TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.roleName}</TableCell>
                           <TableCell sx={{ display: "   ", justifyContent: "" }}>
-                            <Button variant="outlined" onClick={() => handleResetPassword(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                            <Button id={index === 0 ? "reset-password" : undefined} variant="outlined" onClick={() => handleResetPassword(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton aria-label="delete">
                                 <LuClipboardPenLine />
                               </IconButton>
                             </Button>
-                            <Button variant="contained" color="error" onClick={() => handleDeleteUser(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                            <Button id={index === 0 ? "delete-user" : undefined} variant="contained" color="error" onClick={() => handleDeleteUser(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton aria-label="delete">
                                 <FaTrashAlt />
                               </IconButton>

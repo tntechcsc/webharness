@@ -30,6 +30,7 @@ const Navbar = () => {
     if (location.pathname === "/") return "homepage";
     if (location.pathname.includes("applications")) return "applications";
     if (location.pathname.includes("profile")) return "profile";
+    if (location.pathname.includes("role-management")) return "role-management";
     return null;
   };  
 
