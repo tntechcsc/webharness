@@ -326,3 +326,11 @@ pub fn delete_session(userId: String, conn: &std::sync::MutexGuard<'_, rusqlite:
     }
 
 }
+
+pub fn validate_password(password: &str) -> bool {
+    let has_uppercase = password.chars().any(|c| c.is_uppercase());
+    let has_digit = password.chars().any(|c| c.is_digit(10));
+    let has_special = password.chars().any(|c| "@$!%*?&#".contains(c));
+    let is_long_enough = password.len() >= 8;
+    has_uppercase && has_digit && has_special && is_long_enough
+}
