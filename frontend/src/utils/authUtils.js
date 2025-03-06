@@ -30,3 +30,33 @@ export const checkSession = async () => {
     }
     return false;
   };
+
+  export const handleLogout = async () => {
+    try {
+      let session_id = sessionStorage.getItem('session_id');
+      if (!session_id) {
+        console.error('No session ID found in sessionStorage.');
+        return;
+      }
+
+      const response = await fetch(`${window.location.origin}:3000/api/user/logout`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': sessionStorage.getItem('session_id')
+        }
+      });
+  
+      if (response.ok) {
+        sessionStorage.removeItem('session_id');
+        window.location.href = "/login"
+      }
+      else {
+        //alert("ERROR"); -> edge case is if someone else logs in with same credentials, then this user is "logged out" but the log out request above fails because their session isnt found
+      }
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  
+  
+  }

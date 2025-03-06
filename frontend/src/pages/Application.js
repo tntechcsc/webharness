@@ -23,6 +23,8 @@ import {
 } from "@mui/material";
 import { FaPlay, FaEye, FaPlus  } from "react-icons/fa";
 import { useTheme } from "@mui/material/styles";
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
 
 const baseURL = window.location.origin;
 
@@ -68,7 +70,7 @@ function Application() {
     }
   };
 
-  const runApplication = async (appId) => {
+  const runApplication = async (appId, appName) => {
     setStatusMessage("Starting application...");
 
     try {
@@ -88,13 +90,25 @@ function Application() {
       });
 
       if (response.ok) {
-        setStatusMessage("Application started successfully.");
+        withReactContent(Swal).fire({
+          title: <i>Success</i>,
+          text: appName + " has been started successfully!",
+          icon: "success",
+        })
       } else {
         const errorData = await response.json();
-        setStatusMessage(`Failed to start application: ${errorData.message || "Unknown error"}`);
+        withReactContent(Swal).fire({
+          title: <i>Failure</i>,
+          text: appName + " failed to start.",
+          icon: "error",
+        })
       }
     } catch (error) {
-      setStatusMessage("Error: " + error.message);
+      withReactContent(Swal).fire({
+        title: <i>Failure</i>,
+        text: appName + " failed to start.",
+        icon: "error",
+      })
     }
   };
 

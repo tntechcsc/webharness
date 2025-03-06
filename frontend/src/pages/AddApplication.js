@@ -6,6 +6,8 @@ import { IoReturnDownBackSharp } from "react-icons/io5";
 import Select from "react-select";
 import { useTheme } from "@mui/material/styles";
 import getReactSelectStyles from "./../reactSelectStyles"; // Import the styles
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
 
 
 const baseURL = window.location.origin;
@@ -55,7 +57,7 @@ const AddApplication = () => {
     }
   };
 
-  // Fetch current user ID
+  // Fetch current user ID // shoulnt be required technically as we should use session id from sessionguard to work. as it is now, someone could theoretically use someone elses user id to add an application
   const fetchUserId = async () => {
     try {
       let session_id = sessionStorage.getItem("session_id");
@@ -93,7 +95,6 @@ const AddApplication = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatusMessage("Submitting...");
     setLoading(true);
 
     const user_id = await fetchUserId();
@@ -122,16 +123,27 @@ const AddApplication = () => {
 
       const responseData = await response.json();
       if (response.ok) {
-        setStatusMessage("Application added successfully!");
         setLoading(false);
-        navigate("/applications");
+        withReactContent(Swal).fire({
+          title: <i>Success</i>,
+          text: formData.name + " has been added!",
+          icon: "success",
+        }).then(() => navigate("/applications"));
       } else {
-        setStatusMessage(responseData.message || "Failed to add application.");
+        withReactContent(Swal).fire({
+          title: <i>Failure</i>,
+          text: formData.name + " could not be added!",
+          icon: "error",
+        })
         setLoading(false);
       }
     } catch (error) {
       console.error("Error:", error);
-      setStatusMessage("An error occurred while adding the application.");
+      withReactContent(Swal).fire({
+        title: <i>Failure</i>,
+        text: formData.name + " could not be added!",
+        icon: "error",
+      })
       setLoading(false);
     }
   };
@@ -171,6 +183,7 @@ const AddApplication = () => {
             fullWidth
             label="Executable Path"
             name="executable_path"
+            placeholder="C:\Windows\system32\notepad.exe"
             value={formData.executable_path}
             onChange={handleChange}
             required
