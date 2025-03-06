@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Box, Container, Button, Typography, Grid, Divider } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
-import DataTable from 'react-data-table-component'; // Import DataTable
-import Navbar from '../components/Navbar';  // Adjust the path as needed
-import Topbar from '../components/Topbar';  // Adjust the path as needed
+import DataTable from 'react-data-table-component'; 
+import Navbar from '../components/Navbar';
+import Topbar from '../components/Topbar';
 
 const baseURL = window.location.origin;
 
@@ -15,7 +15,7 @@ const RoleManagement = () => {
   const [error, setError] = useState('');
   const theme = useTheme();
 
-  // ✅ Fetch users from backend or use mock data
+  
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -49,11 +49,15 @@ const RoleManagement = () => {
     console.log(`Updated role for user ${userId} to ${newRole}`);
   };
 
-  // Delete user
-  const handleDeleteUser = (userId) => {
+  // ✅ Function to Handle User Deletion with Confirmation
+const handleDeleteUser = (userId) => {
+  const confirmDelete = window.confirm("Are you sure you want to delete this user?");
+  if (confirmDelete) {
     setUsers(users.filter(user => user.id !== userId));
-    console.log(`Deleted user with ID: ${userId}`);
-  };
+    console.log(`User with ID ${userId} deleted.`);
+  }
+};
+
 
   // Reset password
   const handleResetPassword = (userId) => {
@@ -71,24 +75,71 @@ const RoleManagement = () => {
       selector: (row) => row.email,
       sortable: true,
     },
+
+    /*
     {
       name: 'Role',
       selector: (row) => row.role,
       sortable: true,
     },
+    */
+
     {
-      name: 'Actions',
+      name: 'Role',
+      selector: (row) => {
+        console.log("Role data:", row.role); // ✅ Check if role exists 
+        return row.role ? row.role : "No Role Found"; // If this is return it means that backend
+      },
+      sortable: true,
+    },
+    
+    {
+      name: "Actions",
       cell: (row) => (
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button onClick={() => handleResetPassword(row.id)} variant="outlined" size="small">
-            Reset Password
+        <Box 
+          sx={{ 
+            display: "flex", 
+            flexDirection: { xs: "column", md: "row" },
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 1,
+          }}
+        >
+          {/* ✅ Reset Password Button */}
+          <Button 
+            onClick={() => handleResetPassword(row.id)} 
+            variant="contained" 
+            size="small"
+            sx={{
+              backgroundColor: "blue",
+              color: "white",
+              minWidth: "120px",
+              borderRadius: "50px",
+              "&:hover": { backgroundColor: "#00008B" }
+            }}
+          >
+            Reset
           </Button>
-          <Button onClick={() => handleDeleteUser(row.id)} variant="contained" size="small" color="error">
+    
+          {/* ✅ Delete Button with Confirmation */}
+          <Button 
+            onClick={() => handleDeleteUser(row.id)} 
+            variant="contained" 
+            size="small" 
+            sx={{
+              backgroundColor: "red",
+              color: "white",
+              minWidth: "120px",
+              borderRadius: "50px",
+              "&:hover": { backgroundColor: "#B30000" }
+            }}
+          >
             Delete
           </Button>
         </Box>
       ),
     },
+    
   ];
 
   const filteredUsers = users.filter((user) =>
@@ -98,37 +149,63 @@ const RoleManagement = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", backgroundColor: theme.palette.background.default}}>
-      {/* Navbar */}
+    <Box 
+    sx={{ 
+      display: "flex", 
+      minHeight: "100vh", 
+      overflow: "hidden", 
+      background: "linear-gradient(180deg, #1e3c72 50%, white 100%)" // ✅ Linear Gradient Background
+    }}
+    >
       <Navbar />
 
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Topbar */}
         <Topbar />
 
         <Container sx={{ mt: 5, ml: 2, maxWidth: 'xl' }}>
 
           <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: '8px' }}>
-                <Typography>Users Overview</Typography>
-                <Divider sx={{ my: 2 }} />
+          <Grid item xs={12}>
+            <Box 
+              sx={{ 
+                p: 3, 
+                backgroundColor: '#132060', 
+                borderRadius: '20px', 
+                width: "100%", 
+                marginLeft: "120px",
+                boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.3)", // ✅ Adds soft shadow effect
+                transition: "all 0.3s ease-in-out",
+                "&:hover": { boxShadow: "0px 12px 24px rgba(0, 0, 0, 0.5)" } // ✅ Enhances hover effect
+              }}
+            >
+              <Typography sx={{ fontWeight: "bold", color: "White" }}>
+                Role Management
+              </Typography>
+              <Divider sx={{ my: 2 }} />
 
-                {/* Search bar and Register User button */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    sx={{ ml: 2 }}
-                    component={Link}
-                    to="/register-user"
-                  >
-                    Register
-                  </Button>
-                </Box>
+              {/* 🔹 Search bar and Register User button */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Button
+                  variant="contained"
+                  sx={{
+                    backgroundColor: "green",
+                    color: "white",
+                    "&:hover": { 
+                      color: 'black',
+                      backgroundColor: "#6FFB78" 
+                    } 
 
-                <Container>
-                  {/* DataTable for users */}
+
+                  }}
+                  component={Link}
+                  to="/register-user"
+                >
+                  Register A User
+                </Button>
+              </Box>
+
+              {/* 🔹 DataTable for Users */}
+              <Box sx={{ borderRadius: "0px", overflow: "hidden" }}>  {/* ✅ This keeps table sharp */}
                   <DataTable
                     columns={columns}
                     data={filteredUsers}
@@ -146,14 +223,29 @@ const RoleManagement = () => {
                           padding: '10px',
                           width: '100%',
                           border: `1px solid ${theme.palette.divider}`,
-                          borderRadius: '4px',
+                          borderRadius: '10px',
+                          backgroundColor: "white",
+                          color: "black"
                         }}
                       />
                     }
+                    customStyles={{
+                      rows: {
+                        style: { borderRadius: "0px" } //  Ensures table rows are sharp
+                      },
+                      headCells: {
+                        style: { borderRadius: "0px" } //  Ensures table headers are sharp
+                      },
+                      cells: {
+                        style: { borderRadius: "0px" } //  Ensures table cells are sharp
+                      }
+                    }}
                   />
-                </Container>
+                </Box>
               </Box>
             </Grid>
+
+
           </Grid>
         </Container>
       </Box>
