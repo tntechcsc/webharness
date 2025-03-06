@@ -78,7 +78,7 @@ const Navbar = () => {
             <ListItemIcon sx={{ color: "white" }}>
               <PersonIcon />
             </ListItemIcon>
-            <ListItemText primary="Program" />
+            <ListItemText primary="Applications" />
           </ListItemButton>
         </ListItem>
 
@@ -87,7 +87,7 @@ const Navbar = () => {
             <ListItemIcon sx={{ color: "white" }}>
               <SettingsIcon />
             </ListItemIcon>
-            <ListItemText primary="Role Management" />
+            <ListItemText primary="Role" />
           </ListItemButton>
         </ListItem>
 
@@ -102,7 +102,7 @@ const Navbar = () => {
             <ListItemIcon sx={{ color: "white" }}>
               <PlayCircleOutlineIcon />
             </ListItemIcon>
-            <ListItemText primary="Start Tutorial" />
+            <ListItemText primary="Tutorial" />
           </ListItemButton>
         </ListItem>
       </List>
