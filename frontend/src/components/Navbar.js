@@ -8,8 +8,10 @@ import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import { startTutorialManually } from "../utils/tutorial";
+import { useStartTutorial } from "../utils/tutorial";
 
 const Navbar = () => {
+  const { startTutorialManually } = useStartTutorial();
   const theme = useTheme();
   const location = useLocation();
   const drawerWidth = 200;
