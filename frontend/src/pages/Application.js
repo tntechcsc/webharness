@@ -176,17 +176,18 @@ function Application() {
 
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, textColor: theme.palette.text.primary, borderRadius: "8px" }}>
+              <Box id="applications-overview" sx={{ p: 3, backgroundColor: theme.palette.background.paper, textColor: theme.palette.text.primary, borderRadius: "8px" }}>
                 <Typography variant="h6">Applications Overview</Typography>
                 <Divider sx={{ my: 2 }} />
 
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                  <Button variant="contained" component={Link} to="/add-application" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                    <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
-                      <FaPlus  />
+                  <Button id="add-application-button" variant="contained" component={Link} to="/add-application" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                    <IconButton variant="contained" color="primary" style={{ color: '#12255f' }}>
+                      <FaPlus />
                     </IconButton>
                   </Button> {/*Buton to add new application */}
                   <TextField
+                    id="search-bar"
                     label="Search applications..."
                     variant="outlined"
                     size="small"
@@ -248,7 +249,7 @@ function Application() {
                       </TableRow>
                     </TableHead>
                     <TableBody>{/*Table body*/}
-                      {sortedApplications.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => ( //further filters our sorted array to only show the rows we want which are determined by the page and rows per page
+                      {sortedApplications.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, index) => ( //further filters our sorted array to only show the rows we want which are determined by the page and rows per page
                         <TableRow key={row.application.id}>
                           <TableCell>{row.application.name}</TableCell>
                           <TableCell>{row.application.categories.map((cat) => cat.name).join(", ") || "N/A"}</TableCell>
@@ -256,12 +257,12 @@ function Application() {
                           <TableCell>{row.application.description}</TableCell>
                           <TableCell>{row.application.status || "Inactive"}</TableCell>
                           <TableCell sx={{ display: "", justifyContent: "" }}>{/*our action buttons */}
-                            <Button variant="contained" color="success" onClick={() => runApplication(row.application.id, row.application.name)} title="Run" size="small" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                            <Button id={index === 0 ? "run-button" : undefined} variant="contained" color="success" onClick={() => runApplication(row.application.id)} title="Run" size="small" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
                                 <FaPlay />
                               </IconButton>
                             </Button>
-                            <Button variant="contained" color="success" component={Link} to={`/view-application/${row.application.id}`} size="small" title="View" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                            <Button id={index === 0 ? "view-button" : undefined} variant="contained" color="success" component={Link} to={`/view-application/${row.application.id}`} size="small" title="View" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
                                 <FaEye />
                               </IconButton>

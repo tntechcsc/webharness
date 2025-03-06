@@ -38,10 +38,16 @@ const HomePage = () => {
           <Grid container spacing={3}>
             {/* Large Centered Card for Active Applications */}
             <Grid item xs={12} md={6}>
-              <Card sx={{ textAlign: "center", p: 3 }}>
+              <Card sx={{ textAlign: "center", p: 3 }} id="applications-card">
                 <CardContent>
                   <Typography variant="h6">Applications in Usage</Typography>
-                  <CircularProgress variant="determinate" value={(activeApplications / totalApplications) * 100} size={120} thickness={5} />
+                  <CircularProgress 
+                    id="active-applications"
+                    variant="determinate" 
+                    value={(activeApplications / totalApplications) * 100} 
+                    size={120} 
+                    thickness={5} 
+                  />
                   <Typography variant="h5" sx={{ mt: 2 }}>
                     {activeApplications}/{totalApplications}
                   </Typography>
@@ -51,7 +57,7 @@ const HomePage = () => {
 
             {/* Bar Chart for Failed Applications */}
             <Grid item xs={12} md={6}>
-              <Card sx={{ p: 2 }}>
+              <Card sx={{ p: 2 }} id="failed-applications">
                 <CardContent>
                   <Typography variant="h6">Failed Applications</Typography>
                   <ResponsiveContainer width="100%" height={180}>
@@ -68,7 +74,7 @@ const HomePage = () => {
 
             {/* Two Smaller Cards for Recent Logins & Placeholder for Additional Data */}
             <Grid item xs={12} sm={6} md={4}>
-              <Card sx={{ p: 2 }}>
+              <Card sx={{ p: 2 }} id="recent-logins">
                 <CardContent>
                   <Typography variant="h6">Recent Logins</Typography>
                   <Divider sx={{ my: 1 }} />
@@ -84,7 +90,7 @@ const HomePage = () => {
             </Grid>
 
             <Grid item xs={12} sm={6} md={4}>
-              <Card sx={{ p: 2 }}>
+              <Card sx={{ p: 2 }} id="upcoming-events">
                 <CardContent>
                   <Typography variant="h6">Upcoming Events</Typography>
                   <Divider sx={{ my: 1 }} />
@@ -95,7 +101,7 @@ const HomePage = () => {
 
             {/* Full-width Card for Additional Info or Logs */}
             <Grid item xs={12} md={8}>
-              <Card sx={{ p: 2 }}>
+              <Card sx={{ p: 2 }} id="system-logs">
                 <CardContent>
                   <Typography variant="h6">System Logs</Typography>
                   <Divider sx={{ my: 1 }} />
