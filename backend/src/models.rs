@@ -103,6 +103,12 @@ pub struct ResetPasswordForm {
     pub password: String,
 }
 
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct SetPasswordForm {
+    #[schema(example = "StrongPass123!")]
+    pub new_password: String,
+}
+
 //--program execution
 
 pub struct ProcessInfo {

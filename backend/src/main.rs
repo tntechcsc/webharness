@@ -109,7 +109,8 @@ fn rocket() -> _ {
             crate::user_management::user_role_search_api, 
             crate::user_management::user_register, 
             crate::user_management::user_login, 
-            crate::user_management::reset_password, 
+            crate::user_management::reset_password,
+            crate::user_management::set_password,
             crate::user_management::user_delete, 
             crate::user_management::user_logout,
             crate::user_management::user_all,
@@ -146,7 +147,7 @@ fn rocket() -> _ {
     let cors = CorsOptions::default()
     .allowed_origins(AllowedOrigins::all())
     .allowed_methods(
-        vec![Method::Get, Method::Post, Method::Patch, Method::Delete]
+        vec![Method::Get, Method::Post, Method::Patch, Method::Delete, Method::Put]
             .into_iter()
             .map(From::from)
             .collect(),
