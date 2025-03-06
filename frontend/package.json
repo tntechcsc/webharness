@@ -29,8 +29,8 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "cross-env PORT=80 react-scripts start",
-    "build": "react-scripts build",
+    "start": "cross-env PORT=80 GENERATE_SOURCEMAP=false react-scripts start",
+    "build": "GENERATE_SOURCEMAP=false react-scripts build",
     "serve": "npx serve -s build -p 80",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

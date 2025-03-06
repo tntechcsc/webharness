@@ -7,6 +7,8 @@ import Navbar from "../components/Navbar";
 import Topbar from "../components/Topbar";
 import { useTheme } from "@mui/material/styles";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
 
 const baseURL = window.location.origin;
 
@@ -52,11 +54,11 @@ const Profile = () => {
   }, []);
 
   const validatePassword = (password) => {
-    const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&^#])[A-Za-z\d@$!%*?&^#]{8,}$/;
     return regex.test(password);
   };
 
-  // Handle password change request, TODO: Implement set password endpoint in backend
+  // Handle password change request
   const handleChangePassword = async () => {
     if (!validatePassword(newPassword)) {
       setPasswordError("Password must be at least 8 characters, include an uppercase letter, a number, and a special character.");
@@ -72,26 +74,30 @@ const Profile = () => {
       setPasswordError("Session expired. Please log in again.");
       return;
     }
-
+  
     try {
-      const response = await fetch(`${baseURL}:3000/api/user/change-password`, {
-        method: "POST",
+      const response = await fetch(`${baseURL}:3000/api/user/set-password`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           "x-session-id": session_id,
         },
-        body: JSON.stringify({ newPassword }),
+        body: JSON.stringify({ new_password: newPassword }), // Send password data
       });
-
-      if (!response.ok) throw new Error("Failed to change password.");
-
-      alert("Password successfully updated!");
+  
+      if (!response.ok) throw new Error("Failed to set password.");
+  
+      withReactContent(Swal).fire({
+        title: <i>Success</i>,
+        text: "Your password has been updated successfully!",
+        icon: "success",
+      });      
       setPasswordDialogOpen(false);
       setNewPassword("");
       setConfirmPassword("");
       setPasswordError("");
     } catch (error) {
-      console.error("Error changing password:", error);
+      console.error("Error setting password:", error);
       setPasswordError("Failed to update password. Please try again.");
     }
   };
