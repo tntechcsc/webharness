@@ -12,6 +12,7 @@ import { checkSession } from "./utils/authUtils"
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import Profile from "./pages/Profile";
 import theme from "./theme";
+import "intro.js/minified/introjs.min.css";
 
 /* should probably put theme into theme.js not here
 const theme = createTheme({
