@@ -41,7 +41,7 @@ const lightTheme = createTheme({
 // Define dark theme
 const darkTheme = createTheme({
   palette: {
-    mode: "dark",  // Dark theme mode
+    mode: "light",  // Dark theme mode, it is labeled "light" because "dark" messes with the navbar colors
     primary: {
       main: "#12255f",
     },
