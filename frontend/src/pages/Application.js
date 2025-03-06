@@ -152,29 +152,61 @@ function Application() {
   ];
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", backgroundColor: theme.palette.background.default }}>
+    <Box 
+      sx={{ 
+        display: "flex", 
+        minHeight: "100vh", 
+        overflow: "hidden", 
+        background: "linear-gradient(180deg, #1e3c72 50%, white 100%)" // ✅ Updated background
+      }}
+    >
       <Navbar /> {/* Vertical navbar */}
-
+  
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <Topbar /> {/* Horizontal navbar */}
-
+  
         <Container sx={{ mt: 5, ml: 2, maxWidth: "xl" }}>
           {statusMessage && <Typography variant="body1" sx={{ mb: 2 }}>{statusMessage}</Typography>}
-
+  
           <Grid container spacing={3}>
             {/* The applications table */}
             <Grid item xs={12}>
-              <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: "8px" }}>
-                <Typography variant="h6">Applications Overview</Typography>
-                <Divider sx={{ my: 2 }} />
-
+              <Box 
+              sx={{ 
+                     p: 3, 
+                    backgroundColor: '#132060', 
+                    borderRadius: '20px', 
+                    width: "100%", 
+                    marginLeft: "120px",
+                    boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.3)", 
+                    transition: "all 0.3s ease-in-out",
+                    "&:hover": { boxShadow: "0px 12px 24px rgba(0, 0, 0, 0.5)" } 
+                  }}
+                >
+                <Typography sx={{ fontWeight: "bold", color: "White" }}>
+                                Application Overview
+                              </Typography>
+                <Divider sx={{ my: 2, backgroundColor: "white" }} />
+  
                 {/* Search bar and Add Application button */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                  <Button variant="contained" className="ms-4" component={Link} to="/add-application">+ Add Application</Button>
-                </Box>
+                  <Button 
+                  variant="contained" 
+                  className="ms-4" 
+                  component={Link} to="/add-application" 
+                 sx={{
+                  backgroundColor: "green",
+                  color: "white",
+                  "&:hover": { backgroundColor: "#006400" }
+                 }}
+                  >
 
+                    + Add Application
+                  </Button>
+                </Box>
+  
                 {/* DataTable for applications */}
-                <Container> {/* So the borderRadius above doesnt apply duh */}
+                <Container>
                   <DataTable
                     columns={columns}
                     data={filteredApplications}
@@ -189,7 +221,7 @@ function Application() {
                         className="searchbar"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{ padding: "10px", width: "100%" }}
+                        style={{ padding: "10px", width: "100%", borderRadius: "5px" }}
                       />
                     }
                   />
@@ -201,6 +233,8 @@ function Application() {
       </Box>
     </Box>
   );
+  
+  
 }
 
 export default Application;

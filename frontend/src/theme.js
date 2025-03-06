@@ -120,7 +120,7 @@ const darkTheme = createTheme({
       styleOverrides: {
         root: {
           "& .MuiInputBase-input": {
-            color: "#f8f9fa", // Set text color to white for input fields
+            color: "black", // Set text color to white for input fields
           },
           "& .MuiInputLabel-root": {
             color: "#adb5bd", // Muted color for labels

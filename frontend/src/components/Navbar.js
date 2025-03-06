@@ -37,7 +37,7 @@ const Navbar = () => {
           transition: "width 0.3s ease-in-out, background-color 0.3s ease-in-out",
           overflowX: "hidden",
           backgroundColor: theme.palette.primary.main,
-          //borderRight: "2px solid #ffffff", // White border on the right side
+          borderRight: "2px solid #ffffff", // White border on the right side
           boxShadow: "2px 0px 10px rgba(0, 0, 0, 0.2)", // Subtle shadow effect
         },
       }}
@@ -57,8 +57,8 @@ const Navbar = () => {
               to="/"
               sx={{
                 justifyContent: "space-between", // Ensure equal distance
-                //borderTop: "1px solid #ffffff",
-                //borderBottom: "1px solid #ffffff", // Border line below
+                borderTop: "1px solid #ffffff",
+                borderBottom: "1px solid #ffffff", // Border line below
                 "&:hover": {
                   backgroundColor: "#6FFB78",
                   color: "#fff",
@@ -80,7 +80,7 @@ const Navbar = () => {
               to="/applications"
               sx={{
                 justifyContent: "space-between", // Ensure equal distance
-                //borderBottom: "1px solid rgb(255, 255, 255)",
+                borderBottom: "1px solid rgb(255, 255, 255)",
                 "&:hover": {
                   backgroundColor: "#6FFB78",
                   color: "#fff",
@@ -102,7 +102,7 @@ const Navbar = () => {
               to="/role-management"
               sx={{
                 justifyContent: "space-between", // Ensure equal distance
-                //borderBottom: "1px solid rgb(255, 255, 255)",
+                borderBottom: "1px solid rgb(255, 255, 255)",
                 "&:hover": {
                   backgroundColor: "#6FFB78",
                   transition: "background-color 0.3s ease-in-out, color 0.3s ease-in-out",
@@ -131,7 +131,7 @@ const Navbar = () => {
               to="/help" // actual help page route
               sx={{
                 justifyContent: "space-between", // Ensure equal distance
-                //borderBottom: "1px solid rgb(255, 255, 255)",
+                borderBottom: "1px solid rgb(255, 255, 255)",
                 "&:hover": {
                   backgroundColor: "#6FFB78",
                   transition: "background-color 0.3s ease-in-out, color 0.3s ease-in-out",
