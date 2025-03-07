@@ -31,10 +31,96 @@ const lightTheme = createTheme({
       fontSize: "1.875rem",
       color: "#000000",
     },
-    // Other typography styles remain the same...
+    h3: {
+      fontWeight: 500,
+      fontSize: "1.5rem",
+      color: "#000000",
+    },
+    h4: {
+      fontWeight: 500,
+      fontSize: "1.25rem",
+      color: "#000000",
+    },
+    h5: {
+      fontWeight: 400,
+      fontSize: "1.125rem",
+      color: "#000000",
+    },
+    h6: {
+      fontWeight: 400,
+      fontSize: "1rem",
+      color: "#000000",
+    },
   },
   components: {
-    // Same button, input, and pagination styles as before...
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#75ea81", // Default button background
+          textColor: "#12255f", // Default text/icon color
+          padding: "2px 0px", // Custom padding
+          fontWeight: "bold", // Button text bold
+          "&:hover": {
+            backgroundColor: "#5fcf69", // Slightly darker on hover
+          },
+        },
+        contained: {
+          backgroundColor: "#75ea81", // Ensures consistency for contained buttons
+          color: "#12255f", // Default text/icon color
+          fontWeight: "bold", // Button text bold
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          color: "#12255f", // Default icon button color
+          "&:hover": {
+            color: "#0d1d4d", // Darker on hover
+          },
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          "& .MuiInputBase-input": {
+            color: "#000000",
+          },
+          "& .MuiInputLabel-root": {
+            color: "#000000", // Default label color
+          },
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#000000", // Default border color
+          },
+          "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#75ea81",
+          },
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#75ea81", // Border color on hover
+          },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#75ea81", // Border color on focus
+          },
+          // Label color change on focus
+          "& .MuiInputLabel-root.Mui-focused": {
+            color: "#75ea81", // Color of the label when input is focused
+          },
+        },
+      },
+    },
+    MuiTablePagination: {
+      styleOverrides: {
+        selectIcon: {
+          color: '#ffffff', // This will change the color of the page select dropdown icon
+        },
+        navigation: {
+          '& .MuiPaginationItem-previousNext': {
+            color: '#ffffff', // This changes the color of the previous/next page arrows
+          },
+        },
+      },
+    },
   },
 });
 
@@ -69,7 +155,26 @@ const darkTheme = createTheme({
       fontSize: "1.875rem",
       color: "#ffffff",
     },
-    // Other typography styles remain the same...
+    h3: {
+      fontWeight: 500,
+      fontSize: "1.5rem",
+      color: "#ffffff",
+    },
+    h4: {
+      fontWeight: 500,
+      fontSize: "1.25rem",
+      color: "#ffffff",
+    },
+    h5: {
+      fontWeight: 400,
+      fontSize: "1.125rem",
+      color: "#ffffff",
+    },
+    h6: {
+      fontWeight: 400,
+      fontSize: "1rem",
+      color: "#ffffff",
+    },
   },
   components: {
     MuiAppBar: {
@@ -77,6 +182,74 @@ const darkTheme = createTheme({
         root: {
           backgroundColor: "#12255f", // Dark blue
           boxShadow: "none", // No shadow
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#75ea81", // Default button background
+          textColor: "#12255f", // Default text/icon color
+          padding: "2px 0px", // Custom padding
+          fontWeight: "bold", // Button text bold
+          "&:hover": {
+            backgroundColor: "#5fcf69", // Slightly darker on hover
+          },
+        },
+        contained: {
+          backgroundColor: "#75ea81", // Ensures consistency for contained buttons
+          color: "#12255f", // Default text/icon color
+          fontWeight: "bold", // Button text bold
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          color: "#12255f", // Default icon button color
+          "&:hover": {
+            color: "#0d1d4d", // Darker on hover
+          },
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          "& .MuiInputBase-input": {
+            color: "#ffffff",
+          },
+          "& .MuiInputLabel-root": {
+            color: "#ffffff", // Default label color
+          },
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#ffffff", // Default border color
+          },
+          "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#75ea81",
+          },
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#75ea81", // Border color on hover
+          },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#75ea81", // Border color on focus
+          },
+          // Label color change on focus
+          "& .MuiInputLabel-root.Mui-focused": {
+            color: "#75ea81", // Color of the label when input is focused
+          },
+        },
+      },
+    },
+    MuiTablePagination: {
+      styleOverrides: {
+        selectIcon: {
+          color: '#ffffff', // This will change the color of the page select dropdown icon
+        },
+        navigation: {
+          '& .MuiPaginationItem-previousNext': {
+            color: '#ffffff', // This changes the color of the previous/next page arrows
+          },
         },
       },
     },

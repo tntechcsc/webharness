@@ -118,39 +118,36 @@ const Profile = () => {
         <Topbar />
 
         <Container sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
-          <Paper sx={{ p: 4, maxWidth: 600, width: "100%", textAlign: "center", backgroundColor: "#ffffff" }}>
-            {/* Profile Picture */}
+          {/* Profile Picture */}
+          <Paper sx={{ p: 4, maxWidth: 600, width: "100%", textAlign: "center", backgroundColor: theme.palette.background.paper }}>
             <Avatar
               src={profilePic}
-              sx={{ width: 100, height: 100, margin: "auto", mb: 2, bgcolor: "#12255f" }}
+              sx={{ width: 100, height: 100, margin: "auto", mb: 2, bgcolor: theme.palette.primary.main }}
             >
-              {!profilePic && <AccountCircleIcon sx={{ fontSize: 100, color: "#ffffff" }} />}
+              {!profilePic && <AccountCircleIcon sx={{ fontSize: 100, color: theme.palette.primary.contrastText }} />}
             </Avatar>
 
-            <Typography variant="h5" sx={{ fontWeight: "bold", color: "black" }}>
+            <Typography variant="h5" sx={{ fontWeight: "bold", color: theme.palette.text.primary }}>
               {userData?.username || "User"}
             </Typography>
             <Typography variant="subtitle1" color="textSecondary">
               {userData?.roleName || "Role not available"}
             </Typography>
 
-            {/* Email & Phone */}
+            {/* Email*/}
             <TextField
               label="Email"
               variant="outlined"
               fullWidth
               margin="normal"
               value={userData?.email || ""}
-              InputProps={{
-                style: { backgroundColor: "white", color: "black" },
-              }}
-              disabled
             />
 
             {/* Reset Password Button*/}
             <Button
               variant="contained"
-              sx={{ mt: 2, bgcolor: "#B0B0B0", color: "black", "&:hover": { bgcolor: "#A0A0A0" } }}
+              color="primary"
+              sx={{ mt: 2, py: 1.5 }}
               onClick={() => setPasswordDialogOpen(true)}
             >
               Reset Password
@@ -161,7 +158,7 @@ const Profile = () => {
 
       {/* Password Reset Dialog */}
       <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)}>
-        <DialogTitle sx={{ color: "white" }}>Reset Password</DialogTitle>
+        <DialogTitle sx={{ color: theme.palette.text.primary }}>Reset Password</DialogTitle>
         <DialogContent>
           <TextField
             label="New Password"
@@ -172,7 +169,6 @@ const Profile = () => {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             helperText="Must be 8+ characters, 1 uppercase, 1 number, 1 special character"
-            slotProps={{ style: { backgroundColor: "white", color: "black" } }}
           />
           <TextField
             label="Confirm Password"
@@ -182,7 +178,6 @@ const Profile = () => {
             margin="normal"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            slotProps={{ style: { backgroundColor: "white", color: "black" } }}
           />
           {passwordError && (
             <Typography color="error" variant="body2">
@@ -193,13 +188,14 @@ const Profile = () => {
         <DialogActions>
           <Button 
             onClick={() => setPasswordDialogOpen(false)} 
-            sx={{ bgcolor: "red", color: "black", "&:hover": { bgcolor: "#CC0000" } }}
+            sx={{ bgcolor: "red", color: "white", "&:hover": { bgcolor: "#CC0000" } }}
           >
             Cancel
           </Button>
-          <Button 
+          <Button
+            variant="contained" 
+            color="primary"
             onClick={handleChangePassword} 
-            sx={{ bgcolor: "white", color: "black", "&:hover": { bgcolor: "#F0F0F0" } }}
             disabled={!newPassword || !confirmPassword}
           >
             Confirm
