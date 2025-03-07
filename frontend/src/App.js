@@ -1,98 +1,70 @@
-import { useState, useEffect } from 'react';
-import  ProtectedRoute  from "./components/ProtectedRoute"
-import { BrowserRouter as Router, Route, Routes, useLocation  } from "react-router-dom";
-import HomePage from "./pages/HomePage";
-import Application from "./pages/Application";
-import RoleManagement from "./pages/RoleManagement";
-import Login from "./pages/login";
-import ViewApplication from "./pages/ViewApplication";
-import AddApplication from "./pages/AddApplication";
-import RegisterUser from "./pages/RegisterUser"; // ✅ Import RegisterUser.js
-import { checkSession } from "./utils/authUtils"
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import Profile from "./pages/Profile";
-import theme from "./theme";
+import { useState, useEffect, useContext } from 'react';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import Application from './pages/Application';
+import RoleManagement from './pages/RoleManagement';
+import Login from './pages/login';
+import ViewApplication from './pages/ViewApplication';
+import AddApplication from './pages/AddApplication';
+import RegisterUser from './pages/RegisterUser'; // ✅ Import RegisterUser.js
+import { checkSession } from './utils/authUtils';
+import { ThemeProvider } from '@mui/material/styles';
+import { ThemeContext } from './context/themecontext'; // ✅ Import ThemeContext
+import { lightTheme, darkTheme } from './theme'; // ✅ Import light and dark themes
+import Profile from './pages/Profile';
 import "intro.js/minified/introjs.min.css";
-
-/* should probably put theme into theme.js not here
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#12255f",
-    },
-    secondary: {
-      main: "#12255f",
-    },
-    background: {
-      default: "#121212",
-      paper: "#1d1d1d",
-    },
-    text: {
-      primary: "#ffffff",
-      secondary: "#b0b0b0",
-    },
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          backgroundColor: "#ffffff",
-          color: "#ffffff",
-        },
-      },
-    },
-  },
-});
-*/
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   const [atLogin, setAtLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const location = useLocation(); // Hook to get the current location/pathname
-  // checking auth every minute
+  const { mode } = useContext(ThemeContext); // ✅ Access current theme mode (light or dark)
+
+  // Checking auth every minute
   useEffect(() => {
     const interval = setInterval(() => {
       console.log('This will be called every minute');
       const validateSession = async () => {
-        const isValid = await checkSession(); // check if their session is valid
+        const isValid = await checkSession(); // Check if their session is valid
         if (!isValid) {
-          window.location.href = "/login"
+          window.location.href = "/login";
           sessionStorage.removeItem("session_id");
         }
       };
       validateSession();
-    }, 1000*120); // 1 second * 120 -> 120 seconds -> every 2 minutes
+    }, 1000 * 120); // 1 second * 120 -> 120 seconds -> every 2 minutes
   
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <>
-      <div className="d-flex min-vh-100 bg-dark text-light">
-        <div className="flex-grow-1">
-          <Routes>
-            <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />
-            <Route path="role-management" element={<ProtectedRoute element={<RoleManagement />} />} />
-            <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
-            <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
-            <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
-            <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} /> {/* ✅ New Route */}
-            <Route path="/profile" element={<Profile />} />
-            <Route path="login" element={<Login />} />
-          </Routes>
-        </div>
+    <div className="d-flex min-vh-100 bg-dark text-light">
+      <div className="flex-grow-1">
+        <Routes>
+          <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />
+          <Route path="role-management" element={<ProtectedRoute element={<RoleManagement />} />} />
+          <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
+          <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
+          <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
+          <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} /> {/* ✅ New Route */}
+          <Route path="/profile" element={<Profile />} />
+          <Route path="login" element={<Login />} />
+        </Routes>
       </div>
-    </>
+    </div>
   );
 }
 
-// Wrap the App component with the Router to provide routing context
+// Wrap the App component with the Router and ThemeProvider
 export default function WrappedApp() {
+  const { mode } = useContext(ThemeContext); // Get the current theme mode (light or dark)
+
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={mode === 'dark' ? darkTheme : lightTheme}> {/* Use the correct theme */}
       <Router>
         <App />
-        </Router>
+      </Router>
     </ThemeProvider>
   );
 }

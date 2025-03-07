@@ -1,133 +1,121 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from "react";
 import { AppBar, Toolbar, IconButton, Typography, Box, Avatar, Menu, MenuItem } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
-import "bootstrap/dist/css/bootstrap.min.css";
-import { useTheme } from "@mui/material/styles";
-import logo from "../assets/LogoHarness.jpeg";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import { Brightness4, Brightness7 } from "@mui/icons-material"; // Theme icons
+import { ThemeContext } from "../context/themecontext"; // ✅ Import ThemeContext
+import logo from "../assets/LogoHarness.jpeg";
 import { handleLogout } from "../utils/authUtils";
-import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+import { useTheme } from '@mui/material/styles';
 
 const Topbar = () => {
-  /*
-  <div className="navbar">
-      <div className="sidebar">
-        <div className="logo-button">
-        <div style={{ textDecoration: 'none' }} className="nav-button">
-            <img
-              src={placeholder}
-              alt="Profile"
-              className="rounded-circle border"
-              width="75"
-              height="75"
-              onClick={() => window.location.href = "/profile"}
-              style={{ cursor: 'pointer' }}
-            />
-          </div>
-          <div style={{ textDecoration: 'none' }} className="nav-button">
-            <img 
-              src="LogoHarness2.png" 
-              alt="Logo" 
-              style={{ width: '8 rem', height: '10rem'}} 
-              onClick={() => window.location.href = "/"}
-            />
-          </div>
-        </div>
-        <div style={{ textDecoration: 'none' }} className="nav-button" onClick={() => window.location.href = "/Applications"}>Application</div>
-        <div to="/role-management" style={{ textDecoration: 'none' }} className="nav-button" onClick={() => window.location.href = "/role-management"}>Role Management</div>
-        <Link to="/login" style={{ textDecoration: 'none' }} className="nav-button" onClick={() => {handleLogout()}}>Logout</Link>
-      </div>
-    </div>
-  */
-    const theme = useTheme();
-    const [username, setUsername] = useState(null);
-    const [role, setRole] = useState(null);
-    const [profilePic, setProfilePic] = useState(null); //Placeholder for profile picture
-    const baseURL = window.location.origin;
-    const [anchorEl, setAnchorEl] = useState(null); // Controls dropdown visibility
+  const { mode, toggleTheme } = useContext(ThemeContext); // ✅ Use ThemeContext
 
-    useEffect(() => {
-      const uri = `${baseURL}:3000/api/user/info`;
-      let session_id = sessionStorage.getItem("session_id");
-  
-      if (!session_id) {
-        return;
-      }
-  
-      fetch(uri, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "x-session-id": session_id || "",
-        },
+  const [username, setUsername] = useState(null);
+  const [profilePic, setProfilePic] = useState(null);
+  const baseURL = window.location.origin;
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  useEffect(() => {
+    const uri = `${baseURL}:3000/api/user/info`;
+    let session_id = sessionStorage.getItem("session_id");
+
+    if (!session_id) return;
+
+    fetch(uri, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "x-session-id": session_id || "",
+      },
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject("Failed to fetch user data")))
+      .then((user) => {
+        setUsername(user.username);
       })
-        .then((res) => {
-          if (res.ok) {
-            return res.json();
-          } else {
-            throw new Error("Failed to fetch user data");
-          }
-        })
-        .then((user) => {
-          setUsername(user.username);
-          setRole(user.roleName);
-        })
-        .catch((error) => console.error(error));
-    }, []);
+      .catch((error) => console.error(error));
+  }, []);
 
-    // Open & Close dropdown menu
-    const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
-    const handleMenuClose = () => setAnchorEl(null);
+  const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleMenuClose = () => setAnchorEl(null);
 
-    return (
-      <AppBar position="static" sx={{ backgroundColor: theme.palette.primary.main }}>
-        <Toolbar variant="dense" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          {/* Logo Section */}
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <img src={logo} alt="Logo" style={{ height: 50, marginRight: 10 }} />
-            <Typography variant="h6" color="inherit">Mangrove</Typography>
-          </Box>
-  
+  return (
+    <AppBar
+      position="static"
+      sx={{
+        backgroundColor: "primary.main", // ✅ Use primary color from theme
+        boxShadow: 'none' }}>
+      <Toolbar variant="dense" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        
+        {/* Left Side: Logo */}
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <img src={logo} alt="Logo" style={{ height: 50, marginRight: 10 }} />
+          <Typography variant="h6" color="inherit">Mangrove</Typography>
+        </Box>
+
+        {/* Right Side: Theme Toggle, Profile */}
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          {/* ✅ Theme Toggle Button (Placed BEFORE Profile) */}
+          <IconButton
+            onClick={toggleTheme}
+            sx={{
+              marginRight: 10,
+              backgroundColor: mode === "dark" ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)", // ✅ Slight background tint
+              color: mode === "dark" ? "#FFD700" : "#ffffff", // ✅ Yellowish icon in dark mode, dark icon in light mode
+              borderRadius: "8px", // ✅ Softer rounded corners
+              padding: "6px", // ✅ Slight padding for better visibility
+              "&:hover": {
+                backgroundColor: mode === "dark" ? "rgba(117, 234, 129, 255)" : "rgba(117, 234, 129, 255)", // ✅ Brighter hover effect
+              },
+            }}
+          >
+            {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
+          </IconButton>
+
+
+          {/* Profile Section */}
           {username && (
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", marginLeft: "auto" }}>
-              {/*Profile Button */}
+            <>
               <IconButton onClick={handleMenuOpen} sx={{ padding: 0 }}>
                 <Avatar src={profilePic} sx={{ width: 40, height: 40 }}>
-                  {!profilePic && <AccountCircleIcon sx={{ fontSize: 40 }} />} {/* Default icon*/}
+                  {!profilePic && <AccountCircleIcon sx={{ fontSize: 40 }} />}
                 </Avatar>
               </IconButton>
-  
-              {/* Username & Role */}
-              <Typography variant="body2" color="inherit">{username}</Typography>
-  
-              {/* Dropdown Menu */}
+
               <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} sx={{ mt: 1 }}>
-                <MenuItem onClick={() => window.location.href = "/profile"}>View Profile</MenuItem>
-                <MenuItem onClick={() => {
-                  handleMenuClose();
-                  withReactContent(Swal).fire({
+                <MenuItem onClick={() => (window.location.href = "/profile")}>View Profile</MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    handleMenuClose();
+                    withReactContent(Swal)
+                      .fire({
                         title: <i>Warning</i>,
-                        text: "Are you sure you log out?",
+                        text: "Are you sure you want to log out?",
                         icon: "warning",
                         showCancelButton: true,
                         confirmButtonText: "Yes",
                         cancelButtonText: "No",
-                      }).then((result) => {
+                      })
+                      .then((result) => {
                         if (result.isConfirmed) {
                           handleLogout().then(() => {
-                            sessionStorage.clear(); //we have a logout function bro
+                            sessionStorage.clear();
                             window.location.href = "/login";
                           });
                         }
                       });
-                }}>Logout</MenuItem>
+                  }}
+                >
+                  Logout
+                </MenuItem>
               </Menu>
-            </Box>
+            </>
           )}
-        </Toolbar>
-      </AppBar>
-    );
-  };
+        </Box>
+      </Toolbar>
+    </AppBar>
+  );
+};
 
 export default Topbar;

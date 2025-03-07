@@ -8,8 +8,10 @@ import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import { startTutorialManually } from "../utils/tutorial";
+import { useStartTutorial } from "../utils/tutorial";
 
 const Navbar = () => {
+  const { startTutorialManually } = useStartTutorial();
   const theme = useTheme();
   const location = useLocation();
   const drawerWidth = 200;
@@ -76,7 +78,7 @@ const Navbar = () => {
             <ListItemIcon sx={{ color: "white" }}>
               <PersonIcon />
             </ListItemIcon>
-            <ListItemText primary="Program" />
+            <ListItemText primary="Applications" />
           </ListItemButton>
         </ListItem>
 
@@ -85,7 +87,7 @@ const Navbar = () => {
             <ListItemIcon sx={{ color: "white" }}>
               <SettingsIcon />
             </ListItemIcon>
-            <ListItemText primary="Role Management" />
+            <ListItemText primary="Role" />
           </ListItemButton>
         </ListItem>
 
@@ -100,7 +102,7 @@ const Navbar = () => {
             <ListItemIcon sx={{ color: "white" }}>
               <PlayCircleOutlineIcon />
             </ListItemIcon>
-            <ListItemText primary="Start Tutorial" />
+            <ListItemText primary="Tutorial" />
           </ListItemButton>
         </ListItem>
       </List>
