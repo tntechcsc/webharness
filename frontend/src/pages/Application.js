@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Topbar from "../components/Topbar";
@@ -21,7 +21,7 @@ import {
   TablePagination,
   TableSortLabel
 } from "@mui/material";
-import { FaPlay, FaEye, FaPlus  } from "react-icons/fa";
+import { FaPlay, FaEye, FaPlus, FaStop } from "react-icons/fa";
 import { useTheme } from "@mui/material/styles";
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
@@ -38,7 +38,9 @@ function Application() {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [order, setOrder] = useState('asc');
   const [orderBy, setOrderBy] = useState('name');
+  const [runningApplications, setRunningApplications] = useState({});
   const theme = useTheme();
+  const wsRef = useRef({});
 
   useEffect(() => {
     fetchApplications();
@@ -90,26 +92,110 @@ function Application() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        const processId = data.process_id;
+
         withReactContent(Swal).fire({
           title: <i>Success</i>,
           text: appName + " has been started successfully!",
           icon: "success",
-        })
+        });
+        setRunningApplications(prev => ({ ...prev, [appId]: true }));
+        setStatusMessage("");
+        connectWebSocket(processId, appId);
       } else {
         const errorData = await response.json();
         withReactContent(Swal).fire({
           title: <i>Failure</i>,
           text: appName + " failed to start.",
           icon: "error",
-        })
+        });
       }
     } catch (error) {
       withReactContent(Swal).fire({
         title: <i>Failure</i>,
         text: appName + " failed to start.",
         icon: "error",
-      })
+      });
     }
+  };
+
+  const stopApplication = async (appId, appName) => {
+    setStatusMessage("Stopping application...");
+
+    try {
+      let session_id = sessionStorage.getItem("session_id");
+      if (!session_id) {
+        setStatusMessage("Session ID is missing. Please log in.");
+        return;
+      }
+
+      const response = await fetch(`${baseURL}:3000/api/process/${appId}/stop`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id,
+        },
+      });
+
+      if (response.ok) {
+        withReactContent(Swal).fire({
+          title: <i>Success</i>,
+          text: appName + " has been stopped successfully!",
+          icon: "success",
+        });
+        setRunningApplications(prev => ({ ...prev, [appId]: false }));
+        setStatusMessage("");
+      } else {
+        const errorData = await response.json();
+        withReactContent(Swal).fire({
+          title: <i>Failure</i>,
+          text: appName + " failed to stop.",
+          icon: "error",
+        });
+      }
+    } catch (error) {
+      withReactContent(Swal).fire({
+        title: <i>Failure</i>,
+        text: appName + " failed to stop.",
+        icon: "error",
+      });
+    }
+  };
+
+  const connectWebSocket = (processId, appId) => {
+    if (wsRef.current[processId]) {
+      wsRef.current[processId].close();
+    }
+    const wsUrl = `ws://${window.location.hostname}:3000/ws/process/${processId}`;
+    wsRef.current[processId] = new WebSocket(wsUrl);
+
+    wsRef.current[processId].onopen = () => {
+      console.log(`WebSocket connection opened for process ${processId}`);
+    };
+
+    wsRef.current[processId].onerror = (error) => {
+      console.error(`WebSocket error for process ${processId}:`, error);
+    };
+
+    wsRef.current[processId].onmessage = (event) => {
+      let message;
+      try {
+        message = JSON.parse(event.data);
+      } catch (e) {
+        if (event.data === "Stopped") {
+          setRunningApplications(prev => ({ ...prev, [appId]: false }));
+        }
+        return;
+      }
+      if (message.status === "Stopped") {
+        setRunningApplications(prev => ({ ...prev, [appId]: false }));
+      }
+    };
+
+    wsRef.current[processId].onclose = () => {
+      console.log(`WebSocket connection closed for process ${processId}`);
+    };
   };
 
   const filteredApplications = applications.filter((app) =>
@@ -255,13 +341,21 @@ function Application() {
                           <TableCell>{row.application.categories.map((cat) => cat.name).join(", ") || "N/A"}</TableCell>
                           <TableCell>{row.application.contact || "N/A"}</TableCell>
                           <TableCell>{row.application.description}</TableCell>
-                          <TableCell>{row.application.status || "Inactive"}</TableCell>
-                          <TableCell sx={{ display: "", justifyContent: "" }}>{/*our action buttons */}
-                            <Button id={index === 0 ? "run-button" : undefined} variant="contained" color="success" onClick={() => runApplication(row.application.id, row.application.name)} title="Run" size="small" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                              <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
-                                <FaPlay />
-                              </IconButton>
-                            </Button>
+                          <TableCell>{runningApplications[row.application.id] ? "Active" : "Inactive"}</TableCell>
+                          <TableCell sx={{ display: "", justifyContent: "" }}>
+                            {runningApplications[row.application.id] ? (
+                              <Button id={index === 0 ? "stop-button" : undefined} variant="contained" color="error" onClick={() => stopApplication(row.application.id, row.application.name)} title="Stop" size="small" style={{ backgroundColor: '#ea7575', padding: '2px 0px', transform: "scale(0.75)" }}>
+                                <IconButton variant="contained" color="primary" style={{ color: '#12255f' }}>
+                                  <FaStop />
+                                </IconButton>
+                              </Button>
+                            ) : (
+                              <Button id={index === 0 ? "run-button" : undefined} variant="contained" color="success" onClick={() => runApplication(row.application.id, row.application.name)} title="Run" size="small" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                                <IconButton variant="contained" color="primary" style={{ color: '#12255f' }}>
+                                  <FaPlay />
+                                </IconButton>
+                              </Button>
+                            )}
                             <Button id={index === 0 ? "view-button" : undefined} variant="contained" color="success" component={Link} to={`/view-application/${row.application.id}`} size="small" title="View" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
                                 <FaEye />
