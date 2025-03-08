@@ -10,7 +10,7 @@ use rocket_ws::Channel;
 //for jsons
 use serde_json::json;
 //for our db connection
-use rusqlite::{Connection, Result, OptionalExtension, params_from_iter};
+use rusqlite::{Connection, Result as SqlResult, OptionalExtension, params_from_iter};
 // for thread-safe access
 use std::sync::{Arc, Mutex}; 
 
@@ -88,12 +88,12 @@ fn execute_program(
 
     // Get the executable path from the database
     let query = "SELECT path FROM Instructions WHERE application_id = ?";
-    let path: Result<String, _> = conn.query_row(query, [&request.application_id], |row| row.get(0));
+    let path: SqlResult<String> = conn.query_row(query, [&request.application_id], |row| row.get(0));
 
     let path = match path {
         Ok(p) => p,
-        Err(_) => {
-            error!("No executable path found for application_id: {}", request.application_id);
+        Err(e) => {
+            eprintln!("Database error: {}", e);
             return Err(Status::BadRequest);
         }
     };
@@ -126,7 +126,7 @@ fn execute_program(
             })))
         }
         Err(e) => {
-            error!("Failed to launch executable: {}", e);
+            eprintln!("Failed to launch executable: {}", e);
             Err(Status::InternalServerError)
         }
     }
@@ -191,18 +191,14 @@ fn ws_process_status(
 
 // Function to notify WebSocket clients
 fn notify_clients(process_id: &str, status: &str, connections: &ProcessConnections) {
-    let conn_map = connections.lock().unwrap();
-
-    if let Some(sender) = conn_map.get(process_id) {
-        println!("Sending WebSocket message: Process {process_id} is now {status}");
-        
-        if sender.send(status.to_string()).is_err() {
-            println!("WebSocket sender failed for process {process_id}");
+    if let Some(sender) = connections.lock().unwrap().get(process_id) {
+        if let Err(e) = sender.send(status.to_string()) {
+            eprintln!("WebSocket sender failed for process {}: {}", process_id, e);
         } else {
             println!("WebSocket message sent successfully!");
         }
     } else {
-        println!("No WebSocket clients found for process {process_id}");
+        println!("No WebSocket clients found for process {}", process_id);
     }
 }
 
@@ -354,14 +350,11 @@ fn ws_process_count(
 
 fn notify_process_count(process_map: &ProcessMap, process_count_channel: &ProcessCountChannel) {
     let count = process_map.lock().unwrap().len();
-    
     println!("notify_process_count called. Current running process count: {}", count);
 
-    let sender_option = process_count_channel.lock().unwrap().clone();
-    if let Some(sender) = sender_option {
-        println!("Sending process count update: {}", count);
-        if sender.send(count).is_err() {
-            println!("Failed to send process count update!");
+    if let Some(sender) = process_count_channel.lock().unwrap().clone() {
+        if let Err(e) = sender.send(count) {
+            eprintln!("Failed to send process count update: {}", e);
         }
     } else {
         println!("No active process count channel found! (WebSocket client may not be connected)");
@@ -396,87 +389,48 @@ fn stop_process(
 ) -> Result<Json<serde_json::Value>, Status> {
     println!("Received request to stop process: {}", identifier);
 
-    // Determine if identifier is an application_id (UUID) and map it to a process_id
-    let process_id = {
-        if identifier.contains("-") {  // UUID format check
-            let app_map = app_process_map.lock().unwrap();
-            match app_map.get(&identifier) {
-                Some(pid) => pid.clone(),
-                None => {
-                    println!("No running process found for application_id: {}", identifier);
-                    return Err(Status::NotFound);
-                }
-            }
-        } else {
-            identifier.clone()
-        }
+    let process_id = if identifier.contains("-") {
+        app_process_map.lock().unwrap().get(&identifier).cloned().ok_or(Status::NotFound)?
+    } else {
+        identifier.clone()
     };
 
-    // Retrieve and remove process info from the process map to avoid borrowing issues
-    let process_info = {
-        let mut map = process_map.lock().unwrap();
-        match map.remove(&process_id) {  // REMOVE instead of GET to transfer ownership
-            Some(info) => info,
-            None => {
-                println!("No process found for process_id: {}", process_id);
-                return Err(Status::NotFound);
-            }
-        }
-    };
+    let process_info = process_map.lock().unwrap().remove(&process_id).ok_or(Status::NotFound)?;
 
     let parent_pid = process_info.pid;
-    let child_pids = {
-        let lock = process_info.child_pids.lock().unwrap();
-        lock.clone()
-    };
+    let child_pids = process_info.child_pids.lock().unwrap().clone();
 
-    println!(
-        "Stopping process {} (Parent PID: {}, Child PIDs: {:?})",
-        identifier, parent_pid, child_pids
-    );
+    println!("Stopping process {} (Parent PID: {}, Child PIDs: {:?})", identifier, parent_pid, child_pids);
 
-    // Kill child processes first **synchronously**
     for pid in &child_pids {
-        let result = Command::new("taskkill")
-            .args(&["/PID", &pid.to_string(), "/F"])
-            .status(); // Ensures it runs synchronously
-
-        if let Err(e) = result {
-            println!("Failed to kill child process {}: {:?}", pid, e);
+        if let Err(e) = Command::new("taskkill").args(&["/PID", &pid.to_string(), "/F"]).status() {
+            eprintln!("Failed to kill child process {}: {:?}", pid, e);
         } else {
             println!("Child process {} terminated successfully", pid);
         }
     }
 
-    println!("Child processes stopped successfully");
-
     if Command::new("tasklist")
-    .arg("/FI")
-    .arg(format!("PID eq {}", parent_pid))
-    .output()
-    .map(|output| String::from_utf8_lossy(&output.stdout).contains(&parent_pid.to_string()))
-    .unwrap_or(false)
+        .arg("/FI")
+        .arg(format!("PID eq {}", parent_pid))
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).contains(&parent_pid.to_string()))
+        .unwrap_or(false)
     {
-        let parent_kill_result = Command::new("taskkill")
-            .args(&["/PID", &parent_pid.to_string(), "/F"])
-            .status();
-
-        match parent_kill_result {
-            Ok(status) if status.success() => println!("Parent process {} terminated successfully", parent_pid),
-            _ => println!("Warning: Failed to terminate parent process {}", parent_pid),
+        if let Err(e) = Command::new("taskkill").args(&["/PID", &parent_pid.to_string(), "/F"]).status() {
+            eprintln!("Failed to terminate parent process {}: {:?}", parent_pid, e);
+        } else {
+            println!("Parent process {} terminated successfully", parent_pid);
         }
     } else {
         println!("Warning: Parent process {} was not found and may have already exited", parent_pid);
     }
 
-    println!("Process {} stopped successfully", identifier);
-
-    // Remove the process from tracking maps
     remove_process(&process_id, process_map, process_count_channel);
 
     Ok(Json(json!({
         "status": "success",
-        "message": format!("Process {} stopped successfully", identifier)
+        "message": format!("Process {} stopped successfully", identifier),
     })))
 }
 
