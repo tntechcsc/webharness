@@ -48,7 +48,8 @@ use rocket::launch;
 use crate::db::DB;
 use crate::execution::ProcessMap;
 use crate::execution::AppProcessMap;
-
+use crate::execution::ProcessConnections;
+use crate::execution::ProcessCountChannel;
 mod db;
 mod models;
 mod utils;
@@ -60,7 +61,6 @@ pub struct SessionGuard(String);
 
 // For websocket connections
 use tokio::sync::broadcast;
-type ProcessConnections = Arc<Mutex<HashMap<String, broadcast::Sender<String>>>>;
 
 impl SessionGuard{
     fn is_valid_session(session_id: &str, conn: &Connection) -> bool {
@@ -162,6 +162,7 @@ fn rocket() -> _ {
     let process_map: ProcessMap = Arc::new(Mutex::new(HashMap::new())); //
     let process_connections: ProcessConnections = Arc::new(Mutex::new(HashMap::new()));
     let app_process_map: AppProcessMap = Arc::new(Mutex::new(HashMap::new()));
+    let process_count_channel: ProcessCountChannel = Arc::new(Mutex::new(None));
 
     let db = Arc::new(db::DB::new().expect("Failed to initialize database"));
     rocket::build()
@@ -170,6 +171,7 @@ fn rocket() -> _ {
         .manage(process_map)        // Used to keep track of the current processes
         .manage(process_connections) // Used to keep track of the current websocket connections
         .manage(app_process_map)  // Used to track application_id to process_id mapping. This allows us to stop programs using their application_id. We could probably combine this with process_map but I like having it seperated
+        .manage(process_count_channel) // Used to keep track of the number of processes running.
         .mount("/", user_management::user_management_routes())
         .mount("/", execution::execution_routes())
         .register("/", redirects::redirect_routes())

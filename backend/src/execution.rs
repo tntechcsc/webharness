@@ -57,6 +57,7 @@ use futures_util::stream::Stream;
 pub type ProcessConnections = Arc<Mutex<HashMap<String, broadcast::Sender<String>>>>;
 pub type ProcessMap = Arc<Mutex<HashMap<String, ProcessInfo>>>;
 pub type AppProcessMap = Arc<Mutex<HashMap<String, String>>>;  // application_id -> process_id
+pub type ProcessCountChannel = Arc<Mutex<Option<broadcast::Sender<usize>>>>; // Used for sending process count updates
 
 #[utoipa::path(
     post,
@@ -80,6 +81,7 @@ fn execute_program(
     process_map: &State<ProcessMap>,
     app_process_map: &State<AppProcessMap>,  // State for app_id -> process_id
     connections: &State<ProcessConnections>,
+    process_count_channel: &State<ProcessCountChannel>,  // For sending process count updates
     db: &rocket::State<Arc<DB>>,
 ) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap();
@@ -108,18 +110,14 @@ fn execute_program(
             app_process_map.lock().unwrap().insert(application_id.clone(), process_id.clone());
 
             // Store process tracking info
-            {
-                let mut map = process_map.lock().unwrap();
-                map.insert(process_id.clone(), ProcessInfo {
-                    pid: child.id(),
-                    child_pids: Arc::new(Mutex::new(get_child_pids(child.id()))),
-                    status: Arc::new(Mutex::new("Running".to_string())),
-                    exit_code: Arc::new(Mutex::new(None)),
-                });
-            }
+            add_process(
+                process_id.clone(),
+                child.id(),
+                Arc::clone(process_map),
+                Arc::clone(connections),
+                Arc::clone(process_count_channel),
+            );
 
-            // Start monitoring the process
-            monitor_process(process_id.clone(), child.id(), Arc::clone(process_map), Arc::clone(connections));
 
             Ok(Json(json!({
                 "status": "success",
@@ -211,7 +209,7 @@ fn get_child_pids(parent_pid: u32) -> Vec<u32> {
 }
 
 // **Background Task: Monitors Parent and Child Process Status**
-fn monitor_process(process_id: String, pid: u32, process_map: ProcessMap, connections: ProcessConnections) {
+fn monitor_process(process_id: String, pid: u32, process_map: ProcessMap, connections: ProcessConnections, process_count_channel: ProcessCountChannel) {
     println!("🕵️ Monitoring process {process_id} (PID {pid})");
     task::spawn(async move {
         loop {
@@ -240,15 +238,13 @@ fn monitor_process(process_id: String, pid: u32, process_map: ProcessMap, connec
                 }
             }
 
-            println!("Checking process {pid}: is_running = {is_running}");
 
             if !is_running {
                 println!("Process {process_id} (PID {pid}) stopped, notifying clients...");
                 
                 notify_clients(&process_id, "Stopped", &connections);
 
-                let mut map = process_map.lock().unwrap();
-                map.remove(&process_id);
+                remove_process(&process_id, &process_map, &process_count_channel);
                 break;
             }
         }
@@ -257,7 +253,7 @@ fn monitor_process(process_id: String, pid: u32, process_map: ProcessMap, connec
 
 
 // **Track and Monitor a New Process**
-fn add_process(process_id: String, pid: u32, process_map: ProcessMap, connections: ProcessConnections) {
+fn add_process(process_id: String, pid: u32, process_map: ProcessMap, connections: ProcessConnections, process_count_channel: ProcessCountChannel) {
     let child_pids = get_child_pids(pid);
 
     {
@@ -273,8 +269,69 @@ fn add_process(process_id: String, pid: u32, process_map: ProcessMap, connection
         );
     }
 
+    notify_process_count(&process_map, &process_count_channel);  // Notify WebSocket clients of process count
     // Start monitoring this process
-    monitor_process(process_id, pid, process_map, connections);
+    monitor_process(process_id, pid, process_map, connections, process_count_channel);
+}
+
+fn remove_process(
+    process_id: &str,
+    process_map: &ProcessMap,
+    process_count_channel: &ProcessCountChannel,
+) {
+    {
+        let mut map = process_map.lock().unwrap();
+        if map.remove(process_id).is_some() {
+            println!("Process {} removed", process_id);
+        }
+    }
+
+    notify_process_count(&process_map, &process_count_channel);
+}
+
+#[get("/ws/process_count")]
+fn ws_process_count(
+    ws: WebSocket,
+    process_count_channel: &State<ProcessCountChannel>,
+) -> MessageStream<'static, impl Stream<Item = Result<Message, Error>>> {
+    println!(" WebSocket connection opened for process count updates");
+
+    let receiver = {
+        let mut channel = process_count_channel.lock().unwrap();
+        if channel.is_none() {  // Create the channel if it doesn't exist
+            let (tx, rx) = broadcast::channel(10);
+            *channel = Some(tx);
+            println!("Process count broadcast channel initialized");
+            rx
+        } else {
+            channel.as_ref().unwrap().subscribe()
+        }
+    };
+
+    ws.stream(move |_| {
+        futures_util::stream::unfold(receiver, |mut rx| async {
+            match rx.recv().await {
+                Ok(count) => Some((Ok(Message::Text(count.to_string())), rx)),
+                Err(_) => None,
+            }
+        })
+    })
+}
+
+fn notify_process_count(process_map: &ProcessMap, process_count_channel: &ProcessCountChannel) {
+    let count = process_map.lock().unwrap().len();
+    
+    println!("notify_process_count called. Current running process count: {}", count);
+
+    let sender_option = process_count_channel.lock().unwrap().clone();
+    if let Some(sender) = sender_option {
+        println!("📡 Sending process count update: {}", count);
+        if sender.send(count).is_err() {
+            println!("⚠️ Failed to send process count update!");
+        }
+    } else {
+        println!("❌ No active process count channel found! (WebSocket client may not be connected)");
+    }
 }
 
 #[utoipa::path(
@@ -301,6 +358,7 @@ fn stop_process(
     process_map: &State<ProcessMap>,    // For tracking process status
     app_process_map: &State<AppProcessMap>,  // For association application id with process id
     connections: &State<ProcessConnections>,
+    process_count_channel: &State<ProcessCountChannel>
 ) -> Result<Json<serde_json::Value>, Status> {
     let mut map = process_map.lock().unwrap();
     let mut process_id = identifier.clone();
@@ -341,9 +399,7 @@ fn stop_process(
             return Err(Status::InternalServerError);
         }
 
-        // 🔹 Remove process from tracking maps
-        app_process_map.lock().unwrap().remove(&identifier);
-        map.remove(&process_id);
+        remove_process(&process_id, &process_map, &process_count_channel);
 
         Ok(Json(json!({
             "status": "success",
@@ -1125,5 +1181,5 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
 
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories, ws_process_status]
+    routes![execute_program, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories, ws_process_status, ws_process_count]
 }
