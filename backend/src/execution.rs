@@ -155,21 +155,38 @@ fn ws_process_status(
         entry.subscribe()
     };
 
+    let process_id_clone = process_id.clone();
+    let connections_clone = Arc::clone(connections); // Ensure Arc cloning
+
     ws.stream(move |_| {
-        futures_util::stream::unfold(receiver, |mut rx| async {
-            match rx.recv().await {
-                Ok(msg) => {
-                    println!("WebSocket received message: {}", msg);
-                    Some((Ok(Message::Text(msg)), rx))
-                },
-                Err(_) => {
-                    println!("WebSocket message receiving failed");
-                    None
-                },
+        futures_util::stream::unfold(receiver, move |mut rx| {
+            let process_id = process_id_clone.clone();
+            let connections = Arc::clone(&connections_clone); // Clone Arc again for each iteration
+
+            async move {
+                match rx.recv().await {
+                    Ok(msg) => {
+                        println!("WebSocket received message: {}", msg);
+                        Some((Ok(Message::Text(msg)), rx))
+                    }
+                    Err(_) => {
+                        println!("WebSocket message receiving failed for process {process_id}");
+
+                        // Remove process from WebSocket connections map if the connection was lost
+                        let mut conn_map = connections.lock().unwrap();
+                        if conn_map.remove(&process_id).is_some() {
+                            println!("WebSocket connection for process {process_id} removed from tracking.");
+                        }
+
+                        None // Terminate the WebSocket stream
+                    }
+                }
             }
         })
     })
 }
+
+
 
 
 // Function to notify WebSocket clients
@@ -209,11 +226,28 @@ fn get_child_pids(parent_pid: u32) -> Vec<u32> {
 }
 
 // **Background Task: Monitors Parent and Child Process Status**
-fn monitor_process(process_id: String, pid: u32, process_map: ProcessMap, connections: ProcessConnections, process_count_channel: ProcessCountChannel) {
-    println!("🕵️ Monitoring process {process_id} (PID {pid})");
+fn monitor_process(
+    process_id: String, 
+    pid: u32, 
+    process_map: ProcessMap, 
+    connections: ProcessConnections, 
+    process_count_channel: ProcessCountChannel
+) {
+    println!("Monitoring process {process_id} (PID {pid})");
+
     task::spawn(async move {
         loop {
             sleep(TokioDuration::from_secs(3)).await;
+
+            // Check if process is still in process_map
+            {
+                let map = process_map.lock().unwrap();
+                if !map.contains_key(&process_id) {
+                    println!("Monitoring stopped for process {process_id} (PID {pid} was explicitly removed).");
+                    notify_clients(&process_id, "Stopped", &connections);
+                    return; // Exit loop if the process was explicitly removed
+                }
+            }
 
             let mut is_running = Command::new("tasklist")
                 .arg("/FI")
@@ -325,12 +359,12 @@ fn notify_process_count(process_map: &ProcessMap, process_count_channel: &Proces
 
     let sender_option = process_count_channel.lock().unwrap().clone();
     if let Some(sender) = sender_option {
-        println!("📡 Sending process count update: {}", count);
+        println!("Sending process count update: {}", count);
         if sender.send(count).is_err() {
-            println!("⚠️ Failed to send process count update!");
+            println!("Failed to send process count update!");
         }
     } else {
-        println!("❌ No active process count channel found! (WebSocket client may not be connected)");
+        println!("No active process count channel found! (WebSocket client may not be connected)");
     }
 }
 
@@ -360,54 +394,90 @@ fn stop_process(
     connections: &State<ProcessConnections>,
     process_count_channel: &State<ProcessCountChannel>
 ) -> Result<Json<serde_json::Value>, Status> {
-    let mut map = process_map.lock().unwrap();
-    let mut process_id = identifier.clone();
+    println!("Received request to stop process: {}", identifier);
 
-    // Check if identifier is an application_id (UUID)
-    if identifier.contains("-") {  // UUID format check
+    // Determine if identifier is an application_id (UUID) and map it to a process_id
+    let process_id = {
+        if identifier.contains("-") {  // UUID format check
+            let app_map = app_process_map.lock().unwrap();
+            match app_map.get(&identifier) {
+                Some(pid) => pid.clone(),
+                None => {
+                    println!("No running process found for application_id: {}", identifier);
+                    return Err(Status::NotFound);
+                }
+            }
+        } else {
+            identifier.clone()
+        }
+    };
 
-        let app_map = app_process_map.lock().unwrap();
-        match app_map.get(&identifier) {
-            Some(pid) => process_id = pid.clone(),
+    // Retrieve and remove process info from the process map to avoid borrowing issues
+    let process_info = {
+        let mut map = process_map.lock().unwrap();
+        match map.remove(&process_id) {  // REMOVE instead of GET to transfer ownership
+            Some(info) => info,
             None => {
-                println!("No running process found for application_id: {}", identifier);
+                println!("No process found for process_id: {}", process_id);
                 return Err(Status::NotFound);
             }
         }
+    };
+
+    let parent_pid = process_info.pid;
+    let child_pids = {
+        let lock = process_info.child_pids.lock().unwrap();
+        lock.clone()
+    };
+
+    println!(
+        "Stopping process {} (Parent PID: {}, Child PIDs: {:?})",
+        identifier, parent_pid, child_pids
+    );
+
+    // Kill child processes first **synchronously**
+    for pid in &child_pids {
+        let result = Command::new("taskkill")
+            .args(&["/PID", &pid.to_string(), "/F"])
+            .status(); // Ensures it runs synchronously
+
+        if let Err(e) = result {
+            println!("Failed to kill child process {}: {:?}", pid, e);
+        } else {
+            println!("Child process {} terminated successfully", pid);
+        }
     }
 
-    // Stop the process using process_id
-    if let Some(process_info) = map.get(&process_id) {
-        let parent_pid = process_info.pid;
-        let child_pids = process_info.child_pids.lock().unwrap().clone();
+    println!("Child processes stopped successfully");
 
-        println!("Stopping process {} (PID {})", identifier, parent_pid);
-
-        // Kill child processes first
-        for pid in &child_pids {
-            let _ = Command::new("taskkill")
-                .args(&["/PID", &pid.to_string(), "/F"])
-                .output();
-        }
-
-        // Kill parent process
-        if Command::new("taskkill")
+    if Command::new("tasklist")
+    .arg("/FI")
+    .arg(format!("PID eq {}", parent_pid))
+    .output()
+    .map(|output| String::from_utf8_lossy(&output.stdout).contains(&parent_pid.to_string()))
+    .unwrap_or(false)
+    {
+        let parent_kill_result = Command::new("taskkill")
             .args(&["/PID", &parent_pid.to_string(), "/F"])
-            .output()
-            .is_err()
-        {
-            return Err(Status::InternalServerError);
+            .status();
+
+        match parent_kill_result {
+            Ok(status) if status.success() => println!("Parent process {} terminated successfully", parent_pid),
+            _ => println!("Warning: Failed to terminate parent process {}", parent_pid),
         }
-
-        remove_process(&process_id, &process_map, &process_count_channel);
-
-        Ok(Json(json!({
-            "status": "success",
-            "message": format!("Process {} stopped successfully", identifier)
-        })))
     } else {
-        Err(Status::NotFound)
+        println!("Warning: Parent process {} was not found and may have already exited", parent_pid);
     }
+
+    println!("Process {} stopped successfully", identifier);
+
+    // Remove the process from tracking maps
+    remove_process(&process_id, process_map, process_count_channel);
+
+    Ok(Json(json!({
+        "status": "success",
+        "message": format!("Process {} stopped successfully", identifier)
+    })))
 }
 
 
