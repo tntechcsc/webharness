@@ -29,8 +29,6 @@ import withReactContent from 'sweetalert2-react-content';
 const baseURL = window.location.origin;
 
 function Application() {
-  console.log("Application.js has loaded successfully!");
-
   const [applications, setApplications] = useState([]);
   const [statusMessage, setStatusMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,6 +42,7 @@ function Application() {
 
   useEffect(() => {
     fetchApplications();
+    console.log("Application.js has loaded successfully!");
   }, []);
 
   const fetchApplications = async () => {
@@ -164,39 +163,50 @@ function Application() {
   };
 
   const connectWebSocket = (processId, appId) => {
+    // Prevent duplicate WebSocket connections
     if (wsRef.current[processId]) {
-      wsRef.current[processId].close();
+      console.log(`WebSocket already exists for process ${processId}, skipping creation.`);
+      return;
     }
+  
     const wsUrl = `ws://${window.location.hostname}:3000/ws/process/${processId}`;
     wsRef.current[processId] = new WebSocket(wsUrl);
-
+  
     wsRef.current[processId].onopen = () => {
       console.log(`WebSocket connection opened for process ${processId}`);
     };
-
+  
     wsRef.current[processId].onerror = (error) => {
       console.error(`WebSocket error for process ${processId}:`, error);
     };
-
+  
     wsRef.current[processId].onmessage = (event) => {
       let message;
       try {
         message = JSON.parse(event.data);
       } catch (e) {
-        if (event.data === "Stopped") {
-          setRunningApplications(prev => ({ ...prev, [appId]: false }));
-        }
-        return;
+        message = { status: event.data }; // Treat raw string as status
       }
+
       if (message.status === "Stopped") {
-        setRunningApplications(prev => ({ ...prev, [appId]: false }));
+        console.log(`Received stop message for process ${processId}, closing WebSocket...`);
+        
+        setRunningApplications(prev => {
+          if (prev[appId] === false) return prev; // Avoid unnecessary re-renders
+          return { ...prev, [appId]: false };
+        });
+
+        // ✅ Close WebSocket when stopped
+        wsRef.current[processId].close();
+        delete wsRef.current[processId]; // Cleanup reference
       }
     };
-
+  
     wsRef.current[processId].onclose = () => {
       console.log(`WebSocket connection closed for process ${processId}`);
+      delete wsRef.current[processId]; // Cleanup reference
     };
-  };
+};
 
   const filteredApplications = applications.filter((app) =>
     app.application.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
