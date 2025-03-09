@@ -140,8 +140,14 @@ fn ws_process_status(
     process_id: String,
     ws: WebSocket,
     connections: &State<ProcessConnections>,
-) -> MessageStream<'static, impl Stream<Item = Result<Message, Error>>> {
-    println!("🔌 WebSocket connection opened for process {process_id}");
+    process_map: &State<ProcessMap>,
+) -> Result<MessageStream<'static, impl Stream<Item = Result<Message, Error>>>, Status> {
+    println!("🔌 WebSocket connection requested for process {process_id}");
+
+    // If process does NOT exist, reject the WebSocket connection
+    if !process_map.lock().unwrap().contains_key(&process_id) {
+        return Err(Status::NotFound);  // Return HTTP 404
+    }
 
     let receiver = {
         let mut conn_map = connections.lock().unwrap();
@@ -158,7 +164,7 @@ fn ws_process_status(
     let process_id_clone = process_id.clone();
     let connections_clone = Arc::clone(connections); // Ensure Arc cloning
 
-    ws.stream(move |_| {
+    Ok(ws.stream(move |_| {
         futures_util::stream::unfold(receiver, move |mut rx| {
             let process_id = process_id_clone.clone();
             let connections = Arc::clone(&connections_clone); // Clone Arc again for each iteration
@@ -170,12 +176,10 @@ fn ws_process_status(
                         Some((Ok(Message::Text(msg)), rx))
                     }
                     Err(_) => {
-                        println!("WebSocket message receiving failed for process {process_id}");
-
-                        // Remove process from WebSocket connections map if the connection was lost
+                        // Only remove the connection if the process is truly stopped
                         let mut conn_map = connections.lock().unwrap();
-                        if conn_map.remove(&process_id).is_some() {
-                            println!("WebSocket connection for process {process_id} removed from tracking.");
+                        if conn_map.contains_key(&process_id) {
+                            println!("WebSocket connection lost for process {process_id}, but keeping it active.");
                         }
 
                         None // Terminate the WebSocket stream
@@ -183,11 +187,8 @@ fn ws_process_status(
                 }
             }
         })
-    })
+    }))
 }
-
-
-
 
 // Function to notify WebSocket clients
 fn notify_clients(process_id: &str, status: &str, connections: &ProcessConnections) {

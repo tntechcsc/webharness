@@ -42,8 +42,45 @@ function Application() {
 
   useEffect(() => {
     fetchApplications();
+
+    // Load previous running applications from localStorage
+    let savedRunningApps = JSON.parse(localStorage.getItem("runningApplications")) || {};
+
+    // Ensure we only process valid appId → processId mappings
+    const validRunningApps = {};
+    Object.entries(savedRunningApps).forEach(([appId, pid]) => {
+      if (appId && pid) {
+        validRunningApps[appId] = pid;
+        //Attempt to reconnect to WebSocket for each running application
+        connectWebSocket(pid, appId);
+      } else {
+        // Log and ignore invalid entries
+        console.warn(`Invalid stored process found (appId: ${appId}, PID: ${pid}) - Ignoring.`);
+      }
+    });
+
+    setRunningApplications(validRunningApps);
+    localStorage.setItem("runningApplications", JSON.stringify(validRunningApps));
+
     console.log("Application.js has loaded successfully!");
+
+    return () => {
+      // Cleanup before unmounting
+      window.removeEventListener("beforeunload", saveActiveProcesses);
+    };
   }, []);
+
+  // Save active processes before page refresh
+  const saveActiveProcesses = () => {
+    const activeProcesses = {};
+    Object.entries(wsRef.current).forEach(([pid, ws]) => {
+      if (ws.appId) {
+        activeProcesses[ws.appId] = pid;
+      }
+    });
+    localStorage.setItem("runningApplications", JSON.stringify(activeProcesses));
+  };
+  window.addEventListener("beforeunload", saveActiveProcesses);
 
   const fetchApplications = async () => {
     try {
@@ -77,7 +114,7 @@ function Application() {
     try {
       let session_id = sessionStorage.getItem("session_id");
       if (!session_id) {
-        setStatusMessage("Session ID is missing. Please log in.");
+        console.error("No session ID found in sessionStorage.");
         return;
       }
 
@@ -98,6 +135,13 @@ function Application() {
           title: <i>Success</i>,
           text: appName + " has been started successfully!",
           icon: "success",
+        });
+        
+        setRunningApplications(prev => {
+          const updated = { ...prev, [appId]: processId };
+          // Save updated running applications to localStorage
+          localStorage.setItem("runningApplications", JSON.stringify(updated));
+          return updated;
         });
         setRunningApplications(prev => ({ ...prev, [appId]: true }));
         setStatusMessage("");
@@ -125,7 +169,7 @@ function Application() {
     try {
       let session_id = sessionStorage.getItem("session_id");
       if (!session_id) {
-        setStatusMessage("Session ID is missing. Please log in.");
+        console.error("No session ID found in sessionStorage.");
         return;
       }
 
@@ -143,13 +187,20 @@ function Application() {
           text: appName + " has been stopped successfully!",
           icon: "success",
         });
-        setRunningApplications(prev => ({ ...prev, [appId]: false }));
+
+        setRunningApplications(prev => {
+          const updated = { ...prev };
+          delete updated[appId];
+          localStorage.setItem("runningApplications", JSON.stringify(updated));
+          return updated;
+        });
+
         setStatusMessage("");
       } else {
         const errorData = await response.json();
         withReactContent(Swal).fire({
           title: <i>Failure</i>,
-          text: appName + " failed to stop.",
+          text: appName + " failed to stop." + errorData.message,
           icon: "error",
         });
       }
@@ -163,51 +214,76 @@ function Application() {
   };
 
   const connectWebSocket = (processId, appId) => {
-    // Prevent duplicate WebSocket connections
-    if (wsRef.current[processId]) {
-      console.log(`WebSocket already exists for process ${processId}, skipping creation.`);
+    if (!processId || !appId) {
+      console.warn(`Skipping WebSocket connection due to invalid processId or appId (PID: ${processId}, App ID: ${appId})`);
       return;
     }
   
+    if (wsRef.current[processId]) {
+      console.warn(`WebSocket for process ${processId} already exists. Skipping.`);
+      return;
+    }
+  
+    // Establish WebSocket connection
     const wsUrl = `ws://${window.location.hostname}:3000/ws/process/${processId}`;
-    wsRef.current[processId] = new WebSocket(wsUrl);
+    const ws = new WebSocket(wsUrl);
   
-    wsRef.current[processId].onopen = () => {
-      console.log(`WebSocket connection opened for process ${processId}`);
-    };
+    ws.appId = appId;
+    wsRef.current[processId] = ws;
   
-    wsRef.current[processId].onerror = (error) => {
-      console.error(`WebSocket error for process ${processId}:`, error);
-    };
-  
-    wsRef.current[processId].onmessage = (event) => {
-      let message;
-      try {
-        message = JSON.parse(event.data);
-      } catch (e) {
-        message = { status: event.data }; // Treat raw string as status
-      }
-
-      if (message.status === "Stopped") {
-        console.log(`Received stop message for process ${processId}, closing WebSocket...`);
-        
+    ws.onmessage = (event) => {
+      if (event.data === "Stopped") {
+        // Update state to mark the application as inactive
         setRunningApplications(prev => {
-          if (prev[appId] === false) return prev; // Avoid unnecessary re-renders
-          return { ...prev, [appId]: false };
+          const updated = { ...prev };
+          delete updated[appId]; // Remove app from running state
+          localStorage.setItem("runningApplications", JSON.stringify(updated));
+          return updated;
         });
-
-        // ✅ Close WebSocket when stopped
-        wsRef.current[processId].close();
-        delete wsRef.current[processId]; // Cleanup reference
+  
+        // Close WebSocket connection & clean up
+        if (wsRef.current[processId]) {
+          wsRef.current[processId].close();
+          delete wsRef.current[processId];
+        }
       }
     };
   
-    wsRef.current[processId].onclose = () => {
-      console.log(`WebSocket connection closed for process ${processId}`);
-      delete wsRef.current[processId]; // Cleanup reference
+    ws.onerror = (event) => {
+  
+      // Assume 404 means the process is already stopped
+      setRunningApplications(prev => {
+        const updated = { ...prev };
+        delete updated[appId]; // Remove from state
+        localStorage.setItem("runningApplications", JSON.stringify(updated));
+        return updated;
+      });
+  
+      // Ensure WebSocket is cleaned up
+      if (wsRef.current[processId]) {
+        wsRef.current[processId].close();
+        delete wsRef.current[processId];
+      }
     };
-};
-
+  
+    ws.onclose = (event) => {
+      console.log(`🔌 WebSocket connection closed for process ${processId} (Code: ${event.code}, Reason: ${event.reason})`);
+  
+      // If closed with a 404 response, assume stopped
+      if (event.code === 1006) { // 1006 indicates abnormal closure (e.g., failed to establish connection)
+        // Update state to mark the application as inactive
+        setRunningApplications(prev => {
+          const updated = { ...prev };
+          delete updated[appId];
+          localStorage.setItem("runningApplications", JSON.stringify(updated));
+          return updated;
+        });
+      }
+  
+      delete wsRef.current[processId];
+    };
+  };
+  
   const filteredApplications = applications.filter((app) =>
     app.application.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.application.categories.some((cat) =>
