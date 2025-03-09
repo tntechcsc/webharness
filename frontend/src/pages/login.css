@@ -1,0 +1,117 @@
+
+.button {
+    cursor: pointer;
+    position: relative;
+    padding: 10px 24px;
+    font-size: 18px;
+    color: #6ffb78;
+    border: 2px solid #6ffb78;
+    border-radius: 34px;
+    background-color: transparent;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+    overflow: hidden;
+  }
+  
+  .button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 50px;
+    height: 50px;
+    border-radius: inherit;
+    scale: 0;
+    z-index: -1;
+    background-color: #6ffb78;
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.320, 1);
+  }
+  
+  .button:hover::before {
+    scale: 3;
+  }
+  
+  .button:hover {
+    color: #212121;
+    scale: 1.1;
+    box-shadow: 0 0px 20px #6ffb78;
+  }
+  
+  .button:active {
+    scale: 1;
+  }
+  
+  
+  /* From Uiverse.io by ayyjayy2 */ 
+  .form {
+    --input-focus: #2d8cf0;
+    --font-color: #ffffff;
+    --font-color-sub: #ffffff;
+    --bg-color: #c3cacd;
+    --main-color: #6ffb78;
+    padding: 20px;
+    background: #132060;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Changed from flex-start to center for center alignment */
+    justify-content: center;
+    gap: 20px;
+    border-radius: 5px;
+    border: 2px solid var(--main-color);
+    text-align: center; /* Added for centering text */
+  }
+  
+  .title {
+    color: var(--font-color);
+    font-weight: 900;
+    font-size: 30px;
+    margin-bottom: 25px;
+  }
+  
+  .title span {
+    color: var(--font-color-sub);
+    font-weight: 600;
+    font-size: 20px;
+  }
+  
+  .input {
+    width: 250px;
+    height: 40px;
+    border-radius: 5px;
+    border: 2px solid var(--main-color);
+    background-color: var(--bg-color);
+    font-size: 15px;
+    font-weight: 600;
+    color: #132060;
+    padding: 5px 10px;
+    outline: none;
+    display: block; /* Added for center alignment */
+    margin: 0 auto; /* Added for center alignment */
+  }
+  
+  .input::placeholder {
+    color: #132060;
+    opacity: 0.8;
+  }
+  
+  .input:focus {
+    border: 2px solid var(--input-focus);
+  }
+  
+  .login-with {
+    display: flex;
+    gap: 20px;
+    justify-content: center; /* Added for center alignment */
+  }
+  
+  
+  .icon {
+    width: 24px;
+    height: 24px;
+    fill: var(--main-color);
+  }
+  
+  .button-log:active, .button-confirm:active {
+    box-shadow: 0px 0px var(--main-color);
+    transform: translate(3px, 3px);
+  }
