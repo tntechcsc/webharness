@@ -142,7 +142,7 @@ fn ws_process_status(
     connections: &State<ProcessConnections>,
     process_map: &State<ProcessMap>,
 ) -> Result<MessageStream<'static, impl Stream<Item = Result<Message, Error>>>, Status> {
-    println!("🔌 WebSocket connection requested for process {process_id}");
+    println!("WebSocket connection requested for process {process_id}");
 
     // If process does NOT exist, reject the WebSocket connection
     if !process_map.lock().unwrap().contains_key(&process_id) {
