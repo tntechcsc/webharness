@@ -47,7 +47,9 @@ use rocket::launch;
 //for our db
 use crate::db::DB;
 use crate::execution::ProcessMap;
-
+use crate::execution::AppProcessMap;
+use crate::execution::ProcessConnections;
+use crate::execution::ProcessCountChannel;
 mod db;
 mod models;
 mod utils;
@@ -56,6 +58,9 @@ mod execution; // Add this line
 mod redirects;
 
 pub struct SessionGuard(String);
+
+// For websocket connections
+use tokio::sync::broadcast;
 
 impl SessionGuard{
     fn is_valid_session(session_id: &str, conn: &Connection) -> bool {
@@ -116,7 +121,6 @@ fn rocket() -> _ {
             crate::user_management::user_all,
 
             crate::execution::execute_program, 
-            crate::execution::get_process_status, 
             crate::execution::stop_process,
             crate::execution::add_application,
             crate::execution::update_application,
@@ -155,13 +159,19 @@ fn rocket() -> _ {
     .allow_credentials(true);
 
     //let db = Arc::new(DB::new().expect("Failed to initialize database")); // rust requires thread safety
-    let process_map: ProcessMap = Arc::new(Mutex::new(HashMap::new()));
+    let process_map: ProcessMap = Arc::new(Mutex::new(HashMap::new())); //
+    let process_connections: ProcessConnections = Arc::new(Mutex::new(HashMap::new()));
+    let app_process_map: AppProcessMap = Arc::new(Mutex::new(HashMap::new()));
+    let process_count_channel: ProcessCountChannel = Arc::new(Mutex::new(None));
 
     let db = Arc::new(db::DB::new().expect("Failed to initialize database"));
     rocket::build()
         .attach(cors.to_cors().unwrap()) //attaching cors for rocket to manage it
         .manage(db)
-        .manage(process_map)
+        .manage(process_map)        // Used to keep track of the current processes
+        .manage(process_connections) // Used to keep track of the current websocket connections
+        .manage(app_process_map)  // Used to track application_id to process_id mapping. This allows us to stop programs using their application_id. We could probably combine this with process_map but I like having it seperated
+        .manage(process_count_channel) // Used to keep track of the number of processes running.
         .mount("/", user_management::user_management_routes())
         .mount("/", execution::execution_routes())
         .register("/", redirects::redirect_routes())
