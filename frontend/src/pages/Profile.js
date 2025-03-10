@@ -9,6 +9,12 @@ import { useTheme } from "@mui/material/styles";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import KeyboardCapslockIcon from '@mui/icons-material/KeyboardCapslock';
+import Checkbox from '@mui/material/Checkbox';
+
 
 const baseURL = window.location.origin;
 
@@ -21,6 +27,19 @@ const Profile = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [capsLockEnabled, setCapsLockEnabled] = React.useState(false);
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const handleCapsLock = (e) => {
+    const capsLockOn = e.getModifierState("CapsLock");
+    setCapsLockEnabled(capsLockOn);
+  };
+
+
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -162,23 +181,47 @@ const Profile = () => {
         <DialogContent>
           <TextField
             label="New Password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             variant="outlined"
             fullWidth
             margin="normal"
             value={newPassword}
+            onKeyUp={handleCapsLock}
             onChange={(e) => setNewPassword(e.target.value)}
             helperText="Must be 8+ characters, 1 uppercase, 1 number, 1 special character"
           />
           <TextField
             label="Confirm Password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             variant="outlined"
             fullWidth
             margin="normal"
+            onKeyUp={handleCapsLock}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
+          <FormControlLabel
+            control={
+              <Checkbox
+                icon={<VisibilityOff />}
+                checkedIcon={<Visibility/>}
+                onChange={togglePasswordVisibility}
+                sx={{
+                  color: theme.palette.text.primary,
+                  '&.Mui-checked': {
+                    color: "#6ffb78",
+                  },
+                }}
+              />
+            }
+            label="Show Password"
+          />
+          {capsLockEnabled && (
+            <div className="caps-lock-warning mb-3" style={{ color: 'red', position: 'relative', zIndex: '5' }}>
+              <KeyboardCapslockIcon style={{ verticalAlign: 'middle', marginRight: '5px' }} />
+              Caps Lock is on
+            </div>
+          )}
           {passwordError && (
             <Typography color="error" variant="body2">
               {passwordError}
