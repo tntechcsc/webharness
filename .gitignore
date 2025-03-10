@@ -6,4 +6,4 @@
 *.log
 *~
 *node_modules*
-backend/Cargo.lock
+*.lock
