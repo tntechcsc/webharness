@@ -6,6 +6,7 @@ import { FaTrashAlt, FaPlus } from 'react-icons/fa'; // Add icons for actions
 import { LuClipboardPenLine } from "react-icons/lu";
 import Navbar from '../components/Navbar';
 import Topbar from '../components/Topbar';
+import Swal from 'sweetalert2';
 
 const baseURL = window.location.origin;
 
@@ -92,7 +93,7 @@ const RoleManagement = () => {
   };
 
   const handleResetPassword = (userId) => {
-    alert(`Password reset for user ID: ${userId}`);
+    Swal.fire(`Password reset for user ID: ${userId}`);
   };
 
   return (
