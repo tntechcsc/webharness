@@ -1,22 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link as RouterLink } from "react-router-dom";
-import { Box, Container, Typography, Table, TableBody, TableCell, TableContainer, TableRow, Button, CircularProgress } from "@mui/material";
+import { useParams, Link } from "react-router-dom";
+import "./ViewApplication.css"; // Import CSS
 
 const baseURL = window.location.origin;
 
 const ViewApplication = () => {
   const { id } = useParams(); // Get application ID from URL
   const [application, setApplication] = useState(null);
-  const [instructions, setInstructions] = useState({ path: "", arguments: "" });
+  const [instructions, setInstructions] = useState({ path: "", arguments: "" }); // Ensure it's always an object
   const [statusMessage, setStatusMessage] = useState("Loading application details...");
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchApplication();
   }, []);
 
   const fetchApplication = async () => {
-    setLoading(true);
     try {
       let session_id = sessionStorage.getItem("session_id");
       if (!session_id) {
@@ -38,23 +36,24 @@ const ViewApplication = () => {
         } else {
           setStatusMessage("Failed to fetch application details.");
         }
-        setLoading(false);
         return;
       }
 
       const data = await response.json();
+
       setApplication(data.application);
-      setInstructions(data.instructions || { path: "", arguments: "" });
+      setInstructions(data.instructions || { path: "", arguments: "" }); // Ensure it always has a structure
+
       setStatusMessage("");
     } catch (error) {
       console.error("Error fetching application:", error);
       setStatusMessage("Error fetching application details.");
     }
-    setLoading(false);
   };
 
   const runApplication = async () => {
     setStatusMessage("Starting application...");
+
     try {
       let session_id = sessionStorage.getItem("session_id");
       if (!session_id) {
@@ -68,7 +67,7 @@ const ViewApplication = () => {
           "Content-Type": "application/json",
           "x-session-id": session_id,
         },
-        body: JSON.stringify({ application_id: application.id }),
+        body: JSON.stringify({ application_id: application.id }), // Send application ID
       });
 
       if (response.ok) {
@@ -84,6 +83,7 @@ const ViewApplication = () => {
 
   const removeApplication = async () => {
     setStatusMessage("Removing application...");
+
     try {
       let session_id = sessionStorage.getItem("session_id");
       const response = await fetch(`${baseURL}:3000/api/applications/remove/${id}`, {
@@ -102,75 +102,54 @@ const ViewApplication = () => {
     }
   };
 
-  if (loading) {
-    return <CircularProgress />;
-  }
-
   if (!application) {
-    return <Typography variant="h6" color="error">{statusMessage || "Loading..."}</Typography>;
+    return <h2 className="error-message">{statusMessage || "Loading..."}</h2>;
   }
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ mt: 5, padding: 3, backgroundColor: "#fff", borderRadius: "8px", boxShadow: 3 }}>
-        <Typography variant="h4" gutterBottom sx={{ color: "text.secondary" }}>{application.name}</Typography>
+    <div className="view-app-container">
+      <h2 className="app-title">{application.name}</h2>
 
-        <TableContainer>
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell sx={{ color: "text.secondary" }}><strong>Application Description:</strong></TableCell>
-                <TableCell sx={{ color: "text.secondary" }}>{application.description}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell sx={{ color: "text.secondary" }}><strong>Application Categories:</strong></TableCell>
-                <TableCell sx={{ color: "text.secondary" }}>
-                  {application.categories && application.categories.length > 0
-                    ? application.categories.map((cat) => cat.name).join(", ")
-                    : "None"}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell sx={{ color: "text.secondary" }}><strong>Executable Path:</strong></TableCell>
-                <TableCell sx={{ color: "text.secondary" }}>{instructions.path || "No path provided"}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell sx={{ color: "text.secondary" }}><strong>Arguments:</strong></TableCell>
-                <TableCell sx={{ color: "text.secondary" }}>{instructions.arguments || "None"}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell sx={{ color: "text.secondary" }}><strong>Contact:</strong></TableCell>
-                <TableCell sx={{ color: "text.secondary" }}>{application.contact || "Not provided"}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
+      <table className="app-details-table">
+        <tbody>
+          <tr>
+            <td><strong>Application Description:</strong></td>
+            <td>{application.description}</td>
+          </tr>
+          <tr>
+            <td><strong>Application Categories:</strong></td>
+            <td>
+              {application.categories && application.categories.length > 0
+                ? application.categories.map((cat) => cat.name).join(", ")
+                : "None"}
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Executable Path:</strong></td>
+            <td className="file-url">{instructions.path || "No path provided"}</td>
+          </tr>
+          <tr>
+            <td><strong>Arguments:</strong></td>
+            <td>{instructions.arguments || "None"}</td>
+          </tr>
+          <tr>
+            <td><strong>Contact:</strong></td>
+            <td>{application.contact || "Not provided"}</td>
+          </tr>
+        </tbody>
+      </table>
 
-        {statusMessage && <Typography variant="body2" color="error" sx={{ mt: 2 }}>{statusMessage}</Typography>}
+      {statusMessage && <p className="status-message">{statusMessage}</p>}
 
-        <Box sx={{ mt: 3 }}>
-          <Button variant="contained" color="error" onClick={removeApplication} sx={{ mr: 2 }}>
-            Remove Application
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={runApplication}
-            disabled={!instructions.path}
-          >
-            Run Application
-          </Button>
-        </Box>
+      <div className="button-group">
+        <button className="remove-button" onClick={removeApplication}>Remove Application</button>
+        <button className="run-button" onClick={runApplication} disabled={!instructions.path}>
+          Run Application
+        </button>
+      </div>
 
-        <Box sx={{ mt: 3 }}>
-          <RouterLink to="/applications">
-            <Button variant="outlined" color="secondary">
-              ← Back to Applications
-            </Button>
-          </RouterLink>
-        </Box>
-      </Box>
-    </Container>
+      <Link to="/applications" className="back-button">← Back to Applications</Link>
+    </div>
   );
 };
 

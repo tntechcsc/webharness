@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Container, TextField, MenuItem, Button, Typography, CircularProgress } from "@mui/material";
 import Select from "react-select";
+import "./AddApplication.css"; // Import CSS
 
 const baseURL = window.location.origin;
 
@@ -18,7 +18,6 @@ const AddApplication = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [statusMessage, setStatusMessage] = useState("");
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -87,12 +86,10 @@ const AddApplication = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatusMessage("Submitting...");
-    setLoading(true);
 
     const user_id = await fetchUserId();
     if (!user_id) {
       setStatusMessage("Failed to retrieve user session.");
-      setLoading(false);
       return;
     }
 
@@ -115,111 +112,58 @@ const AddApplication = () => {
 
       const responseData = await response.json();
       if (response.ok) {
-        setStatusMessage("Application added successfully!");
-        setLoading(false);
+        alert("Application added successfully!");
         navigate("/applications");
       } else {
         setStatusMessage(responseData.message || "Failed to add application.");
-        setLoading(false);
       }
     } catch (error) {
       console.error("Error:", error);
       setStatusMessage("An error occurred while adding the application.");
-      setLoading(false);
     }
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ mt: 5, padding: 3, backgroundColor: "#fff", borderRadius: "8px", boxShadow: 3 }}>
-        <Typography variant="h4" gutterBottom>Add Application</Typography>
-        
-        {statusMessage && (
-          <Typography variant="body2" color="error" sx={{ mb: 2 }}>
-            {statusMessage}
-          </Typography>
-        )}
+    <div className="add-app-container">
+      <h2 className="add-app-header">Add Application</h2>
+      {statusMessage && <p className="status-message">{statusMessage}</p>}
 
+      <div className="form-container">
         <form onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            label="Application Name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Application Description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            required
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Executable Path"
-            name="executable_path"
-            value={formData.executable_path}
-            onChange={handleChange}
-            required
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Arguments (Optional)"
-            name="arguments"
-            value={formData.arguments}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Team/Individual Responsible"
-            name="contact"
-            value={formData.contact}
-            onChange={handleChange}
-            required
-            sx={{ mb: 2 }}
-          />
+          <label>Application Name:</label>
+          <input type="text" name="name" value={formData.name} onChange={handleChange} required />
 
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>Categories:</Typography>
-          <Select
-            isMulti
-            options={categories}
-            value={selectedCategories}
-            onChange={handleCategoryChange}
-            placeholder="Select categories"
-            className="custom-react-select"
-            classNamePrefix="custom"
-            styles={{
-              container: (provided) => ({
-                ...provided,
-                marginBottom: "16px",
-              }),
-              option: (provided, state) => ({
-                ...provided,
-                color: "#808080", // Darker text color for options
-              }),
-            }}
-          />
+          <label>Application Description:</label>
+          <input type="text" name="description" value={formData.description} onChange={handleChange} required />
 
-          <Button
-            variant="contained"
-            color="primary"
-            type="submit"
-            fullWidth
-            sx={{ py: 1.5, mt: 2 }}
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={24} /> : "Add Application"}
-          </Button>
+          <label>Executable Path:</label>
+          <input type="text" name="executable_path" value={formData.executable_path} onChange={handleChange} required />
+
+          <label>Arguments (Optional):</label>
+          <input type="text" name="arguments" value={formData.arguments} onChange={handleChange} />
+
+          <label>Team/Individual Responsible:</label>
+          <input type="text" name="contact" value={formData.contact} onChange={handleChange} required />
+
+          <label>Categories:</label>
+          <div className="category-select">
+            <Select
+              isMulti
+              options={categories}
+              value={selectedCategories}
+              onChange={handleCategoryChange}
+              placeholder="Select categories"
+              className="custom-react-select"
+              classNamePrefix="custom"
+            />
+          </div>
+
+          <button type="submit" className="submit-button">
+            Add Application
+          </button>
         </form>
-      </Box>
-    </Container>
+      </div>
+    </div>
   );
 };
 

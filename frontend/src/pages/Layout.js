@@ -1,31 +1,23 @@
-import { useEffect, autoRefreshTime } from 'react';
-import { checkSession } from "../utils/authUtils"
-
+import React from 'react';
+import PageHeader from '../components/PageHeader';
+import Navbar from '../components/Navbar';
 
 //maybe use bootstrap instead of all this css
 
 const Layout = ({ children, title }) => {
-  // checking auth every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      console.log('This will be called every minute');
-      const validateSession = async () => {
-        const isValid = await checkSession(); // check if their session is valid
-        if (!isValid) {
-          window.location.href = "/login"
-          sessionStorage.removeItem("session_id");
-        }
-      };
-      validateSession();
-    }, 1000*120); // 1 second * 120 -> 120 seconds -> every 2 minutes
-  
-    return () => clearInterval(interval);
-  }, []);
+  // These could be moved to a context or auth provider later
+  const username = "John Doe";
+  const userRole = "superadmin";
 
   return (
     <>
-      <div>
-        {children}
+      <div className="app-container">
+        <Navbar />
+        <div className="main-content">
+          <div className="content-wrapper">
+            {children}
+          </div>
+        </div>
       </div>
     </>
   );

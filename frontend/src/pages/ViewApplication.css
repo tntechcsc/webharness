@@ -1,0 +1,100 @@
+.view-app-container {
+    padding: 20px;
+    margin-left: 15rem; /* Space for sidebar */
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 700px;
+    margin: 20px auto;
+    text-align: center;
+  }
+  
+  .app-title {
+    font-size: 28px;
+    margin-bottom: 15px;
+    color: #12255f;
+  }
+  
+  /* Table Styles */
+  .app-details-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #12255f;
+    color: white;
+    margin-top: 10px;
+  }
+  
+  .app-details-table td {
+    padding: 10px;
+    border: 1px solid white;
+    font-size: 16px;
+  }
+  
+  .app-details-table td:first-child {
+    text-align: left;
+    font-weight: bold;
+    width: 40%;
+  }
+  
+  /* Status Message */
+  .status-message {
+    margin-top: 10px;
+    font-size: 16px;
+    color: green;
+  }
+  
+  /* Buttons */
+  .button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  
+  .run-button, .remove-button {
+    background-color: #6FFB78;
+    color: black;
+    border: none;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: 0.3s ease;
+  }
+  
+  .run-button:hover {
+    background-color: #5fd066;
+  }
+  
+  .remove-button {
+    background-color: red;
+    color: white;
+  }
+  
+  .remove-button:hover {
+    background-color: darkred;
+  }
+  
+  /* Back Button */
+  .back-button {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 15px;
+    text-decoration: none;
+    background-color: #6FFB78;
+    color: black;
+    border-radius: 5px;
+    transition: 0.3s ease;
+  }
+  
+  .back-button:hover {
+    background-color: #5fd066;
+  }
+  
+  .error-message {
+    color: red;
+    text-align: center;
+    font-size: 20px;
+    margin-top: 20px;
+  }
+  

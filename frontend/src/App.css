@@ -1,0 +1,248 @@
+/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+
+}
+
+/* Loading screen */
+.loading-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: #12255f; /* Dark background */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* Ensures it's above all other elements */
+}
+
+/* Logo image */
+.loading-logo {
+  width: 150px; /* Adjust size as needed */
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.loading-text {
+  color: #6FFB78;
+  margin-bottom: 20px;
+}
+
+/* Spinner animation */
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #6FFB78;
+  border-top: 5px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Main container for sidebar and content */
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+
+/* Sidebar styling */
+.sidebar { 
+  width: 10rem;
+  height: 100vh;
+  background-color: #031039; /* ✅ Fix: Set a static background */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+
+
+/* Sidebar navigation buttons */
+.nav-button {
+  height: 10rem;
+  background-color: #12255f;
+  color: white;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.nav-button + .nav-button {
+  border-top: 2px solid white;
+}
+
+.nav-button:hover {
+  color: rgb(27, 27, 74);
+  background-color: #6FFB78;
+}
+
+/* Sidebar logo button */
+.logo-button {
+  color: #031039;
+  border-bottom: 2px solid rgb(255, 255, 255);
+}
+
+.logo-button:hover {
+  color: #6FFB78;
+  background-color: #12255f;
+}
+
+/* Main content area */
+.main-content {
+  margin-left: 10rem;
+  width: calc(100% - 10rem);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Header styling */
+.page-header {
+  font-size: 2.5rem;
+  font-weight: bold;
+  padding: 20px; 
+  width: 100vw;
+  text-align: center;
+  color: #12255f;
+  background-color: #fdfffd;
+ 
+  background-color: rgb(255, 255, 255);
+  border-bottom: 3px solid #6FFB78;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  letter-spacing: 1px;
+}
+
+.profile-container {
+  display: flex;
+  align-items: center;
+  text-align: right;
+  gap: 10px; /* Spacing between username and profile pic */
+  position: absolute;
+  top: 15px;
+  right: 40px;
+}
+
+.username-container {
+  margin-right: 10px;
+}
+
+.username {
+  font-size: 18px;
+  color: #12255f;
+  font-weight: bold;
+}
+
+.role-subheader {
+  font-size: 13px;
+  color: #888;
+}
+
+.profile-pic {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%; /* Makes pic circular */
+  border: 2px solid #12255f; /* Adds a border */
+  object-fit: cover;
+}
+
+/* Mini Panel Styles */
+.mini-panel {
+  width: 400px; 
+  background-color: #12255f; 
+  border: 2px solid #ccc;
+  padding: 20px;
+  margin-top: 20px;
+  margin-left: 50px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  color: white;
+}
+
+/* Panel Title */
+.mini-panel h2 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+/* Search Bar */
+.search-bar {
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+/* Application Table */
+.app-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Application Name */
+.app-name {
+  color: white;
+  padding: 10px;
+}
+
+/* Run Button */
+.run-button {
+  background-color: #6FFB78; 
+  color: black;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 5px;
+}
+
+.run-button:hover {
+  background-color: #5fd066;
+}
+
+
+.role-management{
+  padding: 20px;
+  margin-left: 10rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+th {
+  background-color: #12255f;
+}
+
+select {
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
