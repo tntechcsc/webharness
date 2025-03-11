@@ -35,6 +35,11 @@ use winapi::um::processthreadsapi::TerminateProcess;
 //for handling dates
 use chrono::{DateTime, Utc, Duration, TimeDelta};
 
+//for password generation
+use gen_passphrase::dictionary::EFF_LARGE;
+use gen_passphrase;
+use rand::Rng;
+
 //for our db
 use crate::DB;
 use crate::models::*;
@@ -334,3 +339,23 @@ pub fn validate_password(password: &str) -> bool {
     let is_long_enough = password.len() >= 8;
     has_uppercase && has_digit && has_special && is_long_enough
 }
+
+pub fn generate_passphrase() -> String {
+    let mut password = String::new();
+    let mut rng = rand::thread_rng();
+    let chars = "0123456789!@#$%^&*()_+-=[]{}|;:,.<>?/`~"; // Includes numbers and special characters
+    
+    for _ in 0..4 {
+        let random_word = gen_passphrase::generate(&[EFF_LARGE], 1, None);
+        let random_char = chars.chars().nth(rng.gen_range(0..chars.len())).unwrap(); //gets a random char from the chars string
+        password.push_str(&random_word);
+        password.push_str("-");
+        password.push(random_char);
+        password.push_str("-");
+    }
+    let random_word = gen_passphrase::generate(&[EFF_LARGE], 1, None);
+    password.push_str(&random_word);
+    return password;
+}
+
+

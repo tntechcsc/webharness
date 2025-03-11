@@ -99,8 +99,6 @@ pub struct Session {
 pub struct ResetPasswordForm {
     #[schema(example = "gbus")]
     pub target: String,
-    #[schema(example = "password123")]
-    pub password: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]

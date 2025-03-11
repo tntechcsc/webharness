@@ -494,14 +494,15 @@ fn user_logout(_session_id: SessionGuard, db: &rocket::State<Arc<DB>>) -> Result
 fn reset_password(_session_id: SessionGuard, user_data: Json<ResetPasswordForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let target = &user_data.target;
-    let password = &user_data.password;
     let session_id = &_session_id.0;
+    let mut i = 0;
+    let mut password = generate_passphrase(); // Generate a new password
 
     if !user_exists(target, &conn) {
         return Err(Status::NotFound);
     }
     
-    let pass_hash = hash(password, DEFAULT_COST).unwrap(); // Hash the password
+    let pass_hash = hash(password.clone(), DEFAULT_COST).unwrap(); // Hash the password
 
     //session is that of the actor
     let actor = session_to_user(session_id.clone(), &conn);
@@ -509,6 +510,10 @@ fn reset_password(_session_id: SessionGuard, user_data: Json<ResetPasswordForm>,
 
     if actor == "" {
         return Err(Status::NotFound);
+    }
+
+    if &actor == target {
+        return Err(Status::BadRequest);
     }
 
     else if !compare_roles(actor, target.clone(), &conn) {
@@ -527,7 +532,8 @@ fn reset_password(_session_id: SessionGuard, user_data: Json<ResetPasswordForm>,
             // Successfully updated the user, return 200 OK with a success message
             Ok(Json(json!({
                 "status": "success",
-                "message": "Password updated successfully"
+                "message": "Password updated successfully",
+                "password": password.clone(),
             })))
         }
         Err(_) => {
