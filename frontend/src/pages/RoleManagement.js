@@ -33,8 +33,8 @@ const RoleManagement = () => {
           },
         });
 
-        if (!response.ok) throw new Error('Failed to fetch users');
         const data = await response.json();
+        if (!response.ok) throw new Error('Failed to fetch users');
         setUsers(data.users);
         console.log(users);
       } catch (err) {
@@ -92,8 +92,40 @@ const RoleManagement = () => {
     console.log(`Deleted user with ID: ${userId}`);
   };
 
-  const handleResetPassword = (userId) => {
-    Swal.fire(`Password reset for user ID: ${userId}`);
+  const handleResetPassword = async (username) => {
+    try {
+      const response = await fetch(`${baseURL}:3000/api/password/reset`, {
+
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-id': sessionStorage.getItem('session_id') || '',
+        },
+        body: JSON.stringify({ target: username }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Success',
+          html: `Password reset for user: ${username}\<br>New password: <br> ${data.password}<br>*The password does not start with a space*`,
+        });
+      }
+      else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: data.message,
+        });
+      }
+      }
+      catch (err) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: err,
+        });
+      }
   };
 
   return (
@@ -173,8 +205,8 @@ const RoleManagement = () => {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.roleName}</TableCell>
                           <TableCell sx={{ display: "   ", justifyContent: "" }}>
-                            <Button id={index === 0 ? "reset-password" : undefined} variant="outlined" onClick={() => handleResetPassword(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                              <IconButton aria-label="delete">
+                            <Button id={index === 0 ? "reset-password" : undefined} variant="outlined" onClick={() => handleResetPassword(user.username)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                              <IconButton aria-label="reset-password">
                                 <LuClipboardPenLine />
                               </IconButton>
                             </Button>
