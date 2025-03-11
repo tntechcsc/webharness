@@ -1,19 +1,29 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import "../RegisterUser.css"; // Ensure this CSS file exists
-import "bootstrap/dist/css/bootstrap.min.css";
-import Button from "react-bootstrap/Button";
+import { useNavigate, Link } from "react-router-dom";
+import { Box, Container, TextField, Button, Typography, CircularProgress, IconButton } from "@mui/material";
+import { FaPlus } from "react-icons/fa";
+import { IoReturnDownBackSharp } from "react-icons/io5";
+import Select from "react-select";
+import { useTheme } from "@mui/material/styles";
+import getReactSelectStyles from "./../reactSelectStyles"; // Import the styles
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+
+const baseURL = window.location.origin;
 
 const RegisterUser = () => {
+  const theme = useTheme();
+
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: "",
-    password: "password123",
-    role: "3",
     username: "",
+    email: "",
+    role: "3", // default to "Viewer"
+    password: "password123", // default password
   });
-  const baseURL = window.location.origin;
-
+  const [statusMessage, setStatusMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // Handles input field changes
   const handleChange = (e) => {
@@ -23,6 +33,7 @@ const RegisterUser = () => {
   // Handles form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     try {
       const uri = `${baseURL}:3000/api/user/register`;
@@ -33,45 +44,100 @@ const RegisterUser = () => {
           "Content-Type": "application/json",
           "x-session-id": session_id || "",
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        alert("User registered successfully!");
-        navigate("/role-management");
+        setLoading(false);
+        withReactContent(Swal).fire({
+          title: <i>Success</i>,
+          text: formData.username + " has been added!",
+          icon: "success",
+        }).then(() => navigate("/role-management"));
+      } else {
+        const data = await response.json();
+         withReactContent(Swal).fire({
+          title: <i>Failure</i>,
+          text: "Error with registering " + formData.username,
+          icon: "error",
+        })
+        setLoading(false);
       }
-      else throw new Error("Failed to register user");
-    } catch (err) {
-      console.error("Error registering user:", err);
-      alert("Failed to register user.");
+    } catch (error) {
+      console.error("Error registering user:", error);
+       withReactContent(Swal).fire({
+                title: <i>Failure</i>,
+                text: "Error with registering " + formData.username,
+                icon: "error",
+              })
+      setLoading(false);
     }
   };
 
   return (
-    <div className="register-container">
-      <div className="d-flex align-items-center justify-content-between">
-        <h2>Register New User</h2>
-        <Button className="btn btn-danger p-2" onClick={() => {navigate("/role-management")}}>
-          <span style={{ color: "black", fontSize: "18px" }}>✕</span>
-        </Button>
-      </div>
+    <Container maxWidth="sm">
+      <Box sx={{ mt: 5, padding: 3, backgroundColor: theme.palette.background.paper, textColor: theme.palette.text.primary, borderRadius: "8px", boxShadow: 3 }}>
+        <Typography variant="h4" gutterBottom>Register New User</Typography>
 
-      <form onSubmit={handleSubmit}>
-        <label>Username:</label>
-        <input type="text" name="username" value={formData.username} onChange={handleChange} required />
+        {statusMessage && (
+          <Typography variant="body2" color="error" sx={{ mb: 2 }}>
+            {statusMessage}
+          </Typography>
+        )}
 
-        <label>Email:</label>
-        <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+        <form onSubmit={handleSubmit}>
+          <TextField
+            fullWidth
+            label="Username"
+            name="username"
+            value={formData.username}
+            onChange={handleChange}
+            required
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            sx={{ mb: 2 }}
+          />
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>Role:</Typography>
+          <Select
+            options={[
+              { value: "3", label: "Viewer" },
+              { value: "2", label: "Admin" },
+            ]}
+            value={{ value: formData.role, label: formData.role === "3" ? "Viewer" : "Admin" }}
+            onChange={(selectedOption) => setFormData({ ...formData, role: selectedOption.value })}
+            placeholder="Select role"
+            className="custom-react-select"
+            classNamePrefix="custom"
+            styles={getReactSelectStyles(theme)}
+          />
 
-        <label>Role:</label>
-        <select name="role" value={formData.role} onChange={handleChange}>
-          <option value="3">Viewer</option>
-          <option value="2">Admin</option>
-        </select>
-
-        <button type="submit" className="submit-button">Register</button>
-      </form>
-    </div>
+          <Button
+            variant="contained"
+            color="primary"
+            type="submit"
+            fullWidth
+            sx={{ py: 1.5, mt: 2 }}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} /> : <IconButton><FaPlus /></IconButton>}
+          </Button>
+        </form>
+        <Box sx={{ mt: 3 }}>
+            <Link to="/role-management">
+              <Button variant="outlined" color="secondary">
+                <IconButton><IoReturnDownBackSharp /></IconButton>
+              </Button>
+            </Link>
+          </Box>
+      </Box>
+    </Container>
   );
 };
 

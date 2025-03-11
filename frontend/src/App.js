@@ -1,61 +1,70 @@
-import React, { useState, useEffect } from 'react';
-import  ProtectedRoute  from "./components/ProtectedRoute"
-import './App.css'; // Ensure your styles are linked correctly
-import { BrowserRouter as Router, Route, Routes, useLocation  } from "react-router-dom";
-import HomePage from "./pages/HomePage";
-import Application from "./pages/Application";
-import RoleManagement from "./pages/RoleManagement";
-import Navbar from "./components/Navbar";
-import Login from "./pages/login";
-import ViewApplication from "./pages/ViewApplication";
-import AddApplication from "./pages/AddApplication";
-import Profile from "./pages/Profile"
-import RegisterUser from "./pages/RegisterUser"; // ✅ Import RegisterUser.js
+import { useState, useEffect, useContext } from 'react';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import Application from './pages/Application';
+import RoleManagement from './pages/RoleManagement';
+import Login from './pages/login';
+import ViewApplication from './pages/ViewApplication';
+import AddApplication from './pages/AddApplication';
+import RegisterUser from './pages/RegisterUser'; // ✅ Import RegisterUser.js
+import { checkSession } from './utils/authUtils';
+import { ThemeProvider } from '@mui/material/styles';
+import { ThemeContext } from './context/themecontext'; // ✅ Import ThemeContext
+import { lightTheme, darkTheme } from './theme'; // ✅ Import light and dark themes
+import Profile from './pages/Profile';
+import "intro.js/minified/introjs.min.css";
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   const [atLogin, setAtLogin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const location = useLocation(); // Hook to get the current location/pathname
-  // Simulate a delay before showing the page content
+  const { mode } = useContext(ThemeContext); // ✅ Access current theme mode (light or dark)
+
+  // Checking auth every minute
   useEffect(() => {
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 3000); // Simulating loading effect
+    const interval = setInterval(() => {
+      console.log('This will be called every minute');
+      const validateSession = async () => {
+        const isValid = await checkSession(); // Check if their session is valid
+        if (!isValid) {
+          window.location.href = "/login";
+          sessionStorage.removeItem("session_id");
+        }
+      };
+      validateSession();
+    }, 1000 * 120); // 1 second * 120 -> 120 seconds -> every 2 minutes
+  
+    return () => clearInterval(interval);
   }, []);
 
   return (
-    <>
-      {isLoading ? (
-        <div className="loading-container">
-          <img src='LogoHarness2.png' alt="Loading Logo" className="loading-logo" />
-          <p className='loading-text'> Loading Project Mangrove </p>
-          <div className="spinner"></div>
-        </div>
-      ) : (
-        <div className="d-flex min-vh-100 bg-dark text-light">
-          <div className="flex-grow-1">
-            <Routes>
-              <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />
-              <Route path="role-management" element={<ProtectedRoute element={<RoleManagement />} />} />
-              <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
-              <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
-              <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
-              <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} /> {/* ✅ New Route */}
-              <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
-              <Route path="login" element={<Login />} />
-            </Routes>
-          </div>
-        </div>
-      )}
-    </>
+    <div className="d-flex min-vh-100 bg-dark text-light">
+      <div className="flex-grow-1">
+        <Routes>
+          <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />
+          <Route path="role-management" element={<ProtectedRoute element={<RoleManagement />} />} />
+          <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
+          <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
+          <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
+          <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} /> {/* ✅ New Route */}
+          <Route path="/profile" element={<Profile />} />
+          <Route path="login" element={<Login />} />
+        </Routes>
+      </div>
+    </div>
   );
 }
 
-// Wrap the App component with the Router to provide routing context
+// Wrap the App component with the Router and ThemeProvider
 export default function WrappedApp() {
+  const { mode } = useContext(ThemeContext); // Get the current theme mode (light or dark)
+
   return (
-    <Router>
-      <App />
-    </Router>
+    <ThemeProvider theme={mode === 'dark' ? darkTheme : lightTheme}> {/* Use the correct theme */}
+      <Router>
+        <App />
+      </Router>
+    </ThemeProvider>
   );
 }

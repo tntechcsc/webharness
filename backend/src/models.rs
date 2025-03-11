@@ -99,14 +99,19 @@ pub struct Session {
 pub struct ResetPasswordForm {
     #[schema(example = "gbus")]
     pub target: String,
-    #[schema(example = "password123")]
-    pub password: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct SetPasswordForm {
+    #[schema(example = "StrongPass123!")]
+    pub new_password: String,
 }
 
 //--program execution
 
 pub struct ProcessInfo {
-    pub pid: u32,
+    pub pid: u32, // Parent process ID
+    pub child_pids: Arc<Mutex<Vec<u32>>>, // Track child processes
     pub status: Arc<Mutex<String>>,           // e.g., "Running", "Exited"
     pub exit_code: Arc<Mutex<Option<i32>>>,   // Exit code if the process has exited
 }

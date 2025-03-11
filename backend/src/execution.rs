@@ -4,11 +4,13 @@ use rocket::serde::{Serialize, Deserialize, json::Json}; // for handling jsons
 use rocket::State; // for handling state???
 use rocket::request::{FromRequest, Outcome}; //for outcome and optional handling
 use rocket::Route;
+use rocket_ws::{Message, WebSocket, stream::MessageStream, result::Error}; // WebSocket support
+use rocket_ws::Channel;
 
 //for jsons
 use serde_json::json;
 //for our db connection
-use rusqlite::{Connection, Result, OptionalExtension, params_from_iter};
+use rusqlite::{Connection, Result as SqlResult, OptionalExtension, params_from_iter};
 // for thread-safe access
 use std::sync::{Arc, Mutex}; 
 
@@ -47,7 +49,15 @@ use rusqlite::params;
 //For ddebugging
 use rocket::info;
 
+use tokio::sync::broadcast; // For sending updates to WebSocket clients
+use tokio::task; // For spawning async tasks
+use tokio::time::{sleep, Duration as TokioDuration}; // For async delays in background monitoring tasks
+use futures_util::{StreamExt, SinkExt, stream}; // Required for `split()`
+use futures_util::stream::Stream;
+pub type ProcessConnections = Arc<Mutex<HashMap<String, broadcast::Sender<String>>>>;
 pub type ProcessMap = Arc<Mutex<HashMap<String, ProcessInfo>>>;
+pub type AppProcessMap = Arc<Mutex<HashMap<String, String>>>;  // application_id -> process_id
+pub type ProcessCountChannel = Arc<Mutex<Option<broadcast::Sender<usize>>>>; // Used for sending process count updates
 
 #[utoipa::path(
     post,
@@ -69,111 +79,286 @@ fn execute_program(
     _session_id: SessionGuard,
     request: Json<ExecuteRequest>,
     process_map: &State<ProcessMap>,
+    app_process_map: &State<AppProcessMap>,  // State for app_id -> process_id
+    connections: &State<ProcessConnections>,
+    process_count_channel: &State<ProcessCountChannel>,  // For sending process count updates
     db: &rocket::State<Arc<DB>>,
 ) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap();
 
-    // Get the path from the database using application_id
+    // Get the executable path from the database
     let query = "SELECT path FROM Instructions WHERE application_id = ?";
-    let path: Result<String, _> = conn.query_row(query, [&request.application_id], |row| row.get(0));
+    let path: SqlResult<String> = conn.query_row(query, [&request.application_id], |row| row.get(0));
 
     let path = match path {
         Ok(p) => p,
-        Err(_) => {
-            error!("No executable path found for application_id: {}", request.application_id);
+        Err(e) => {
+            eprintln!("Database error: {}", e);
             return Err(Status::BadRequest);
         }
     };
 
-    if !std::path::Path::new(&path).exists() {
-        error!("Executable path does not exist: {}", path);
-        return Err(Status::BadRequest);
-    }
-
-    // Attempt to execute the program
+    // Launch the application
     match Command::new(&path).spawn() {
-        Ok(mut child) => {
-            let pid = child.id();
+        Ok(child) => {
+            let process_id = child.id().to_string();  // The actual PID
+            let application_id = request.application_id.clone();
 
-            let status = Arc::new(Mutex::new("Running".to_string()));
-            let exit_code = Arc::new(Mutex::new(None));
+            println!("Launched application {} with process ID {}", application_id, process_id);
 
-            let process_info = ProcessInfo {
-                pid,
-                status: status.clone(),
-                exit_code: exit_code.clone(),
-            };
+            // Store the process ID in the application process map
+            app_process_map.lock().unwrap().insert(application_id.clone(), process_id.clone());
 
-            // Store in `process_map` using `application_id` as the key
-            let mut map = process_map.lock().unwrap();
-            map.insert(request.application_id.clone(), process_info);
+            // Store process tracking info
+            add_process(
+                process_id.clone(),
+                child.id(),
+                Arc::clone(process_map),
+                Arc::clone(connections),
+                Arc::clone(process_count_channel),
+            );
 
-            // Monitor the process in a separate thread so we can continue
-            let process_map_clone = Arc::clone(process_map);
-            let application_id_clone = request.application_id.clone();
-            std::thread::spawn(move || {
-                loop {
-                    match child.try_wait() {
-                        Ok(Some(exit_status)) => {
-                            // Process has exited
-                            let mut map = process_map_clone.lock().unwrap();
-                            if let Some(process_info) = map.get_mut(&application_id_clone) {
-                                *process_info.status.lock().unwrap() = "Exited".to_string();
-                                *process_info.exit_code.lock().unwrap() = exit_status.code();
-                            }
-                            break;
-                        }
-                        Ok(None) => {
-                            // Process is still running so take a nap
-                            std::thread::sleep(std::time::Duration::from_secs(1));
-                        }
-                        Err(e) => {
-                            error!("Error monitoring process: {}", e);
-                            break;
-                        }
-                    }
-                }
-            });
 
             Ok(Json(json!({
                 "status": "success",
-                "message": "Executable launched successfully",
-                "pid": pid,
-                "application_id": request.application_id
+                "process_id": process_id,
+                "application_id": application_id
             })))
         }
         Err(e) => {
-            error!("Failed to launch executable: {}", e);
+            eprintln!("Failed to launch executable: {}", e);
             Err(Status::InternalServerError)
         }
     }
 }
 
-#[utoipa::path(
-    get,
-    path = "/api/process/{process_id}/status",
-    tag = "Program Management",
-    params(
-        ("process_id" = String, Path, description = "Process ID to query"),
-    ),
-    responses(
-        (status = 200, description = "Process status retrieved successfully", body = ProcessStatusResponse),
-        (status = 404, description = "Process not found"),
-    ),
-)]
-#[get("/api/process/<process_id>/status")]
-fn get_process_status(
+
+
+// WebSocket handler for process status updates
+#[get("/ws/process/<process_id>")]
+fn ws_process_status(
     process_id: String,
+    ws: WebSocket,
+    connections: &State<ProcessConnections>,
     process_map: &State<ProcessMap>,
-) -> Result<Json<ProcessStatusResponse>, Status> {
-    let map = process_map.lock().unwrap();
-    if let Some(process_info) = map.get(&process_id) {
-        let status = process_info.status.lock().unwrap().clone();
-        let pid = process_info.pid;
-        let exit_code = *process_info.exit_code.lock().unwrap();
-        Ok(Json(ProcessStatusResponse { status, pid, exit_code }))
+) -> Result<MessageStream<'static, impl Stream<Item = Result<Message, Error>>>, Status> {
+    println!("WebSocket connection requested for process {process_id}");
+
+    // If process does NOT exist, reject the WebSocket connection
+    if !process_map.lock().unwrap().contains_key(&process_id) {
+        return Err(Status::NotFound);  // Return HTTP 404
+    }
+
+    let receiver = {
+        let mut conn_map = connections.lock().unwrap();
+        let entry = conn_map.entry(process_id.clone()).or_insert_with(|| {
+            let (tx, _) = broadcast::channel(10);
+            println!("WebSocket channel created for process {process_id}");
+            tx
+        });
+
+        println!("WebSocket client subscribed to process {process_id}");
+        entry.subscribe()
+    };
+
+    let process_id_clone = process_id.clone();
+    let connections_clone = Arc::clone(connections); // Ensure Arc cloning
+
+    Ok(ws.stream(move |_| {
+        futures_util::stream::unfold(receiver, move |mut rx| {
+            let process_id = process_id_clone.clone();
+            let connections = Arc::clone(&connections_clone); // Clone Arc again for each iteration
+
+            async move {
+                match rx.recv().await {
+                    Ok(msg) => {
+                        println!("WebSocket received message: {}", msg);
+                        Some((Ok(Message::Text(msg)), rx))
+                    }
+                    Err(_) => {
+                        // Only remove the connection if the process is truly stopped
+                        let mut conn_map = connections.lock().unwrap();
+                        if conn_map.contains_key(&process_id) {
+                            println!("WebSocket connection lost for process {process_id}, but keeping it active.");
+                        }
+
+                        None // Terminate the WebSocket stream
+                    }
+                }
+            }
+        })
+    }))
+}
+
+// Function to notify WebSocket clients
+fn notify_clients(process_id: &str, status: &str, connections: &ProcessConnections) {
+    if let Some(sender) = connections.lock().unwrap().get(process_id) {
+        if let Err(e) = sender.send(status.to_string()) {
+            eprintln!("WebSocket sender failed for process {}: {}", process_id, e);
+        } else {
+            println!("WebSocket message sent successfully!");
+        }
     } else {
-        Err(Status::NotFound)
+        println!("No WebSocket clients found for process {}", process_id);
+    }
+}
+
+
+// Function to get child PIDs of a given process
+fn get_child_pids(parent_pid: u32) -> Vec<u32> {
+    let output = Command::new("wmic")
+        .args(&["process", "where", format!("ParentProcessId={}", parent_pid).as_str(), "get", "ProcessId"])
+        .output();
+
+    if let Ok(output) = output {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        stdout
+            .lines()
+            .skip(1)
+            .filter_map(|line| line.trim().parse::<u32>().ok())
+            .collect()
+    } else {
+        vec![]
+    }
+}
+
+// **Background Task: Monitors Parent and Child Process Status**
+fn monitor_process(
+    process_id: String, 
+    pid: u32, 
+    process_map: ProcessMap, 
+    connections: ProcessConnections, 
+    process_count_channel: ProcessCountChannel
+) {
+    println!("Monitoring process {process_id} (PID {pid})");
+
+    task::spawn(async move {
+        loop {
+            sleep(TokioDuration::from_secs(3)).await;
+
+            // Check if process is still in process_map
+            {
+                let map = process_map.lock().unwrap();
+                if !map.contains_key(&process_id) {
+                    println!("Monitoring stopped for process {process_id} (PID {pid} was explicitly removed).");
+                    notify_clients(&process_id, "Stopped", &connections);
+                    return; // Exit loop if the process was explicitly removed
+                }
+            }
+
+            let mut is_running = Command::new("tasklist")
+                .arg("/FI")
+                .arg(format!("PID eq {}", pid))
+                .output()
+                .map(|output| String::from_utf8_lossy(&output.stdout).contains(&pid.to_string()))
+                .unwrap_or(false);
+
+            // Also check child processes
+            {
+                let map = process_map.lock().unwrap();
+                if let Some(proc_info) = map.get(&process_id) {
+                    let child_pids = proc_info.child_pids.lock().unwrap();
+                    is_running |= child_pids.iter().any(|&child_pid| {
+                        Command::new("tasklist")
+                            .arg("/FI")
+                            .arg(format!("PID eq {}", child_pid))
+                            .output()
+                            .map(|output| String::from_utf8_lossy(&output.stdout).contains(&child_pid.to_string()))
+                            .unwrap_or(false)
+                    });
+                }
+            }
+
+
+            if !is_running {
+                println!("Process {process_id} (PID {pid}) stopped, notifying clients...");
+                
+                notify_clients(&process_id, "Stopped", &connections);
+
+                remove_process(&process_id, &process_map, &process_count_channel);
+                break;
+            }
+        }
+    });
+}
+
+
+// **Track and Monitor a New Process**
+fn add_process(process_id: String, pid: u32, process_map: ProcessMap, connections: ProcessConnections, process_count_channel: ProcessCountChannel) {
+    let child_pids = get_child_pids(pid);
+
+    {
+        let mut map = process_map.lock().unwrap();
+        map.insert(
+            process_id.clone(),
+            ProcessInfo {
+                pid,
+                child_pids: Arc::new(Mutex::new(child_pids.clone())),
+                status: Arc::new(Mutex::new("Running".to_string())),
+                exit_code: Arc::new(Mutex::new(None)),
+            },
+        );
+    }
+
+    notify_process_count(&process_map, &process_count_channel);  // Notify WebSocket clients of process count
+    // Start monitoring this process
+    monitor_process(process_id, pid, process_map, connections, process_count_channel);
+}
+
+fn remove_process(
+    process_id: &str,
+    process_map: &ProcessMap,
+    process_count_channel: &ProcessCountChannel,
+) {
+    {
+        let mut map = process_map.lock().unwrap();
+        if map.remove(process_id).is_some() {
+            println!("Process {} removed", process_id);
+        }
+    }
+
+    notify_process_count(&process_map, &process_count_channel);
+}
+
+#[get("/ws/process_count")]
+fn ws_process_count(
+    ws: WebSocket,
+    process_count_channel: &State<ProcessCountChannel>,
+) -> MessageStream<'static, impl Stream<Item = Result<Message, Error>>> {
+    println!(" WebSocket connection opened for process count updates");
+
+    let receiver = {
+        let mut channel = process_count_channel.lock().unwrap();
+        if channel.is_none() {  // Create the channel if it doesn't exist
+            let (tx, rx) = broadcast::channel(10);
+            *channel = Some(tx);
+            println!("Process count broadcast channel initialized");
+            rx
+        } else {
+            channel.as_ref().unwrap().subscribe()
+        }
+    };
+
+    ws.stream(move |_| {
+        futures_util::stream::unfold(receiver, |mut rx| async {
+            match rx.recv().await {
+                Ok(count) => Some((Ok(Message::Text(count.to_string())), rx)),
+                Err(_) => None,
+            }
+        })
+    })
+}
+
+fn notify_process_count(process_map: &ProcessMap, process_count_channel: &ProcessCountChannel) {
+    let count = process_map.lock().unwrap().len();
+    println!("notify_process_count called. Current running process count: {}", count);
+
+    if let Some(sender) = process_count_channel.lock().unwrap().clone() {
+        if let Err(e) = sender.send(count) {
+            eprintln!("Failed to send process count update: {}", e);
+        }
+    } else {
+        println!("No active process count channel found! (WebSocket client may not be connected)");
     }
 }
 
@@ -194,72 +379,62 @@ fn get_process_status(
         ("session_id" = [])
     )
 )]
-#[delete("/api/process/<application_id>/stop")]
+#[delete("/api/process/<identifier>/stop")]
 fn stop_process(
-    _session_id: SessionGuard,  //Requires authentication
-    application_id: String,
-    process_map: &State<ProcessMap>,
+    _session_id: SessionGuard,
+    identifier: String, // Can be application_id OR process_id
+    process_map: &State<ProcessMap>,    // For tracking process status
+    app_process_map: &State<AppProcessMap>,  // For association application id with process id
+    connections: &State<ProcessConnections>,
+    process_count_channel: &State<ProcessCountChannel>
 ) -> Result<Json<serde_json::Value>, Status> {
-    let mut map = process_map.lock().unwrap();
+    println!("Received request to stop process: {}", identifier);
 
-    if let Some(process_info) = map.get(&application_id) {
-        let parent_pid = process_info.pid;
-
-        // Find all child processes
-        let output = Command::new("wmic")
-            .args(&["process", "where", format!("ParentProcessId={}", parent_pid).as_str(), "get", "ProcessId"])
-            .output();
-
-        let child_pids: Vec<String> = if let Ok(output) = output {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            stdout
-                .lines()
-                .skip(1) // Skip header line
-                .filter_map(|line| {
-                    let trimmed = line.trim();
-                    if !trimmed.is_empty() {
-                        Some(trimmed.to_string())
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-        } else {
-            vec![]
-        };
-
-        // Kill all child processes
-        for pid in &child_pids {
-            let _ = Command::new("taskkill")
-                .args(&["/PID", pid, "/F"])
-                .output();
-        }
-
-        // Kill the parent process
-        let kill_result = Command::new("taskkill")
-            .args(&["/PID", &parent_pid.to_string(), "/F"])
-            .output();
-
-        if let Err(e) = kill_result {
-            error!("Failed to terminate parent process {}: {:?}", parent_pid, e);
-            return Err(Status::InternalServerError);
-        }
-
-        // Update process status
-        *process_info.status.lock().unwrap() = "Stopped".to_string();
-
-        // Remove from process_map
-        map.remove(&application_id);
-
-        Ok(Json(json!({
-            "status": "success",
-            "message": format!("Process {} and all child processes stopped successfully", application_id)
-        })))
+    let process_id = if identifier.contains("-") {
+        app_process_map.lock().unwrap().get(&identifier).cloned().ok_or(Status::NotFound)?
     } else {
-        error!("Process not found for application_id: {}", application_id);
-        Err(Status::NotFound)
+        identifier.clone()
+    };
+
+    let process_info = process_map.lock().unwrap().remove(&process_id).ok_or(Status::NotFound)?;
+
+    let parent_pid = process_info.pid;
+    let child_pids = process_info.child_pids.lock().unwrap().clone();
+
+    println!("Stopping process {} (Parent PID: {}, Child PIDs: {:?})", identifier, parent_pid, child_pids);
+
+    for pid in &child_pids {
+        if let Err(e) = Command::new("taskkill").args(&["/PID", &pid.to_string(), "/F"]).status() {
+            eprintln!("Failed to kill child process {}: {:?}", pid, e);
+        } else {
+            println!("Child process {} terminated successfully", pid);
+        }
     }
+
+    if Command::new("tasklist")
+        .arg("/FI")
+        .arg(format!("PID eq {}", parent_pid))
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).contains(&parent_pid.to_string()))
+        .unwrap_or(false)
+    {
+        if let Err(e) = Command::new("taskkill").args(&["/PID", &parent_pid.to_string(), "/F"]).status() {
+            eprintln!("Failed to terminate parent process {}: {:?}", parent_pid, e);
+        } else {
+            println!("Parent process {} terminated successfully", parent_pid);
+        }
+    } else {
+        println!("Warning: Parent process {} was not found and may have already exited", parent_pid);
+    }
+
+    remove_process(&process_id, process_map, process_count_channel);
+
+    Ok(Json(json!({
+        "status": "success",
+        "message": format!("Process {} stopped successfully", identifier),
+    })))
 }
+
 
 #[utoipa::path(
     post,
@@ -1031,5 +1206,5 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
 
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, get_process_status, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories]
+    routes![execute_program, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories, ws_process_status, ws_process_count]
 }

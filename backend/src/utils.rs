@@ -35,6 +35,11 @@ use winapi::um::processthreadsapi::TerminateProcess;
 //for handling dates
 use chrono::{DateTime, Utc, Duration, TimeDelta};
 
+//for password generation
+use gen_passphrase::dictionary::EFF_LARGE;
+use gen_passphrase;
+use rand::Rng;
+
 //for our db
 use crate::DB;
 use crate::models::*;
@@ -326,3 +331,32 @@ pub fn delete_session(userId: String, conn: &std::sync::MutexGuard<'_, rusqlite:
     }
 
 }
+
+pub fn validate_password(password: &str) -> bool {
+    let has_uppercase = password.chars().any(|c| c.is_uppercase());
+    let has_digit = password.chars().any(|c| c.is_digit(10));
+    let has_special = password.chars().any(|c| "@$!%*?&#".contains(c));
+    let is_long_enough = password.len() >= 8;
+    has_uppercase && has_digit && has_special && is_long_enough
+}
+
+pub fn generate_passphrase() -> String {
+    let mut password = String::new();
+    let mut rng = rand::thread_rng();
+    let chars = "0123456789!@#$%^&*()_+-=[]{}|;:,.<>?/`~"; // Includes numbers and special characters
+    //generating a random length of a password between 4 and 6 words
+    let i = rng.gen_range(4..6);
+    for _ in 0..i {
+        let random_word = gen_passphrase::generate(&[EFF_LARGE], 1, None);
+        let random_char = chars.chars().nth(rng.gen_range(0..chars.len())).unwrap(); //gets a random char from the chars string
+        password.push_str(&random_word);
+        password.push_str("-");
+        password.push(random_char);
+        password.push_str("-");
+    }
+    let random_word = gen_passphrase::generate(&[EFF_LARGE], 1, None);
+    password.push_str(&random_word);
+    return password;
+}
+
+

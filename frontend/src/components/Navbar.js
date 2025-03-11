@@ -1,57 +1,112 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import placeholder from "../assets/profile-placeholder.png";
-
+import React, {useState, useEffect } from "react";
+import {Link, useLocation} from "react-router-dom";
+import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton } from "@mui/material";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import SettingsIcon from "@mui/icons-material/Settings";
+import PersonIcon from "@mui/icons-material/Person";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon } from "@mui/icons-material";
+import { useTheme } from "@mui/material/styles";
+import { startTutorialManually } from "../utils/tutorial";
+import { useStartTutorial } from "../utils/tutorial";
 
 const Navbar = () => {
-  const handleLogout = async () => {
-    try {
-      let session_id = sessionStorage.getItem('session_id');
-      if (!session_id) {
-        console.error('No session ID found in sessionStorage.');
-        return;
-      }
+  const { startTutorialManually } = useStartTutorial();
+  const theme = useTheme();
+  const location = useLocation();
+  const drawerWidth = 200;
+  const collapsedWidth = 60;
+  
+  const [open, setOpen] = useState(() => {
+    // Retrieve the draawer state from localStorage
+    const savedState = localStorage.getItem("drawerOpen");
+    return savedState === null ? true : JSON.parse(savedState);
+  });
 
-      const response = await fetch(`${window.location.origin}:3000/api/user/logout`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-session-id': sessionStorage.getItem('session_id')
-        }
-      });
-      sessionStorage.removeItem('session_id');
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
-  }
+  useEffect(() => {
+    // Save the drawer state to localStorage whenever it chaanges
+    localStorage.setItem("drawerOpen", JSON.stringify(open));
+  }, [open]);
+
+  const getPageKey = () => {
+    if (location.pathname === "/") return "homepage";
+    if (location.pathname.includes("applications")) return "applications";
+    if (location.pathname.includes("profile")) return "profile";
+    if (location.pathname.includes("role-management")) return "role-management";
+    return null;
+  };  
 
   return (
-    <div className="navbar">
-      {/* Sidebar/Navbar */}
-      <div className="sidebar">
-        <div className="logo-button">
-        <Link to="/profile" style={{ textDecoration: 'none' }} className="nav-button">
-            <img
-              src={placeholder}
-              alt="Profile"
-              className="rounded-circle border"
-              width="75"
-              height="75"
-            />
-          </Link>
-          <Link to="/" style={{ textDecoration: 'none' }} className="nav-button">
-            <img 
-              src="LogoHarness2.png" 
-              alt="Logo" 
-              style={{ width: '8 rem', height: '10rem'}} 
-            />
-          </Link>
-        </div>
-        <Link to="/applications" style={{ textDecoration: 'none' }} className="nav-button">Application</Link>
-        <Link to="/role-management" style={{ textDecoration: 'none' }} className="nav-button">Role Management</Link>
-        <Link to="/login" style={{ textDecoration: 'none' }} className="nav-button" onClick={() => {handleLogout()}}>Logout</Link>
-      </div>
-    </div>
+    <Drawer
+      variant="permanent"
+      open={open}
+      sx={{
+        width: open ? drawerWidth : collapsedWidth,
+        flexShrink: 0,
+        "& .MuiDrawer-paper": {
+          width: open ? drawerWidth : collapsedWidth,
+          transition: "width 0.3s ease-in-out, background-color 0.3s ease-in-out",
+          overflowX: "hidden",
+          backgroundColor: theme.palette.secondary.main,
+        },
+      }}
+    >
+      <IconButton
+        onClick={() => setOpen(!open)}
+        sx={{
+          margin: "10px",
+          color: "white",
+          transition: "transform 0.3s ease-in-out, color 0.3s ease-in-out",
+          transform: open ? "rotate(0deg)" : "rotate(180deg)",
+        }}
+      >
+        {open ? <ChevronLeftIcon /> : <MenuIcon />}
+      </IconButton>
+
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/">
+            <ListItemIcon sx={{ color: "white" }}>
+              <DashboardIcon />
+            </ListItemIcon>
+            <ListItemText primary="Dashboard" sx={{ color: "white" }} />
+          </ListItemButton>
+        </ListItem>
+
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/applications">
+            <ListItemIcon sx={{ color: "white" }}>
+              <PersonIcon />
+            </ListItemIcon>
+            <ListItemText primary="Applications" sx={{ color: "white" }} />
+          </ListItemButton>
+        </ListItem>
+
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/role-management">
+            <ListItemIcon sx={{ color: "white" }}>
+              <SettingsIcon />
+            </ListItemIcon>
+            <ListItemText primary="Role" sx={{ color: "white" }} />
+          </ListItemButton>
+        </ListItem>
+
+        {/* Start Tutorial Button */}
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => {
+            const pageKey = getPageKey();
+            if (pageKey) {
+              startTutorialManually(pageKey);
+            }
+          }}>
+            <ListItemIcon sx={{ color: "white" }}>
+              <PlayCircleOutlineIcon />
+            </ListItemIcon>
+            <ListItemText primary="Tutorial" sx={{ color: "white" }} />
+          </ListItemButton>
+        </ListItem>
+      </List>
+    </Drawer>
   );
 };
 

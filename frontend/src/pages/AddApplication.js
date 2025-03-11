@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { Box, Container, TextField, MenuItem, Button, Typography, CircularProgress, Paper, IconButton } from "@mui/material";
+import { FaPlus } from "react-icons/fa";
+import { IoReturnDownBackSharp } from "react-icons/io5";
 import Select from "react-select";
-import "./AddApplication.css"; // Import CSS
+import { useTheme } from "@mui/material/styles";
+import getReactSelectStyles from "./../reactSelectStyles"; // Import the styles
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
 
 const baseURL = window.location.origin;
 
@@ -18,6 +25,9 @@ const AddApplication = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [statusMessage, setStatusMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  
+  const theme = useTheme();
 
   useEffect(() => {
     fetchCategories();
@@ -47,7 +57,7 @@ const AddApplication = () => {
     }
   };
 
-  // Fetch current user ID
+  // Fetch current user ID // shoulnt be required technically as we should use session id from sessionguard to work. as it is now, someone could theoretically use someone elses user id to add an application
   const fetchUserId = async () => {
     try {
       let session_id = sessionStorage.getItem("session_id");
@@ -85,11 +95,12 @@ const AddApplication = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatusMessage("Submitting...");
+    setLoading(true);
 
     const user_id = await fetchUserId();
     if (!user_id) {
       setStatusMessage("Failed to retrieve user session.");
+      setLoading(false);
       return;
     }
 
@@ -112,58 +123,122 @@ const AddApplication = () => {
 
       const responseData = await response.json();
       if (response.ok) {
-        alert("Application added successfully!");
-        navigate("/applications");
+        setLoading(false);
+        withReactContent(Swal).fire({
+          title: <i>Success</i>,
+          text: formData.name + " has been added!",
+          icon: "success",
+        }).then(() => navigate("/applications"));
       } else {
-        setStatusMessage(responseData.message || "Failed to add application.");
+        withReactContent(Swal).fire({
+          title: <i>Failure</i>,
+          text: formData.name + " could not be added!",
+          icon: "error",
+        })
+        setLoading(false);
       }
     } catch (error) {
       console.error("Error:", error);
-      setStatusMessage("An error occurred while adding the application.");
+      withReactContent(Swal).fire({
+        title: <i>Failure</i>,
+        text: formData.name + " could not be added!",
+        icon: "error",
+      })
+      setLoading(false);
     }
   };
 
+  //sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: "8px" }}
   return (
-    <div className="add-app-container">
-      <h2 className="add-app-header">Add Application</h2>
-      {statusMessage && <p className="status-message">{statusMessage}</p>}
+    <Container maxWidth="sm">
+      <Box component={Paper} sx={{ mt: 5, padding: 3, backgroundColor: theme.palette.background.paper, textColor: theme.palette.text.primary, borderRadius: "8px", boxShadow: 3 }}>
+        <Typography variant="h4" gutterBottom sx={{textColor: theme.palette.text.primary}}>Add Application</Typography>
+        
+        {statusMessage && (
+          <Typography variant="body2" color="error" sx={{ mb: 2 }}>
+            {statusMessage}
+          </Typography>
+        )}
 
-      <div className="form-container">
         <form onSubmit={handleSubmit}>
-          <label>Application Name:</label>
-          <input type="text" name="name" value={formData.name} onChange={handleChange} required />
+          <TextField
+            fullWidth
+            label="Application Name"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Application Description"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            required
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Executable Path"
+            name="executable_path"
+            placeholder="C:\Windows\system32\notepad.exe"
+            value={formData.executable_path}
+            onChange={handleChange}
+            required
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Arguments (Optional)"
+            name="arguments"
+            value={formData.arguments}
+            onChange={handleChange}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Team/Individual Responsible"
+            name="contact"
+            value={formData.contact}
+            onChange={handleChange}
+            required
+            sx={{ mb: 2 }}
+          />
 
-          <label>Application Description:</label>
-          <input type="text" name="description" value={formData.description} onChange={handleChange} required />
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>Categories:</Typography>
+          <Select
+            isMulti
+            options={categories}
+            value={selectedCategories}
+            onChange={handleCategoryChange}
+            placeholder="Select categories"
+            className="custom-react-select"
+            classNamePrefix="custom"
+            styles={getReactSelectStyles(theme)}
+          />
 
-          <label>Executable Path:</label>
-          <input type="text" name="executable_path" value={formData.executable_path} onChange={handleChange} required />
-
-          <label>Arguments (Optional):</label>
-          <input type="text" name="arguments" value={formData.arguments} onChange={handleChange} />
-
-          <label>Team/Individual Responsible:</label>
-          <input type="text" name="contact" value={formData.contact} onChange={handleChange} required />
-
-          <label>Categories:</label>
-          <div className="category-select">
-            <Select
-              isMulti
-              options={categories}
-              value={selectedCategories}
-              onChange={handleCategoryChange}
-              placeholder="Select categories"
-              className="custom-react-select"
-              classNamePrefix="custom"
-            />
-          </div>
-
-          <button type="submit" className="submit-button">
-            Add Application
-          </button>
+          <Button
+            variant="contained"
+            color="primary"
+            type="submit"
+            fullWidth
+            sx={{ py: 1.5, mt: 2 }}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} /> : <IconButton><FaPlus /></IconButton>}
+          </Button>
         </form>
-      </div>
-    </div>
+        <Box sx={{ mt: 3 }}>
+          <Link to="/applications">
+            <Button variant="outlined" color="secondary">
+              <IconButton><IoReturnDownBackSharp /></IconButton>
+            </Button>
+          </Link>
+        </Box>
+      </Box>
+    </Container>
   );
 };
 
