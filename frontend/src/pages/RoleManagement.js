@@ -11,6 +11,7 @@ import Swal from 'sweetalert2';
 const baseURL = window.location.origin;
 
 const RoleManagement = () => {
+  const [username, setUsername] = useState("");
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
@@ -45,6 +46,8 @@ const RoleManagement = () => {
     };
 
     fetchUsers();
+
+    fetchUsername();
   }, []);
 
   const handleRequestSort = (property) => {
@@ -128,6 +131,30 @@ const RoleManagement = () => {
       }
   };
 
+  const fetchUsername = async () => {
+    try {
+      const uri = `${baseURL}:3000/api/user/info`;
+      let session_id = sessionStorage.getItem("session_id");
+
+      if (!session_id) return;
+
+      fetch(uri, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id || "",
+        },
+      })
+        .then((res) => (res.ok ? res.json() : Promise.reject("Failed to fetch user data")))
+        .then((user) => {
+          return setUsername(user.username);
+        })
+        .catch((error) => console.error(error));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
       <Navbar />
@@ -205,16 +232,20 @@ const RoleManagement = () => {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.roleName}</TableCell>
                           <TableCell sx={{ display: "   ", justifyContent: "" }}>
-                            <Button id={index === 0 ? "reset-password" : undefined} variant="outlined" onClick={() => handleResetPassword(user.username)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                              <IconButton aria-label="reset-password">
-                                <LuClipboardPenLine />
-                              </IconButton>
-                            </Button>
-                            <Button id={index === 0 ? "delete-user" : undefined} variant="contained" color="error" onClick={() => handleDeleteUser(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                              <IconButton aria-label="delete">
-                                <FaTrashAlt />
-                              </IconButton>
-                            </Button>
+                            { user.roleName != "Superadmin"  && user.username != username &&
+                              <>
+                                <Button id={index === 0 ? "reset-password" : undefined} variant="outlined" onClick={() => handleResetPassword(user.username)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                                  <IconButton aria-label="reset-password">
+                                    <LuClipboardPenLine />
+                                  </IconButton>
+                                </Button>
+                                <Button id={index === 0 ? "delete-user" : undefined} variant="contained" color="error" onClick={() => handleDeleteUser(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                                  <IconButton aria-label="delete">
+                                    <FaTrashAlt />
+                                  </IconButton>
+                                </Button>
+                              </>
+                            }
                           </TableCell>
                         </TableRow>
                       ))}
