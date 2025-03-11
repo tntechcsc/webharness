@@ -21,34 +21,27 @@ const RoleManagement = () => {
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
 
-  // Fetch users data
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        let session_id = sessionStorage.getItem('session_id');
-        const response = await fetch(`${baseURL}:3000/api/user/search/all`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-session-id': session_id || '',
-          },
-        });
+  const fetchUsers = async () => {
+    try {
+      let session_id = sessionStorage.getItem('session_id');
+      const response = await fetch(`${baseURL}:3000/api/user/search/all`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': session_id || '',
+        },
+      });
 
-        const data = await response.json();
-        if (!response.ok) throw new Error('Failed to fetch users');
-        setUsers(data.users);
-        console.log(users);
-      } catch (err) {
-        console.error('Error fetching users:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
-
-    fetchUsername();
-  }, []);
+      const data = await response.json();
+      if (!response.ok) throw new Error('Failed to fetch users');
+      setUsers(data.users);
+      console.log(users);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -90,9 +83,40 @@ const RoleManagement = () => {
     return 0;
   });
 
-  const handleDeleteUser = (userId) => {
-    setUsers(users.filter(user => user.id !== userId));
-    console.log(`Deleted user with ID: ${userId}`);
+  const handleDeleteUser = async (username) => {
+    try {
+      const response = await fetch(`${baseURL}:3000/api/user/delete`, {
+
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-id': sessionStorage.getItem('session_id') || '',
+        },
+        body: JSON.stringify({ target: username }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Success',
+          html: `User deleted: ${username}`,
+        });
+      }
+      else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: data.message,
+        });
+      }
+      }
+    catch (err) {
+      Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: err,
+      });
+    }
   };
 
   const handleResetPassword = async (username) => {
@@ -122,13 +146,13 @@ const RoleManagement = () => {
         });
       }
       }
-      catch (err) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: err,
-        });
-      }
+    catch (err) {
+      Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: err,
+      });
+    }
   };
 
   const fetchUsername = async () => {
@@ -154,6 +178,13 @@ const RoleManagement = () => {
       console.error(err);
     }
   };
+
+    // Fetch users data
+    useEffect(() => {
+      fetchUsers();
+  
+      fetchUsername();
+    }, []);
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
@@ -239,7 +270,7 @@ const RoleManagement = () => {
                                     <LuClipboardPenLine />
                                   </IconButton>
                                 </Button>
-                                <Button id={index === 0 ? "delete-user" : undefined} variant="contained" color="error" onClick={() => handleDeleteUser(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                                <Button id={index === 0 ? "delete-user" : undefined} variant="contained" color="error" onClick={() => {handleDeleteUser(user.username); fetchUsers();}} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                                   <IconButton aria-label="delete">
                                     <FaTrashAlt />
                                   </IconButton>
