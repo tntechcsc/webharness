@@ -7,6 +7,13 @@ import { LuClipboardPenLine } from "react-icons/lu";
 import Navbar from '../components/Navbar';
 import Topbar from '../components/Topbar';
 import Swal from 'sweetalert2';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+
+
 
 const baseURL = window.location.origin;
 
@@ -19,6 +26,30 @@ const RoleManagement = () => {
   const [orderBy, setOrderBy] = useState('username');
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
+  const [openDeleteSuccess, setOpenDeleteSuccess] = useState(false);
+  const [openResetPasswordConfirm, setOpenResetPasswordConfirm] = useState(false);
+  const [openResetPasswordSuccess, setOpenResetPasswordSuccess] = useState(false);
+
+  const handleResetPassword = (userId) => {
+    // Implement the reset password functionality here
+    console.log(`Reset password for user ${userId}`);
+  };
+
+  const handleDeleteUserConfirm = (userId) => {
+    // Implement the delete user functionality here, then open the success dialog
+    console.log(`Deleting user ${userId}`);
+    console.log(`User ${userId} deleted`);
+    setOpenDeleteConfirm(false); // Close the confirm dialog
+    setOpenDeleteSuccess(true); // Open the success dialog
+  };
+
+  const handleResetPasswordConfirm = (userId) => {
+    // Implement the reset password functionality here, then open the success dialog
+    console.log(`Resetting password for user ${userId}`);
+    setOpenResetPasswordConfirm(false); // Close the confirm dialog
+    setOpenResetPasswordSuccess(true); // Open the success dialog
+  };
 
   // Fetch users data
   useEffect(() => {
@@ -92,9 +123,6 @@ const RoleManagement = () => {
     console.log(`Deleted user with ID: ${userId}`);
   };
 
-  const handleResetPassword = (userId) => {
-    Swal.fire(`Password reset for user ID: ${userId}`);
-  };
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
@@ -173,16 +201,102 @@ const RoleManagement = () => {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.roleName}</TableCell>
                           <TableCell sx={{ display: "   ", justifyContent: "" }}>
-                            <Button id={index === 0 ? "reset-password" : undefined} variant="outlined" onClick={() => handleResetPassword(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                              <IconButton aria-label="delete">
+                            <Button onClick={() => setOpenResetPasswordConfirm(true)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                              <IconButton aria-label="reset-password"  style={{ marginRight: '8px' }}>
                                 <LuClipboardPenLine />
                               </IconButton>
                             </Button>
-                            <Button id={index === 0 ? "delete-user" : undefined} variant="contained" color="error" onClick={() => handleDeleteUser(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                              <IconButton aria-label="delete">
+                            <Button onClick={() => setOpenDeleteConfirm(true)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                              <IconButton aria-label="delete" color="error" >
                                 <FaTrashAlt />
                               </IconButton>
                             </Button>
+                            <Dialog
+                              open={openDeleteConfirm}
+                              onClose={() => setOpenDeleteConfirm(false)}
+                              aria-labelledby="alert-dialog-title"
+                              aria-describedby="alert-dialog-description"
+                            >
+                              <DialogTitle id="alert-dialog-title">{"Confirm Delete"}</DialogTitle>
+                              <DialogContent>
+                                <DialogContentText id="alert-dialog-description">
+                                  Are you sure you want to delete this user?
+                                </DialogContentText>
+                              </DialogContent>
+                              <DialogActions>
+                                <Button variant="outlined" onClick={() => setOpenDeleteConfirm(false)}
+                                  sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+                                  Cancel
+                                </Button>
+                                <Button variant="outlined" onClick={() => {
+                                  handleDeleteUserConfirm(user.id);
+                                }} sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
+                                  Delete
+                                </Button>
+                              </DialogActions>
+                            </Dialog>
+                            <Dialog
+                              open={openDeleteSuccess}
+                              onClose={() => setOpenDeleteSuccess(false)}
+                              aria-labelledby="simple-dialog-title"
+                              aria-describedby="simple-dialog-description"
+                            >
+                              <DialogTitle id="simple-dialog-title">User Deleted</DialogTitle>
+                              <DialogContent>
+                                <DialogContentText id="simple-dialog-description">
+                                  The user has been successfully deleted.
+                                </DialogContentText>
+                              </DialogContent>
+                              <DialogActions>
+                                <Button variant="outlined" onClick={() => setOpenDeleteSuccess(false)} sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+                                  OK
+                                </Button>
+                              </DialogActions>
+                            </Dialog>
+                            <Dialog
+                              open={openResetPasswordConfirm}
+                              onClose={() => setOpenResetPasswordConfirm(false)}
+                              aria-labelledby="reset-password-dialog-title"
+                              aria-describedby="reset-password-dialog-description"
+                            >
+                              <DialogTitle id="reset-password-dialog-title">{"Confirm Password Reset"}</DialogTitle>
+                              <DialogContent>
+                                <DialogContentText id="reset-password-dialog-description">
+                                  Are you sure you want to reset the password for this user?
+                                </DialogContentText>
+                              </DialogContent>
+                              <DialogActions>
+                                <Button variant="outlined" onClick={() => setOpenResetPasswordConfirm(false)}
+                                  sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }} >
+                                  Cancel
+                                </Button>
+                                <Button variant="outlined" onClick={() => {
+                                  handleResetPasswordConfirm(user.id);
+                                }} sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
+                                  Reset Password
+                                </Button>
+                              </DialogActions>
+                            </Dialog>
+                            <Dialog
+                              open={openResetPasswordSuccess}
+                              onClose={() => setOpenResetPasswordSuccess(false)}
+                              aria-labelledby="reset-password-success-title"
+                              aria-describedby="reset-password-success-description"
+                            >
+                              <DialogTitle id="reset-password-success-title">Password Reset</DialogTitle>
+                              <DialogContent>
+                                <DialogContentText id="reset-password-success-description">
+                                  The password for the user has been successfully reset.
+                                </DialogContentText>
+                              </DialogContent>
+                              <DialogActions>
+                                <Button variant="outlined" onClick={() => setOpenResetPasswordSuccess(false)} sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+                                  OK
+                                </Button>
+                              </DialogActions>
+                            </Dialog>
+
+                            
                           </TableCell>
                         </TableRow>
                       ))}
