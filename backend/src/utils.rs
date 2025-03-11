@@ -344,8 +344,9 @@ pub fn generate_passphrase() -> String {
     let mut password = String::new();
     let mut rng = rand::thread_rng();
     let chars = "0123456789!@#$%^&*()_+-=[]{}|;:,.<>?/`~"; // Includes numbers and special characters
-    
-    for _ in 0..4 {
+    //generating a random length of a password between 4 and 6 words
+    let i = rng.gen_range(4..6);
+    for _ in 0..i {
         let random_word = gen_passphrase::generate(&[EFF_LARGE], 1, None);
         let random_char = chars.chars().nth(rng.gen_range(0..chars.len())).unwrap(); //gets a random char from the chars string
         password.push_str(&random_word);
