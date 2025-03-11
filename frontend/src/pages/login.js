@@ -1,6 +1,6 @@
 import React from "react";
+import { Box, TextField, Button, Typography, Container, Paper } from "@mui/material";
 import axios from "axios";
-import "./login.css"; // Assuming you save your CSS in Login.css
 
 const Login = () => {
   const handleSubmit = (e) => {
@@ -9,38 +9,139 @@ const Login = () => {
     const username = formData.get("username");
     const password = formData.get("password");
 
-    const baseURL = window.location.origin;
+    const baseURL = "http://localhost:3000"; //Backend
 
-    axios.post(`${baseURL}:3000/api/user/login`, { username, password })
-      .then(response => {
+    axios
+      .post(`${baseURL}/api/user/login`, { username, password })
+      .then((response) => {
         console.log("Login successful:", response.data);
-        // insert received session token into div #token
-        //document.getElementById("token").innerText = JSON.stringify(response.data.session_id);
-        // store session token in sessionStorage
         sessionStorage.setItem("session_id", response.data.session_id);
-
-        // Handle success by redirecting to /
-        window.location.href = "/";
+        window.location.href = "/"; // 
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("Login error:", error);
-        // Handle error (e.g., display error message)
+        alert("Login failed. Please check your credentials.");
       });
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center min-vh-100 position-relative w-100">
-      <form className="form col-md-4 text-center" onSubmit={handleSubmit}>
-        <img src="LogoHarness2.png" alt="Logo" className="logo" style={{ maxWidth: '200px', maxHeight: '200px' }}/>
-        <div style={{ fontSize: '32px', color: '#6ffb78' }}>Mangrove</div>
-        <div className="d-flex flex-column align-items-center">
-          <input className="input mb-3" name="username" placeholder="Username" type="username" required />
-          <input className="input mb-3" name="password" placeholder="Password" type="password" required />
-          <button type="submit" className="button">Log In →</button>
-          <div id="token"></div>
-        </div>
-      </form>
-    </div>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "linear-gradient(180deg, #1e3c72 50%, white 100%)", // Page Background
+      }}
+    >
+      <Container maxWidth="sm">
+        <Paper
+          elevation={20}
+          sx={{
+            position: "relative", // 
+            width: "100%",
+            p: 4,
+            borderRadius: "16px",
+            textAlign: "center",
+            background: "linear-gradient(135deg, #132060 0%, #1e3c72 100%)",
+            boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.3)",
+            overflow: "hidden", 
+            transition: "all 0.3s ease-in-out",
+            "&:hover": { boxShadow: "0px 12px 24px rgba(0, 0, 0, 0.5)" },
+          }}
+        >
+            <Box
+            sx={{
+              position: "absolute",
+              width: "100vw",
+              height: "100vh",
+              backgroundColor: "white",
+              opacity: 0.7,
+              borderRadius: "50%",
+              top: "40%",
+             
+            }}
+
+          />
+
+          {/* ✅ Logo */}
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 2, position: "relative", zIndex: 1 }}>
+            <img src="LogoHarness2.png" alt="Logo" style={{ maxWidth: "150px", maxHeight: "150px" }} />
+          </Box>
+
+          {/* ✅ Title */}
+          <Typography
+            variant="h4"
+            sx={{
+              color: "white",
+              fontWeight: "bold",
+              mb: 3,
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            Mangrove
+          </Typography>
+
+          {/* ✅ Login Form */}
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2, position: "relative", zIndex: 1 }}>
+            <TextField
+              name="username"
+              variant="outlined"
+              fullWidth
+              required
+              size="small"
+              placeholder="Username"
+              InputLabelProps={{ shrink: false }}
+              InputProps={{
+                sx: {
+                  backgroundColor: "white",
+                  borderRadius: "5px",
+                  color: "black",
+                },
+              }}
+            />
+
+            <TextField
+              name="password"
+              type="password"
+              variant="outlined"
+              fullWidth
+              required
+              size="small"
+              placeholder="Password"
+              InputLabelProps={{ shrink: false }}
+              InputProps={{
+                sx: {
+                  backgroundColor: "white",
+                  borderRadius: "5px",
+                  color: "black",
+                },
+              }}
+            />
+
+            {/* ✅ Login Button */}
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{
+                mt: 1,
+                width: "200px", // ✅ Adjust the width here (Change size as needed)
+                backgroundColor: "#132060",
+                color: "white",
+                fontWeight: "bold",
+                alignSelf: "center", // ✅ Ensures button stays centered
+                "&:hover": { 
+                  backgroundColor: "#57e569" 
+                },
+              }}
+            >
+              Log In →
+            </Button>
+          </Box>
+        </Paper>
+      </Container>
+    </Box>
   );
 };
 
