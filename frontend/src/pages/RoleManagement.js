@@ -8,6 +8,13 @@ import Navbar from '../components/Navbar';
 import Topbar from '../components/Topbar';
 import Swal from 'sweetalert2';
 import { fetchRole } from "./../utils/authUtils.js";
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+
+
 
 const baseURL = window.location.origin;
 
@@ -21,7 +28,35 @@ const RoleManagement = () => {
   const [order, setOrder] = useState('asc');
   const [orderBy, setOrderBy] = useState('username');
   const [loading, setLoading] = useState(true);
+  const [displayedPassword, setDisplayedPassword] = useState("");
   const theme = useTheme();
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
+  const [openDeleteSuccess, setOpenDeleteSuccess] = useState(false);
+  const [openResetPasswordConfirm, setOpenResetPasswordConfirm] = useState(false);
+  const [openResetPasswordSuccess, setOpenResetPasswordSuccess] = useState(false);
+
+
+  const handleDeleteUserConfirm = (username) => {
+    // Implement the delete user functionality here, then open the success dialog
+    /*
+    console.log(`Deleting user ${userId}`);
+    console.log(`User ${userId} deleted`);
+    setOpenDeleteConfirm(false); // Close the confirm dialog
+    setOpenDeleteSuccess(true); // Open the success dialog
+    */
+    handleDeleteUser(username).then(() => {
+      setOpenDeleteConfirm(false); // Close the confirm dialog
+      setOpenDeleteSuccess(true); // Open the success dialog
+    }); // may have to add error handling if we arent going to user swal
+    
+  };
+
+  const handleResetPasswordConfirm = (username) => {
+    // Implement the reset password functionality here, then open the success dialog
+    handleResetPassword(username); //for displaying the password that is reset this sets it after a success
+    setOpenResetPasswordConfirm(false); // Close the confirm dialog
+    setOpenResetPasswordSuccess(true); // Open the success dialog
+  };
 
 
   const fetchUsers = async () => {
@@ -99,27 +134,13 @@ const RoleManagement = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        Swal.fire({
-          icon: 'success',
-          title: 'Success',
-          html: `User deleted: ${username}`,
-        });
+
         fetchUsers();
       }
       else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: data.message,
-        });
       }
       }
     catch (err) {
-      Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: err,
-      });
     }
   };
 
@@ -136,26 +157,12 @@ const RoleManagement = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        Swal.fire({
-          icon: 'success',
-          title: 'Success',
-          html: `Password reset for user: ${username}\<br>New password: <br> ${data.password}<br>*The password does not start with a space*`,
-        });
+        setDisplayedPassword(data.password);
       }
       else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: data.message,
-        });
       }
       }
     catch (err) {
-      Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: err,
-      });
     }
   };
 
@@ -242,65 +249,155 @@ const RoleManagement = () => {
                     />
                   </Box>
 
-                  <TableContainer component={Paper}>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>
-                            <TableSortLabel
-                              active={orderBy === 'username'}
-                              direction={orderBy === 'username' ? order : 'asc'}
-                              onClick={() => handleRequestSort('username')}
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>
+                          <TableSortLabel
+                            active={orderBy === 'username'}
+                            direction={orderBy === 'username' ? order : 'asc'}
+                            onClick={() => handleRequestSort('username')}
+                          >
+                            Username
+                          </TableSortLabel>
+                        </TableCell>
+                        <TableCell>
+                          <TableSortLabel
+                            active={orderBy === 'email'}
+                            direction={orderBy === 'email' ? order : 'asc'}
+                            onClick={() => handleRequestSort('email')}
+                          >
+                            Email
+                          </TableSortLabel>
+                        </TableCell>
+                        <TableCell>
+                          <TableSortLabel
+                            active={orderBy === 'roleName'}
+                            direction={orderBy === 'roleName' ? order : 'asc'}
+                            onClick={() => handleRequestSort('roleName')}
+                          >
+                            Role
+                          </TableSortLabel>
+                        </TableCell>
+                        <TableCell>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    
+                    
+                    <TableBody>
+                       {sortedUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user, index) => (
+                        <TableRow key={user.id}>
+                          <TableCell>{user.username}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.roleName}</TableCell>
+                          <TableCell sx={{ display: "   ", justifyContent: "" }}>
+			                      { user.roleName != "Superadmin"  && user.username != username && //we do not want people to be able to delete our superuser or themselves
+                            <>
+                            <Button onClick={() => setOpenResetPasswordConfirm(true)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                              <IconButton aria-label="reset-password"  style={{ marginRight: '8px' }}>
+                                <LuClipboardPenLine />
+                              </IconButton>
+                            </Button>
+                            <Button onClick={() => setOpenDeleteConfirm(true)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                              <IconButton aria-label="delete" color="error" >
+                                <FaTrashAlt />
+                              </IconButton>
+                            </Button>
+
+                            <Dialog
+                              open={openDeleteConfirm}
+                              onClose={() => setOpenDeleteConfirm(false)}
+                              aria-labelledby="alert-dialog-title"
+                              aria-describedby="alert-dialog-description"
                             >
-                              Username
-                            </TableSortLabel>
-                          </TableCell>
-                          <TableCell>
-                            <TableSortLabel
-                              active={orderBy === 'email'}
-                              direction={orderBy === 'email' ? order : 'asc'}
-                              onClick={() => handleRequestSort('email')}
+                              <DialogTitle id="alert-dialog-title">{"Confirm Delete"}</DialogTitle>
+                              <DialogContent>
+                                <DialogContentText id="alert-dialog-description">
+                                  Are you sure you want to delete this user?
+                                </DialogContentText>
+                              </DialogContent>
+                              <DialogActions>
+                                <Button variant="outlined" onClick={() => setOpenDeleteConfirm(false)}
+                                  sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+                                  Cancel
+                                </Button>
+                                <Button variant="outlined" onClick={() => {
+                                  handleDeleteUserConfirm(user.username);
+                                }} sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
+                                  Delete
+                                </Button>
+                              </DialogActions>
+                            </Dialog>
+                            <Dialog
+                              open={openDeleteSuccess}
+                              onClose={() => setOpenDeleteSuccess(false)}
+                              aria-labelledby="simple-dialog-title"
+                              aria-describedby="simple-dialog-description"
                             >
-                              Email
-                            </TableSortLabel>
-                          </TableCell>
-                          <TableCell>
-                            <TableSortLabel
-                              active={orderBy === 'roleName'}
-                              direction={orderBy === 'roleName' ? order : 'asc'}
-                              onClick={() => handleRequestSort('roleName')}
+                              <DialogTitle id="simple-dialog-title">User Deleted</DialogTitle>
+                              <DialogContent>
+                                <DialogContentText id="simple-dialog-description">
+                                  The user has been successfully deleted.
+                                </DialogContentText>
+                              </DialogContent>
+                              <DialogActions>
+                                <Button variant="outlined" onClick={() => setOpenDeleteSuccess(false)} sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+                                  OK
+                                </Button>
+                              </DialogActions>
+                            </Dialog>
+                            <Dialog
+                              open={openResetPasswordConfirm}
+                              onClose={() => setOpenResetPasswordConfirm(false)}
+                              aria-labelledby="reset-password-dialog-title"
+                              aria-describedby="reset-password-dialog-description"
                             >
-                              Role
-                            </TableSortLabel>
+                              <DialogTitle id="reset-password-dialog-title">{"Confirm Password Reset"}</DialogTitle>
+                              <DialogContent>
+                                <DialogContentText id="reset-password-dialog-description">
+                                  Are you sure you want to reset the password for this user?
+                                </DialogContentText>
+                              </DialogContent>
+                              <DialogActions>
+                                <Button variant="outlined" onClick={() => setOpenResetPasswordConfirm(false)}
+                                  sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }} >
+                                  Cancel
+                                </Button>
+                                <Button variant="outlined" onClick={() => {
+                                  handleResetPasswordConfirm(user.username);
+                                }} sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
+                                  Reset Password
+                                </Button>
+                              </DialogActions>
+                            </Dialog>
+                            <Dialog
+                              open={openResetPasswordSuccess}
+                              onClose={() => setOpenResetPasswordSuccess(false)}
+                              aria-labelledby="reset-password-success-title"
+                              aria-describedby="reset-password-success-description"
+                            >
+                              <DialogTitle id="reset-password-success-title">Password Reset</DialogTitle>
+                              <DialogContent>
+                                <DialogContentText id="reset-password-success-description">
+                                  The password for the user has been successfully reset. <br/> {displayedPassword}
+                                </DialogContentText>
+                              </DialogContent>
+                              <DialogActions>
+                                <Button variant="outlined" onClick={() => setOpenResetPasswordSuccess(false)} sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+                                  OK
+                                </Button>
+                              </DialogActions>
+                            </Dialog>
+                            </>
+                            /*and pwd change*/}
+                            
+                          
                           </TableCell>
-                          <TableCell>Actions</TableCell>
                         </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {sortedUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user, index) => (
-                          <TableRow key={user.id}>
-                            <TableCell>{user.username}</TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>{user.roleName}</TableCell>
-                            <TableCell sx={{ display: "   ", justifyContent: "" }}>
-                              { user.roleName != "Superadmin"  && user.username != username &&
-                                <>
-                                  <Button id={index === 1 ? "reset-password" : undefined} variant="outlined" onClick={() => handleResetPassword(user.username)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                                    <IconButton aria-label="reset-password">
-                                      <LuClipboardPenLine />
-                                    </IconButton>
-                                  </Button>
-                                  <Button id={index === 1 ? "delete-user" : undefined} variant="contained" color="error" onClick={() => {handleDeleteUser(user.username); fetchUsers();}} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                                    <IconButton aria-label="delete">
-                                      <FaTrashAlt />
-                                    </IconButton>
-                                  </Button>
-                                </>
-                              }
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
+                      ))}
+                    </TableBody>
+
                     </Table>
                     <TablePagination
                       rowsPerPageOptions={[5, 10, 25]}
