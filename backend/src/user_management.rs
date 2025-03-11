@@ -58,6 +58,24 @@ use crate::SessionGuard;
 #[get("/api/user/search/all")]
 fn user_all(_session_id: SessionGuard, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let session_id = _session_id.0; //getting their session id
+    //checking their role
+    let actor = session_to_user(session_id, &conn); // going from session to user_id
+    if actor == "" {
+        return Err(Status::BadRequest);
+    }
+    let actor = user_name_search(actor, &conn); // going from session to username for user_role_search
+    if actor == "" {
+        return Err(Status::BadRequest);
+    }
+    let actor_role = user_role_search(actor.clone(), &conn); //going from username to rolename
+    if actor_role == "" {
+        return Err(Status::BadRequest);
+    }
+    let actor_role: i32 = actor_role.parse().expect("Not a valid number"); //going from rolename to role_id holy s*** this is a lot of work
+    if actor_role == 3 {// they are a view
+        return Err(Status::Unauthorized);
+    }
 
     let mut stmt = conn.prepare("SELECT U.id, U.username, U.email, R.roleName FROM User U JOIN UserRoles UR ON U.id = UR.userID JOIN Roles R ON UR.roleID = R.roleID;").unwrap(); // Prepare your query
     let mut rows = stmt.query([]).unwrap(); // Execute the query with no parameters
