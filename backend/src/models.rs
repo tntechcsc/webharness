@@ -96,7 +96,7 @@ pub struct Session {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct ResetPasswordForm {
+pub struct ModifyUserForm {
     #[schema(example = "gbus")]
     pub target: String,
 }

@@ -485,17 +485,16 @@ fn user_logout(_session_id: SessionGuard, db: &rocket::State<Arc<DB>>) -> Result
         (status = 200, description = "Updates user info"),
         (status = 404, description = "User not found")
     ),
-    request_body = ResetPasswordForm,
+    request_body = ModifyUserForm,
     security(
         ("session_id" = [])
     ),
     )]
 #[put("/api/password/reset", data = "<user_data>")]
-fn reset_password(_session_id: SessionGuard, user_data: Json<ResetPasswordForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+fn reset_password(_session_id: SessionGuard, user_data: Json<ModifyUserForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let target = &user_data.target;
     let session_id = &_session_id.0;
-    let mut i = 0;
     let mut password = generate_passphrase(); // Generate a new password
 
     if !user_exists(target, &conn) {
@@ -512,7 +511,7 @@ fn reset_password(_session_id: SessionGuard, user_data: Json<ResetPasswordForm>,
         return Err(Status::NotFound);
     }
 
-    if &actor == target {
+    if &actor == target { //cannot reset own password like this
         return Err(Status::BadRequest);
     }
 
@@ -600,28 +599,55 @@ fn set_password(
 
 #[utoipa::path(
     delete,
-    path = "/api/user/delete/{username}",
+    path = "/api/user/delete",
     tag = "User Management",
     responses(
         (status = 200, description = "Deletes a user"),
         (status = 404, description = "User not found")
     ),
-    params(
-        ("username", description = "name of person you want to delete")
+    request_body = ModifyUserForm,
+    security(
+        ("session_id" = [])
     )
     )]
-#[delete("/api/user/delete/<username>")]
-fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+#[delete("/api/user/delete", data = "<deleteForm>")]
+fn user_delete(_session_id: SessionGuard, deleteForm: Json<ModifyUserForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let target = &deleteForm.target;
+    let session_id = &_session_id.0;
 
     // Check if the user exists
-    if !user_exists(&username, &conn) {
+    if !user_exists(&target, &conn) {
+        println!("su not found for some reason too");
         return Err(Status::NotFound); // 404 Not Found if user doesn't exist
+    }
+
+    //session is that of the actor
+    let actor = session_to_user(session_id.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
+    let actor_role = user_role_search(actor.clone(), &conn);
+    let target_role = user_role_search(target.clone(), &conn);
+
+    if actor == "" {
+        return Err(Status::NotFound);
+    }
+    if target_role == "1" { //cannot delete superadmin
+        return Err(Status::NotFound);
+    }
+    if actor_role == "3" { //if they are a viewer
+        return Err(Status::Unauthorized);
+    }
+    if &actor == target { //cannot delete yourself like this, honestly shouldnt be able to delete yourself at all
+        return Err(Status::BadRequest);
+    }
+
+    else if !compare_roles(actor, target.clone(), &conn) {
+        return Err(Status::Unauthorized);
     }
 
     // Prepare the SQL DELETE query
     let query = "DELETE FROM User WHERE username = ?1";
-    let result = conn.execute(query, &[&username]);
+    let result = conn.execute(query, &[&target]);
 
     match result {
         Ok(0) => {
@@ -641,6 +667,7 @@ fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<ser
         }
     }
 }
+
 
 // Export the routes
 pub fn user_management_routes() -> Vec<Route> {
