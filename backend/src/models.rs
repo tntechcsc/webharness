@@ -59,8 +59,6 @@ pub struct UserInit {
     pub username: String,
     #[schema(example = "gbus@gmail.com")]
     pub email: String,
-    #[schema(example = "password123")]
-    pub password: String,
     #[schema(example = "2 for Admin, 3 for Viewer")]
     pub role: String,
 }

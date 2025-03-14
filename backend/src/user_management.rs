@@ -308,6 +308,7 @@ fn user_register(_session_id: SessionGuard, user_data: Json<UserInit>, db: &rock
     let actor_role = user_role_search(actor.clone(), &conn);
     let actor_role: i32 = actor_role.parse().expect("Not a valid number");
     let target_role: i32 = user_data.role.parse().expect("Not a valid number");
+    let password = generate_passphrase();
 
     if actor == "" {
         return Err(Status::BadRequest);
@@ -330,7 +331,7 @@ fn user_register(_session_id: SessionGuard, user_data: Json<UserInit>, db: &rock
     }
 
     let id = Uuid::new_v4().to_string(); // Generate a unique user ID
-    let pass_hash = hash(user_data.password.clone(), DEFAULT_COST).unwrap(); // Hash the password
+    let pass_hash = hash(password.clone(), DEFAULT_COST).unwrap(); // Hash the password
 
     // Prepare the SQL INSERT query
     let query = "INSERT INTO User (id, username, pass_hash, email) VALUES (?1, ?2, ?3, ?4)";
@@ -353,6 +354,8 @@ fn user_register(_session_id: SessionGuard, user_data: Json<UserInit>, db: &rock
             Ok(Json(json!({
                 "status": "success",
                 "message": "User registered successfully",
+                "password": password.clone(),
+                "username": user_data.username.clone(),
                 "user_id": id
             })))
         }
