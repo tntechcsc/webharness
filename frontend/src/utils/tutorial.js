@@ -1,9 +1,17 @@
 import introJs from "intro.js";
 import "intro.js/minified/introjs.min.css";
 import { useTheme } from "@mui/material/styles";
+import { fetchRole } from "./authUtils";
+import { useEffect, useState } from "react";
 
 export const useStartTutorial = () => {
+  const [userRole, setUserRole] = useState("Viewer"); 
   const theme = useTheme();
+  useEffect(() => {
+    fetchRole().then((role) => {
+      setUserRole(role);
+    })
+  })
   const startTutorialManually = (currentPage) => {
     let steps = [];
 
@@ -24,7 +32,7 @@ export const useStartTutorial = () => {
         { element: "#run-button", intro: "Click this button to start an application." },
         { element: "#view-button", intro: "Click this button to view an application in detail." },
       ];
-    } else if (currentPage === "role-management") {
+    } else if (currentPage === "role-management" && userRole != "Viewer") {
       steps = [
         { element: "#register-user", intro: "Click here to register a new user." },
         { element: "#search-users", intro: "Click here to search for a user." },
