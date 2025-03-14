@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom'; //may have to switch to hash router
 import HomePage from './pages/HomePage';
 import Application from './pages/Application';
 import RoleManagement from './pages/RoleManagement';

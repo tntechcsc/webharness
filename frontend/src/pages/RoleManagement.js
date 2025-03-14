@@ -101,6 +101,7 @@ const RoleManagement = () => {
           title: 'Success',
           html: `User deleted: ${username}`,
         });
+        fetchUsers();
       }
       else {
         Swal.fire({
