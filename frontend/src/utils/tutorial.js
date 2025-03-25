@@ -28,6 +28,7 @@ export const useStartTutorial = () => {
       steps = [
         { element: "#applications-overview", intro: "This section gives an overview of all applications." },
         { element: "#add-application-button", intro: "Click here to add a new application." },
+        { element: "#add-category-button", intro: "Click here to add and delete categories." },
         { element: "#search-bar", intro: "Use this search bar to quickly find applications." },
         { element: "#run-button", intro: "Click this button to start an application." },
         { element: "#view-button", intro: "Click this button to view an application in detail." },

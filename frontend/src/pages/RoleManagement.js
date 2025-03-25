@@ -212,7 +212,7 @@ const RoleManagement = () => {
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
           <Topbar />
 
-          <Container sx={{ mt: 5, ml: 2, maxWidth: 'xl' }}>
+          <Container sx={{ mt: 5, maxWidth: 'xl' }}>
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: '8px' }}>
