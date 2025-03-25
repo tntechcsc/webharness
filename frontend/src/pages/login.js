@@ -1,84 +1,208 @@
 import React from "react";
-import axios from "axios";
-import "./login.css"; // Assuming you save your CSS in Login.css
-import Button from "@mui/material/Button";
-import Alert from '@mui/material/Alert';
-import Checkbox from '@mui/material/Checkbox';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { Box, TextField, Button, Typography, Container, Paper, Alert, IconButton, InputAdornment,} from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import KeyboardCapslockIcon from '@mui/icons-material/KeyboardCapslock';
-
+import axios from "axios";
 
 const Login = () => {
-
-  const [loginSuccess, setLoginSuccess] = React.useState("");
-  const [loginError, setLoginError] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [capsLockEnabled, setCapsLockEnabled] = React.useState(false);
+  const [loginError, setLoginError] = React.useState("");
+  const [loginSuccess, setLoginSuccess] = React.useState("");
 
   const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
+    setShowPassword((prev) => !prev);
   };
 
   const handleCapsLock = (e) => {
-    const capsLockOn = e.getModifierState("CapsLock");
-    setCapsLockEnabled(capsLockOn);
+    const isCaps = e.getModifierState && e.getModifierState("CapsLock");
+    setCapsLockEnabled(isCaps);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setLoginError("");
+    setLoginSuccess("");
+
     const formData = new FormData(e.target);
     const username = formData.get("username");
     const password = formData.get("password");
 
     const baseURL = window.location.origin;
 
-    axios.post(`${baseURL}:3000/api/user/login`, { username, password })
-      .then(response => {
-        console.log("Login successful:", response.data);
+    axios
+      .post(`${baseURL}:3000/api/user/login`, { username, password })
+      .then((response) => {
         sessionStorage.setItem("session_id", response.data.session_id);
-        setLoginSuccess(true);
+        setLoginSuccess("Login successful!");
         setLoginError("");
         window.location.href = "/";
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("Login error:", error);
-        setLoginError("Login Failed. Please check your username and password.");
-        setLoginSuccess(false);
+        setLoginError("Login failed. Please check your username and password.");
+        setLoginSuccess("");
       });
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center min-vh-100 position-relative w-100">
-      <form className="form col-md-4 text-center" onSubmit={(e) => { handleSubmit(e); setLoginError(""); setLoginSuccess(""); }} style={{ position: 'relative', paddingBottom: '2rem' }}>
-        <img src="LogoHarness2.png" alt="Logo" className="logo" style={{ maxWidth: '200px', maxHeight: '200px' }}/>
-        <div style={{ fontSize: '32px', color: '#6ffb78' }}>Mangrove</div>
-        <div className="d-flex flex-column align-items-center">
-          <input className="input mb-3" name="username" placeholder="Username" type="text" required onKeyUp={handleCapsLock} style={{border: '2px solid #75ea81', borderRadius: '.25rem', padding: '.375rem .75rem', outlineColor: '#75ea81'}} />
-          <div className="input-group mb-1 position-relative">
-            <input className="input" name="password" placeholder="Password" type={showPassword ? "text" : "password"} required onKeyUp={handleCapsLock} style={{border: '2px solid #75ea81', borderRadius: '.25rem', padding: '.375rem .75rem', outlineColor: '#6ffb78'}} />
-            <div className="position-absolute top-50 end-0 translate-middle-y pe-0">
-              <FormControlLabel
-                control={<Checkbox icon={<VisibilityOff style={{ color: 'rgba(0, 0, 0, 0.54)' }} />} checkedIcon={<Visibility />} onChange={togglePasswordVisibility} />}
-                label=""
-              />
-            </div>
-          </div>
-          <div className="alert-container" style={{ width: '100%', position: 'absolute', top: '100%', mt: '2rem', zIndex: '5', transform: 'translateY(20px)', transition: 'opacity 0.5s', opacity: loginError || loginSuccess ? '1' : '0' }}>
-            {loginError && <Alert variant="filled" severity="error">{loginError}</Alert>}
-            {loginSuccess && <Alert variant="filled" severity="success">Login Successful!</Alert>}
-          </div>
-          {capsLockEnabled && (
-            <div className="caps-lock-warning mb-3" style={{ color: 'red', position: 'relative', zIndex: '5' }}>
-              <KeyboardCapslockIcon style={{ verticalAlign: 'middle', marginRight: '5px' }} />
-              Caps Lock is on
-            </div>
-          )}
-          <button type="submit" className="button mt-3">Log In →</button>
-        </div>
-      </form>
-    </div>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "linear-gradient(to top, #afb9c8, #9eaabc , #8e9cb1, #7e8ea6 ,  #6e809b,  #5e7290, #475e80,  #304a70, #193660 , #143161, #112c61, #102661, #132060, #111d56 , #0f1a4d, #0b133a)",
+      }}
+    >
+
+
+      <Container maxWidth="sm">
+        <Paper
+          elevation={20}
+          sx={{
+            position: "relative",
+            p: 4,
+            borderRadius: "16px",
+            textAlign: "center",
+            background: "linear-gradient(to bottom, #132060 0%, #2b3670 100%)",
+            boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.3)",
+            overflow: "hidden",
+            transition: "all 0.3s ease-in-out",
+            "&:hover": {
+              boxShadow: "0px 12px 24px rgba(0, 0, 0, 0.5)",
+            },
+          }}
+        >
+
+          {/* Logo */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mb: 2,
+              zIndex: 1,
+              position: "relative",
+            }}
+          >
+            <img
+              src="LogoHarness2.png"
+              alt="Logo"
+              style={{ maxWidth: "150px", maxHeight: "150px" }}
+            />
+          </Box>
+
+          {/* Title */}
+          <Typography
+            variant="h4"
+            sx={{
+              color: "white",
+              fontWeight: "bold",
+              mb: 3,
+              zIndex: 1,
+              position: "relative",
+            }}
+          >
+            Mangrove
+          </Typography>
+
+          {/* Form */}
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            <TextField
+              name="username"
+              variant="outlined"
+              fullWidth
+              required
+              size="small"
+              placeholder="Username"
+              onKeyUp={handleCapsLock}
+              InputLabelProps={{ shrink: false }}
+              InputProps={{
+                sx: {
+                  backgroundColor: "white",
+                  borderRadius: "5px",
+                  color: "black",
+                },
+              }}
+            />
+
+            <TextField
+              name="password"
+              type={showPassword ? "text" : "password"}
+              variant="outlined"
+              fullWidth
+              required
+              size="small"
+              placeholder="Password"
+              onKeyUp={handleCapsLock}
+              InputLabelProps={{ shrink: false }}
+              InputProps={{
+                sx: {
+                  backgroundColor: "white",
+                  borderRadius: "5px",
+                  color: "black",
+                },
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={togglePasswordVisibility} edge="end">
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            {/* Caps Lock Warning */}
+            {capsLockEnabled && (
+              <Box sx={{ color: "red", display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
+                <KeyboardCapslockIcon />
+                <Typography variant="body2">Caps Lock is on</Typography>
+              </Box>
+            )}
+
+            {/* Alerts */}
+            {loginError && (
+              <Alert severity="error" sx={{ mt: 1 }}>
+                {loginError}
+              </Alert>
+            )}
+            {loginSuccess && (
+              <Alert severity="success" sx={{ mt: 1 }}>
+                {loginSuccess}
+              </Alert>
+            )}
+
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{
+                mt: 2,
+                width: "200px",
+                backgroundColor: "#132060",
+                color: "white",
+                fontWeight: "bold",
+                alignSelf: "center",
+                "&:hover": {
+                  backgroundColor: "#57e569",
+                },
+              }}
+            >
+              Log In →
+            </Button>
+          </Box>
+        </Paper>
+      </Container>
+    </Box>
   );
 };
 
