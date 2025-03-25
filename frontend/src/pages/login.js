@@ -4,6 +4,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import KeyboardCapslockIcon from '@mui/icons-material/KeyboardCapslock';
 import axios from "axios";
 
+
 const Login = () => {
   const [showPassword, setShowPassword] = React.useState(false);
   const [capsLockEnabled, setCapsLockEnabled] = React.useState(false);
@@ -124,43 +125,55 @@ const Login = () => {
               fullWidth
               required
               size="small"
-              placeholder="Username"
               onKeyUp={handleCapsLock}
-              InputLabelProps={{ shrink: false }}
-              InputProps={{
-                sx: {
+              placeholder="Username"
+              sx={{
+                "& .MuiOutlinedInput-root": {
                   backgroundColor: "white",
                   borderRadius: "5px",
-                  color: "black",
+                },
+                "& .MuiInputBase-input": {
+                  color: "black", // ✅ input text color
+                },
+                "& ::placeholder": {
+                  color: "gray", // ✅ placeholder color (optional)
+                  opacity: 1,
                 },
               }}
             />
 
-            <TextField
-              name="password"
-              type={showPassword ? "text" : "password"}
-              variant="outlined"
-              fullWidth
-              required
-              size="small"
-              placeholder="Password"
-              onKeyUp={handleCapsLock}
-              InputLabelProps={{ shrink: false }}
-              InputProps={{
-                sx: {
-                  backgroundColor: "white",
-                  borderRadius: "5px",
-                  color: "black",
-                },
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={togglePasswordVisibility} edge="end">
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
+              <TextField
+                name="password"
+                placeholder="Password"
+                type={showPassword ? "text" : "password"}
+                variant="outlined"
+                fullWidth
+                required
+                size="small"
+                onKeyUp={handleCapsLock}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "white",
+                    borderRadius: "5px",
+                  },
+                  "& .MuiInputBase-input": {
+                    color: "black",
+                  },
+                  "& ::placeholder": {
+                    color: "gray",
+                    opacity: 1,
+                  },
+                }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={togglePasswordVisibility} edge="end">
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
 
             {/* Caps Lock Warning */}
             {capsLockEnabled && (
