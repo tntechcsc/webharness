@@ -19,9 +19,10 @@ import {
   TextField,
   IconButton,
   TablePagination,
-  TableSortLabel
+  TableSortLabel,
+  Modal,
 } from "@mui/material";
-import { FaPlay, FaEye, FaPlus, FaStop } from "react-icons/fa";
+import { FaPlay, FaEye, FaPlus, FaStop, FaTags } from "react-icons/fa";
 import { useTheme } from "@mui/material/styles";
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
@@ -39,6 +40,10 @@ function Application() {
   const [runningApplications, setRunningApplications] = useState({});
   const theme = useTheme();
   const wsRef = useRef({});
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [categoryName, setCategoryName] = useState('');
+  const [categoryDescription, setCategoryDescription] = useState('');
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     fetchApplications();
@@ -63,12 +68,153 @@ function Application() {
     localStorage.setItem("runningApplications", JSON.stringify(validRunningApps));
 
     console.log("Application.js has loaded successfully!");
-
+    if (showAddCategoryModal) {
+      fetchCategories();
+    }
     return () => {
       // Cleanup before unmounting
       window.removeEventListener("beforeunload", saveActiveProcesses);
     };
-  }, []);
+  }, [showAddCategoryModal]);
+
+  const handleDeleteCategory = async (categoryId) => {
+    try {
+      let session_id = sessionStorage.getItem('session_id');
+      if (!session_id) {
+        console.error('No session ID found in sessionStorage.');
+        return;
+      }
+  
+      const response = await fetch(`${baseURL}:3000/api/categories/${categoryId}/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': session_id,
+        },
+      });
+  
+      if (response.ok) {
+        setCategories((prev) => prev.filter((category) => category.id !== categoryId));
+        withReactContent(Swal).fire({
+          title: <i>Success</i>,
+          text: 'Category deleted successfully!',
+          icon: 'success',
+          target: document.body,
+          didOpen: () => {
+            const container = document.querySelector('.swal2-container');
+            if (container) {
+              container.style.zIndex = '1400';
+            }
+          },
+        });
+      } else {
+        console.error('Failed to delete category.');
+        withReactContent(Swal).fire({
+          title: <i>Failure</i>,
+          text: 'Failed to delete category.',
+          icon: 'error',
+          target: document.body,
+          didOpen: () => {
+            const container = document.querySelector('.swal2-container');
+            if (container) {
+              container.style.zIndex = '1400';
+            }
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      withReactContent(Swal).fire({
+        title: <i>Failure</i>,
+        text: 'Failed to delete category.',
+        icon: 'error',
+        target: document.body,
+        didOpen: () => {
+          const container = document.querySelector('.swal2-container');
+          if (container) {
+            container.style.zIndex = '1400';
+          }
+        },
+      });
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      let session_id = sessionStorage.getItem('session_id');
+      if (!session_id) {
+        console.error('No session ID found in sessionStorage.');
+        return;
+      }
+  
+      const response = await fetch(`${baseURL}:3000/api/categories`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': session_id,
+        },
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data.categories);
+      } else {
+        console.error('Failed to fetch categories.');
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const handleAddCategory = async () => {
+    try {
+      let session_id = sessionStorage.getItem('session_id');
+      if (!session_id) {
+        console.error('No session ID found in sessionStorage.');
+        return;
+      }
+  
+      const response = await fetch(`${baseURL}:3000/api/categories/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': session_id,
+        },
+        body: JSON.stringify({
+          name: categoryName,
+          description: categoryDescription,
+        }),
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Category added successfully:', data);
+        setShowAddCategoryModal(false);
+        setCategoryName('');
+        setCategoryDescription('');
+        withReactContent(Swal).fire({
+          title: <i>Success</i>,
+          text: 'Category added successfully!',
+          icon: 'success',
+        });
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to add category:', errorData);
+        withReactContent(Swal).fire({
+          title: <i>Failure</i>,
+          text: 'Failed to add category.',
+          icon: 'error',
+        });
+      }
+    } catch (error) {
+      console.error('Error adding category:', error);
+      withReactContent(Swal).fire({
+        title: <i>Failure</i>,
+        text: 'Failed to add category.',
+        icon: 'error',
+      });
+    }
+  };
 
   // Save active processes before page refresh
   const saveActiveProcesses = () => {
@@ -343,7 +489,7 @@ function Application() {
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         <Topbar />
 
-        <Container sx={{ mt: 5, ml: 2, maxWidth: "xl" }}> {/* Effectively our main content page */}
+        <Container sx={{ mt: 5, maxWidth: "xl" }}> {/* Effectively our main content page */}
           {statusMessage && <Typography variant="body1" sx={{ mb: 2 }}>{statusMessage}</Typography>} {/*TODO replace with swal or something */}
 
           <Grid container spacing={3}>
@@ -353,11 +499,41 @@ function Application() {
                 <Divider sx={{ my: 2 }} />
 
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                  <Button id="add-application-button" variant="contained" component={Link} to="/add-application" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                    <IconButton variant="contained" color="primary" style={{ color: '#12255f' }}>
-                      <FaPlus />
-                    </IconButton>
-                  </Button> {/*Buton to add new application */}
+                  {/* Buttons for Add Application and Add Category */}
+                  <Box sx={{ display: "flex", gap: 2 }}>
+                    <Button
+                      id="add-application-button"
+                      variant="contained"
+                      component={Link}
+                      to="/add-application"
+                      style={{
+                        backgroundColor: '#75ea81',
+                        padding: '2px 0px',
+                        transform: "scale(0.75)",
+                      }}
+                    >
+                      <IconButton variant="contained" color="primary" style={{ color: '#12255f' }}>
+                        <FaPlus />
+                      </IconButton>
+                    </Button>
+  
+                    <Button
+                      id="add-category-button"
+                      variant="contained"
+                      onClick={() => setShowAddCategoryModal(true)} // Open the modal
+                      style={{
+                        backgroundColor: '#75ea81',
+                        padding: '2px 0px',
+                        transform: 'scale(0.75)',
+                      }}
+                    >
+                      <IconButton variant="contained" color="primary" style={{ color: '#12255f' }}>
+                        <FaTags />
+                      </IconButton>
+                    </Button>
+                  </Box>
+  
+                  {/* Search Bar */}
                   <TextField
                     id="search-bar"
                     label="Search applications..."
@@ -367,13 +543,13 @@ function Application() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </Box>
-
-                <TableContainer component={Paper}>{/*our table container that holds our info. paper is mui effect to make the page look like paper */}
-                  <Table> {/*Our table definition */}
-                    <TableHead>{/*our table header */}
+  
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
                       <TableRow>
-                        <TableCell>{/*our label sorting logic */}
-                          <TableSortLabel 
+                        <TableCell>
+                          <TableSortLabel
                             active={orderBy === 'name'}
                             direction={orderBy === 'name' ? order : 'asc'}
                             onClick={() => handleRequestSort('name')}
@@ -467,6 +643,108 @@ function Application() {
           </Grid>
         </Container>
       </Box>
+  
+      {/* Add Category Modal */}
+      <Modal
+        open={showAddCategoryModal}
+        onClose={() => setShowAddCategoryModal(false)}
+        aria-labelledby="add-category-modal-title"
+        aria-describedby="add-category-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 500,
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+            p: 4,
+            borderRadius: '8px',
+          }}
+        >
+          <Typography id="add-category-modal-title" variant="h6" component="h2" sx={{ mb: 2 }}>
+            Add Category
+          </Typography>
+
+          {/* Add Category Section */}
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Category Name"
+              variant="outlined"
+              value={categoryName}
+              onChange={(e) => setCategoryName(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label="Category Description"
+              variant="outlined"
+              value={categoryDescription}
+              onChange={(e) => setCategoryDescription(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleAddCategory}
+              disabled={!categoryName.trim()}
+              fullWidth
+            >
+              Add Category
+            </Button>
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* List of Categories */}
+          <Typography variant="h6" component="h3" sx={{ mb: 2 }}>
+            Existing Categories
+          </Typography>
+          <Box sx={{ maxHeight: '50vh', overflowY: 'auto' }}>
+            {categories.length > 0 ? (
+              categories.map((category) => (
+                <Box
+                  key={category.id}
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mb: 2,
+                    p: 2,
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                  }}
+                >
+                  <Box>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                      {category.name}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {category.description || 'No description'}
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={() => handleDeleteCategory(category.id)}
+                  >
+                    Delete
+                  </Button>
+                </Box>
+              ))
+            ) : (
+              <Typography variant="body2" color="textSecondary">
+                No categories available.
+              </Typography>
+            )}
+          </Box>
+        </Box>
+      </Modal>
     </Box>
   );
 }

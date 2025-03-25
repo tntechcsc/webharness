@@ -28,7 +28,7 @@ const HomePage = () => {
   const theme = useTheme();
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", backgroundColor: theme.palette.background.default}}>
+    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", backgroundColor: theme.palette.background.default, justifyContent: "center" }}>
       <Navbar /> {/* Vertical navbar */}
 
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
