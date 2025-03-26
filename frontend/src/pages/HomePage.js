@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "../App"; // Ensure your styles are linked correctly
 import Navbar from "../components/Navbar";
 import Topbar from "../components/Topbar";
@@ -9,8 +9,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 
 
 // Fake data
-const totalApplications = 50;
-const activeApplications = 30;
+const baseURL = window.location.origin;
 const failedApplicationsData = [
   { date: "Feb 20", count: 4 },
   { date: "Feb 21", count: 8 },
@@ -26,6 +25,64 @@ const recentLogins = [
 
 const HomePage = () => {
   const theme = useTheme();
+  const [activeApplications, setActiveApplications] = useState(0);
+  const [totalApplications, setTotalApplications] = useState(0);
+
+  // Fetch total applications from the backend
+  useEffect(() => {
+    const fetchTotalApplications = async () => {
+      try {
+        const response = await fetch(`${baseURL}:3000/api/applications`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": sessionStorage.getItem("session_id"), // Include session ID if required
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const applications = data.applications || [];
+          setTotalApplications(applications.length); // Update total applications count
+        } else {
+          console.error("Failed to fetch total applications");
+        }
+      } catch (error) {
+        console.error("Error fetching total applications:", error);
+      }
+    };
+
+    fetchTotalApplications();
+  }, []); // Run only once when the component mounts
+
+  useEffect(() => {
+    // Establish WebSocket connection
+    const ws = new WebSocket(`ws://${window.location.hostname}:3000/ws/process_count`);
+
+    ws.onopen = () => {
+      console.log("WebSocket connection established for process count.");
+    };
+
+    ws.onmessage = (event) => {
+      const processCount = parseInt(event.data, 10); // Parse the process count from the WebSocket message
+      if (!isNaN(processCount)) {
+        setActiveApplications(processCount); // Update the state with the new process count
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket connection closed.");
+    };
+
+    // Cleanup WebSocket connection on component unmount
+    return () => {
+      ws.close();
+    };
+  }, []);
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", backgroundColor: theme.palette.background.default, justifyContent: "center" }}>
