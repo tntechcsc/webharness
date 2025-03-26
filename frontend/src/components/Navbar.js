@@ -3,7 +3,7 @@ import {Link, useLocation} from "react-router-dom";
 import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import SettingsIcon from "@mui/icons-material/Settings";
-import PersonIcon from "@mui/icons-material/Person";
+import AppsIcon from '@mui/icons-material/Apps';
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
@@ -76,7 +76,7 @@ const Navbar = () => {
         <ListItem disablePadding>
           <ListItemButton component={Link} to="/applications">
             <ListItemIcon sx={{ color: "white" }}>
-              <PersonIcon />
+              <AppsIcon />
             </ListItemIcon>
             <ListItemText primary="Applications" sx={{ color: "white" }} />
           </ListItemButton>
