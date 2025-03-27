@@ -85,8 +85,10 @@ const Navbar = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton component={Link} to="/applications" sx={navItemStyle}>
-            <ListItemIcon sx={{ color: "white" }}><ViewListIcon /></ListItemIcon>
+          <ListItemButton component={Link} to="/applications">
+            <ListItemIcon sx={{ color: "white" }}>
+              <PersonIcon />
+            </ListItemIcon>
             <ListItemText primary="Applications" sx={{ color: "white" }} />
           </ListItemButton>
         </ListItem>

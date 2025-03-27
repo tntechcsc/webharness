@@ -324,12 +324,13 @@ fn remove_process(
 fn ws_process_count(
     ws: WebSocket,
     process_count_channel: &State<ProcessCountChannel>,
+    process_map: &State<ProcessMap>, // Add process_map to get the current count
 ) -> MessageStream<'static, impl Stream<Item = Result<Message, Error>>> {
-    println!(" WebSocket connection opened for process count updates");
+    println!("WebSocket connection opened for process count updates");
 
     let receiver = {
         let mut channel = process_count_channel.lock().unwrap();
-        if channel.is_none() {  // Create the channel if it doesn't exist
+        if channel.is_none() { // Create the channel if it doesn't exist
             let (tx, rx) = broadcast::channel(10);
             *channel = Some(tx);
             println!("Process count broadcast channel initialized");
@@ -339,14 +340,27 @@ fn ws_process_count(
         }
     };
 
-    ws.stream(move |_| {
-        futures_util::stream::unfold(receiver, |mut rx| async {
-            match rx.recv().await {
-                Ok(count) => Some((Ok(Message::Text(count.to_string())), rx)),
-                Err(_) => None,
-            }
-        })
-    })
+    // Get the current process count
+    let current_count = process_map.lock().unwrap().len();
+
+    // Create a stream of updates for the WebSocket client
+    let updates = futures_util::stream::unfold(receiver, |mut rx| async {
+        match rx.recv().await {
+            Ok(count) => Some((Ok(Message::Text(count.to_string())), rx)),
+            Err(_) => None, // Terminate the WebSocket stream on error
+        }
+    });
+
+    // Combine the initial message with the updates
+    let initial_message = futures_util::stream::once(async move {
+        Ok(Message::Text(current_count.to_string()))
+    });
+
+    // Concatenate the initial message and the updates
+    let message_stream = initial_message.chain(updates);
+
+    // Wrap the message_stream in a closure
+    ws.stream(move |_| message_stream)
 }
 
 fn notify_process_count(process_map: &ProcessMap, process_count_channel: &ProcessCountChannel) {

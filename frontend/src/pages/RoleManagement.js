@@ -285,12 +285,12 @@ const RoleManagement = () => {
                             <TableCell sx={{ display: "   ", justifyContent: "" }}>
                               { user.roleName != "Superadmin"  && user.username != username &&
                                 <>
-                                  <Button id={index === 0 ? "reset-password" : undefined} variant="outlined" onClick={() => handleResetPassword(user.username)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                                  <Button id={index === 1 ? "reset-password" : undefined} variant="outlined" onClick={() => handleResetPassword(user.username)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                                     <IconButton aria-label="reset-password">
                                       <LuClipboardPenLine />
                                     </IconButton>
                                   </Button>
-                                  <Button id={index === 0 ? "delete-user" : undefined} variant="contained" color="error" onClick={() => {handleDeleteUser(user.username); fetchUsers();}} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                                  <Button id={index === 1 ? "delete-user" : undefined} variant="contained" color="error" onClick={() => {handleDeleteUser(user.username); fetchUsers();}} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                                     <IconButton aria-label="delete">
                                       <FaTrashAlt />
                                     </IconButton>

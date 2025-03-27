@@ -9,8 +9,8 @@ import "bootstrap/dist/css/bootstrap.min.css";
 
 const API_BASE_URL = "http://localhost:3000";
 
-const totalApplications = 50;
-const activeApplications = 30;
+// Fake data
+const baseURL = window.location.origin;
 const failedApplicationsData = [
   { date: "Feb 20", count: 4 },
   { date: "Feb 21", count: 8 },
@@ -26,32 +26,63 @@ const recentLogins = [
 
 const HomePage = () => {
   const theme = useTheme();
-  const [username, setUsername] = useState("User");
+  const [activeApplications, setActiveApplications] = useState(0);
+  const [totalApplications, setTotalApplications] = useState(0);
 
+  // Fetch total applications from the backend
   useEffect(() => {
-    const fetchUserInfo = async () => {
+    const fetchTotalApplications = async () => {
       try {
-        const session_id = sessionStorage.getItem("session_id");
-        if (!session_id) return;
-
-        const res = await fetch(`${API_BASE_URL}/api/user/info`, {
+        const response = await fetch(`${baseURL}:3000/api/applications`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "x-session-id": session_id,
+            "x-session-id": sessionStorage.getItem("session_id"), // Include session ID if required
           },
         });
 
-        if (!res.ok) throw new Error("Failed to fetch user info");
-
-        const data = await res.json();
-        setUsername(data.username || "User");
+        if (response.ok) {
+          const data = await response.json();
+          const applications = data.applications || [];
+          setTotalApplications(applications.length); // Update total applications count
+        } else {
+          console.error("Failed to fetch total applications");
+        }
       } catch (error) {
-        console.error("Error fetching user info:", error);
+        console.error("Error fetching total applications:", error);
       }
     };
 
-    fetchUserInfo();
+    fetchTotalApplications();
+  }, []); // Run only once when the component mounts
+
+  useEffect(() => {
+    // Establish WebSocket connection
+    const ws = new WebSocket(`ws://${window.location.hostname}:3000/ws/process_count`);
+
+    ws.onopen = () => {
+      console.log("WebSocket connection established for process count.");
+    };
+
+    ws.onmessage = (event) => {
+      const processCount = parseInt(event.data, 10); // Parse the process count from the WebSocket message
+      if (!isNaN(processCount)) {
+        setActiveApplications(processCount); // Update the state with the new process count
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket connection closed.");
+    };
+
+    // Cleanup WebSocket connection on component unmount
+    return () => {
+      ws.close();
+    };
   }, []);
 
   return (
