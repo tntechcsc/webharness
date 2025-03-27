@@ -10,8 +10,8 @@ import {
   MenuItem,
   Tooltip,
 } from "@mui/material";
+import { DarkMode, WbSunny, AutoAwesome } from "@mui/icons-material"; // ✅ NEW ICONS
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import { Brightness4, Brightness7, AutoAwesome } from "@mui/icons-material";
 import { ThemeContext } from "../context/themecontext";
 import logo from "../assets/LogoHarness.jpeg";
 import { handleLogout } from "../utils/authUtils";
@@ -20,20 +20,17 @@ import withReactContent from "sweetalert2-react-content";
 
 const Topbar = () => {
   const { mode, toggleTheme } = useContext(ThemeContext);
-
   const [username, setUsername] = useState(null);
   const [role, setRole] = useState(null);
   const [profilePic, setProfilePic] = useState(null);
-  const baseURL = window.location.origin;
   const [anchorEl, setAnchorEl] = useState(null);
+  const baseURL = window.location.origin;
 
   useEffect(() => {
-    const uri = `${baseURL}:3000/api/user/info`;
     const session_id = sessionStorage.getItem("session_id");
-
     if (!session_id) return;
 
-    fetch(uri, {
+    fetch(`${baseURL}:3000/api/user/info`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -51,19 +48,18 @@ const Topbar = () => {
   const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
 
+  // ✅ Friendly tooltip label for current icon (next mode)
+  const getNextModeLabel = () => {
+    if (mode === "light") return "Switch to Dark Mode";
+    if (mode === "default") return "Switch to Light Mode";
+    return "Switch to Default Mode";
+  };
+
   return (
-    <AppBar
-      position="static"
-      sx={{
-        backgroundColor: "primary.main",
-        boxShadow: "none",
-      }}
-    >
-      <Toolbar
-        variant="dense"
-        sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-      >
-        {/* Left: Logo + Title */}
+    <AppBar position="static" sx={{ backgroundColor: "#12255f", boxShadow: "none" }}>
+      <Toolbar variant="dense" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        
+        {/* 🔹 Logo + Title */}
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <img src={logo} alt="Logo" style={{ height: 50, marginRight: 10 }} />
           <Typography variant="h6" color="inherit" sx={{ fontWeight: "bold" }}>
@@ -71,26 +67,25 @@ const Topbar = () => {
           </Typography>
         </Box>
 
-        {/* Right: Theme Toggle + Avatar + Role */}
+        {/* 🔹 Right Side: Theme Toggle + Avatar + Role */}
         <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Tooltip title={`Theme: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`}>
+          <Tooltip title={getNextModeLabel()}>
             <IconButton
               onClick={toggleTheme}
               sx={{
                 marginRight: 2,
-                backgroundColor:
-                  mode === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+                backgroundColor: mode === "dark" ? "rgba(255,255,255,0.1)" : "#ffffff",
                 color: mode === "dark" ? "#FFD700" : "#132060",
                 borderRadius: "8px",
                 padding: "6px",
                 "&:hover": {
-                  backgroundColor: "rgba(117, 234, 129, 0.6)",
+                  backgroundColor: "#e0e0e0",
                 },
               }}
             >
-              {mode === "light" && <Brightness4 />}
-              {mode === "dark" && <AutoAwesome />}
-              {mode === "default" && <Brightness7 />}
+              {mode === "light" && <DarkMode />}   {/* To Default */}
+              {mode === "default" && <WbSunny />}     {/* To Dark */}
+              {mode === "dark" && <AutoAwesome />}         {/* To Light */}
             </IconButton>
           </Tooltip>
 
@@ -102,20 +97,14 @@ const Topbar = () => {
           </IconButton>
 
           {role && (
-            <Typography
-              variant="body2"
-              color="white"
-              sx={{ fontStyle: "italic" }}
-            >
+            <Typography variant="body2" color="white" sx={{ fontStyle: "italic" }}>
               {role}
             </Typography>
           )}
 
           {/* Profile Menu */}
           <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-            <MenuItem onClick={() => (window.location.href = "/profile")}>
-              View Profile
-            </MenuItem>
+            <MenuItem onClick={() => (window.location.href = "/profile")}>View Profile</MenuItem>
             <MenuItem
               onClick={() => {
                 handleMenuClose();

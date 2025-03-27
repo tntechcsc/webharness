@@ -1,37 +1,34 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import "../App";
 import Navbar from "../components/Navbar";
 import Topbar from "../components/Topbar";
-import { Box, Container, Typography, Divider, Card, CardContent, Grid, CircularProgress, List, ListItem, ListItemText, } from "@mui/material";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, } from "recharts";
+import {
+  Box,
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  Grid,
+  List,
+  ListItem,
+  ListItemText,
+} from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import "bootstrap/dist/css/bootstrap.min.css";
+import { ThemeContext } from "../context/themecontext";
 
 const API_BASE_URL = "http://localhost:3000";
 
-// Fake data
-const baseURL = window.location.origin;
-
-const failedApplicationsData = [
-  { date: "Feb 20", count: 4 },
-  { date: "Feb 21", count: 8 },
-  { date: "Feb 22", count: 2 },
-  { date: "Feb 23", count: 6 },
-];
-
-const recentLogins = [
-  { user: "John Doe", time: "2025-02-24 10:15 AM" },
-  { user: "Jane Smith", time: "2025-02-24 09:45 AM" },
-  { user: "Alice Johnson", time: "2025-02-23 08:30 PM" },
-];
-
 const HomePage = () => {
   const theme = useTheme();
-  const [activeApplications, setActiveApplications] = useState(0);
-  const [totalApplications, setTotalApplications] = useState(0);
-  const [username, setUsername] = useState("User"); // ✅ added username state
+  const { mode } = useContext(ThemeContext);
 
-  // ✅ Fetch user's name
+  const [username, setUsername] = useState("User");
+  const [totalApplications, setTotalApplications] = useState(0);
+  const [activeApplications, setActiveApplications] = useState([]); // ✅ now a list
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [systemLogs, setSystemLogs] = useState([]);
+
+  // Fetch user info
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
@@ -47,7 +44,6 @@ const HomePage = () => {
         });
 
         if (!res.ok) throw new Error("Failed to fetch user info");
-
         const data = await res.json();
         setUsername(data.username || "User");
       } catch (error) {
@@ -58,11 +54,11 @@ const HomePage = () => {
     fetchUserInfo();
   }, []);
 
-  // Fetch total applications
+  // Fetch dashboard stats
   useEffect(() => {
-    const fetchTotalApplications = async () => {
+    const fetchDashboardStats = async () => {
       try {
-        const response = await fetch(`${baseURL}:3000/api/applications`, {
+        const res = await fetch(`${API_BASE_URL}/api/dashboard/stats`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -70,13 +66,36 @@ const HomePage = () => {
           },
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          const applications = data.applications || [];
-          setTotalApplications(applications.length);
-        } else {
-          console.error("Failed to fetch total applications");
-        }
+        if (!res.ok) throw new Error("Failed to fetch dashboard stats");
+
+        const data = await res.json();
+        setTotalUsers(data.totalUsersRegistered || 0);
+        setSystemLogs(data.systemLogs || []);
+        setActiveApplications(data.applicationsInUse || []); // ✅ get active apps
+      } catch (error) {
+        console.error("Error loading dashboard stats:", error);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
+
+  // Fetch total applications (separate endpoint)
+  useEffect(() => {
+    const fetchTotalApplications = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/applications`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": sessionStorage.getItem("session_id"),
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch applications");
+
+        const data = await res.json();
+        setTotalApplications(data.applications?.length || 0);
       } catch (error) {
         console.error("Error fetching total applications:", error);
       }
@@ -85,52 +104,31 @@ const HomePage = () => {
     fetchTotalApplications();
   }, []);
 
-  // WebSocket: Active Applications Count
-  useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.hostname}:3000/ws/process_count`);
-
-    ws.onopen = () => console.log("WebSocket connected.");
-    ws.onmessage = (event) => {
-      const count = parseInt(event.data, 10);
-      if (!isNaN(count)) setActiveApplications(count);
-    };
-    ws.onerror = (err) => console.error("WebSocket error:", err);
-    ws.onclose = () => console.log("WebSocket closed.");
-
-    return () => ws.close();
-  }, []);
-
   return (
     <Box
       sx={{
         display: "flex",
         minHeight: "100vh",
-        overflow: "hidden",
-        backgroundColor: theme.palette.background.default,
-        justifyContent: "center",
+        background:
+          mode === "default"
+            ? theme.custom?.gradients?.homeBackground || "linear-gradient(to bottom, #132060, #3e8e7e)"
+            : theme.palette.background.default,
       }}
     >
       <Navbar />
 
-      <Box
-        sx={{
-          flexGrow: 1,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         <Topbar />
 
         {/* ✅ Welcome Banner */}
         <Box
           sx={{
             width: "100%",
-            backgroundColor: "#0A192F",
-            color: "white",
+            backgroundColor: theme.palette.background.banner || "#0A192F",
+            color: "#fff",
             textAlign: "center",
             py: 2,
-            boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)",
+            boxShadow: theme.shadows[4],
           }}
         >
           <Typography variant="h5">
@@ -138,79 +136,69 @@ const HomePage = () => {
           </Typography>
         </Box>
 
-        <Container sx={{ mt: 5, ml: 2, maxWidth: "xl" }}>
+        {/* ✅ Cards Section */}
+        <Container sx={{ mt: 5, maxWidth: "xl" }}>
           <Grid container spacing={3}>
-            {/* Applications Card */}
+            {/* Total Applications */}
             <Grid item xs={12} md={6}>
-              <Card sx={{ textAlign: "center", p: 3 }}>
-                <CardContent>
-                  <Typography variant="h6">Applications in Usage</Typography>
-                  <CircularProgress
-                    variant="determinate"
-                    value={(activeApplications / totalApplications) * 100}
-                    size={120}
-                    thickness={5}
-                  />
-                  <Typography variant="h5" sx={{ mt: 2 }}>
-                    {activeApplications}/{totalApplications}
+              <Card sx={{ p: 3, backgroundColor: theme.palette.primary.main, color: "white", borderRadius: 3 }}>
+                <CardContent sx={{ textAlign: "center" }}>
+                  <Typography variant="h6">Total Applications</Typography>
+                  <Typography variant="h4" sx={{ mt: 2, fontWeight: "bold", color: theme.palette.secondary.main }}>
+                    {totalApplications}
                   </Typography>
                 </CardContent>
               </Card>
             </Grid>
 
-            {/* Failed Applications Chart */}
+            {/* Registered Users */}
             <Grid item xs={12} md={6}>
-              <Card sx={{ p: 2 }}>
-                <CardContent>
-                  <Typography variant="h6">Failed Applications</Typography>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={failedApplicationsData}>
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#ff6961" />
-                    </BarChart>
-                  </ResponsiveContainer>
+              <Card sx={{ p: 3, backgroundColor: theme.palette.primary.main, color: "white", borderRadius: 3 }}>
+                <CardContent sx={{ textAlign: "center" }}>
+                  <Typography variant="h6">Total Registered Users</Typography>
+                  <Typography variant="h4" sx={{ mt: 2, fontWeight: "bold", color: theme.palette.secondary.main }}>
+                    {totalUsers}
+                  </Typography>
                 </CardContent>
               </Card>
             </Grid>
 
-            {/* Recent Logins */}
-            <Grid item xs={12} sm={6} md={4}>
-              <Card sx={{ p: 2 }}>
+            {/* Active Applications */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ p: 3, backgroundColor: theme.palette.primary.main, color: "white", borderRadius: 3 }}>
                 <CardContent>
-                  <Typography variant="h6">Recent Logins</Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <List>
-                    {recentLogins.map((login, index) => (
-                      <ListItem key={index}>
-                        <ListItemText primary={login.user} secondary={login.time} />
-                      </ListItem>
-                    ))}
-                  </List>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Upcoming Events */}
-            <Grid item xs={12} sm={6} md={4}>
-              <Card sx={{ p: 2 }}>
-                <CardContent>
-                  <Typography variant="h6">Upcoming Events</Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography variant="body2">No events scheduled.</Typography>
+                  <Typography variant="h6" sx={{ textAlign: "center" }}>Active Applications</Typography>
+                  <Box sx={{ maxHeight: 150, overflowY: "auto", mt: 2, backgroundColor: theme.palette.background.default, borderRadius: 1, p: 2 }}>
+                    {activeApplications.length > 0 ? (
+                      <List>
+                        {activeApplications.map((app, index) => (
+                          <ListItem key={index}>
+                            <ListItemText primary={app} sx={{ color: "#000000", fontWeight: "bold" }} />
+                          </ListItem>
+                        ))}
+                      </List>
+                    ) : (
+                      <Typography sx={{ color: theme.palette.text.primary }}>No active applications found.</Typography>
+                    )}
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             {/* System Logs */}
-            <Grid item xs={12} md={8}>
-              <Card sx={{ p: 2 }}>
+            <Grid item xs={12} md={6}>
+              <Card sx={{ p: 3, backgroundColor: theme.palette.primary.main, color: "white", borderRadius: 3 }}>
                 <CardContent>
-                  <Typography variant="h6">System Logs</Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography variant="body2">[System] All services running smoothly.</Typography>
-                  <Typography variant="body2">[Security] No unauthorized access detected.</Typography>
+                  <Typography variant="h6" sx={{ textAlign: "center" }}>System Logs</Typography>
+                  <Box sx={{ maxHeight: 150, overflowY: "auto", mt: 2, backgroundColor: theme.palette.background.default, borderRadius: 1, p: 2 }}>
+                    <List>
+                      {systemLogs.map((log, index) => (
+                        <ListItem key={index}>
+                          <ListItemText primary={log} sx={{ color: "#000000", fontWeight: "bold" }} />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>
