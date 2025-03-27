@@ -1,14 +1,14 @@
-import React from "react";
-import "../App"; // Ensure your styles are linked correctly
+import React, { useEffect, useState } from "react";
+import "../App";
 import Navbar from "../components/Navbar";
 import Topbar from "../components/Topbar";
-import { Box, Container, Typography, Divider, Card, CardContent, Grid, CircularProgress, List, ListItem, ListItemText } from "@mui/material";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Box, Container, Typography, Divider, Card, CardContent, Grid, CircularProgress, List, ListItem, ListItemText, } from "@mui/material";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, } from "recharts";
 import { useTheme } from "@mui/material/styles";
 import "bootstrap/dist/css/bootstrap.min.css";
 
+const API_BASE_URL = "http://localhost:3000";
 
-// Fake data
 const totalApplications = 50;
 const activeApplications = 30;
 const failedApplicationsData = [
@@ -26,13 +26,71 @@ const recentLogins = [
 
 const HomePage = () => {
   const theme = useTheme();
+  const [username, setUsername] = useState("User");
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const session_id = sessionStorage.getItem("session_id");
+        if (!session_id) return;
+
+        const res = await fetch(`${API_BASE_URL}/api/user/info`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": session_id,
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch user info");
+
+        const data = await res.json();
+        setUsername(data.username || "User");
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", backgroundColor: theme.palette.background.default, justifyContent: "center" }}>
-      <Navbar /> {/* Vertical navbar */}
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        overflow: "hidden",
+        backgroundColor: theme.palette.background.default,
+        justifyContent: "center",
+      }}
+    >
+      <Navbar />
 
-      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <Topbar /> {/* Horizontal navbar */}
+      <Box
+        sx={{
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        <Topbar />
+
+        {/* ✅ Welcome Banner */}
+        <Box
+            sx={{
+              width: "100%",
+              backgroundColor: theme.palette.background.banner,
+              textAlign: "center",
+              py: 2,
+              boxShadow: theme.shadows[4],
+            }}
+          >
+          <Typography variant="h5">
+            Welcome, {username}! Your dashboard is ready to go.
+          </Typography>
+        </Box>
+
 
         <Container sx={{ mt: 5, ml: 2, maxWidth: "xl" }}>
           <Grid container spacing={3}>
