@@ -11,6 +11,7 @@ const API_BASE_URL = "http://localhost:3000";
 
 // Fake data
 const baseURL = window.location.origin;
+
 const failedApplicationsData = [
   { date: "Feb 20", count: 4 },
   { date: "Feb 21", count: 8 },
@@ -28,8 +29,36 @@ const HomePage = () => {
   const theme = useTheme();
   const [activeApplications, setActiveApplications] = useState(0);
   const [totalApplications, setTotalApplications] = useState(0);
+  const [username, setUsername] = useState("User"); // ✅ added username state
 
-  // Fetch total applications from the backend
+  // ✅ Fetch user's name
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const session_id = sessionStorage.getItem("session_id");
+        if (!session_id) return;
+
+        const res = await fetch(`${API_BASE_URL}/api/user/info`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": session_id,
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch user info");
+
+        const data = await res.json();
+        setUsername(data.username || "User");
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
+
+  // Fetch total applications
   useEffect(() => {
     const fetchTotalApplications = async () => {
       try {
@@ -37,14 +66,14 @@ const HomePage = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "x-session-id": sessionStorage.getItem("session_id"), // Include session ID if required
+            "x-session-id": sessionStorage.getItem("session_id"),
           },
         });
 
         if (response.ok) {
           const data = await response.json();
           const applications = data.applications || [];
-          setTotalApplications(applications.length); // Update total applications count
+          setTotalApplications(applications.length);
         } else {
           console.error("Failed to fetch total applications");
         }
@@ -54,35 +83,21 @@ const HomePage = () => {
     };
 
     fetchTotalApplications();
-  }, []); // Run only once when the component mounts
+  }, []);
 
+  // WebSocket: Active Applications Count
   useEffect(() => {
-    // Establish WebSocket connection
     const ws = new WebSocket(`ws://${window.location.hostname}:3000/ws/process_count`);
 
-    ws.onopen = () => {
-      console.log("WebSocket connection established for process count.");
-    };
-
+    ws.onopen = () => console.log("WebSocket connected.");
     ws.onmessage = (event) => {
-      const processCount = parseInt(event.data, 10); // Parse the process count from the WebSocket message
-      if (!isNaN(processCount)) {
-        setActiveApplications(processCount); // Update the state with the new process count
-      }
+      const count = parseInt(event.data, 10);
+      if (!isNaN(count)) setActiveApplications(count);
     };
+    ws.onerror = (err) => console.error("WebSocket error:", err);
+    ws.onclose = () => console.log("WebSocket closed.");
 
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    ws.onclose = () => {
-      console.log("WebSocket connection closed.");
-    };
-
-    // Cleanup WebSocket connection on component unmount
-    return () => {
-      ws.close();
-    };
+    return () => ws.close();
   }, []);
 
   return (
@@ -109,33 +124,32 @@ const HomePage = () => {
 
         {/* ✅ Welcome Banner */}
         <Box
-            sx={{
-              width: "100%",
-              backgroundColor: theme.palette.background.banner,
-              textAlign: "center",
-              py: 2,
-              boxShadow: theme.shadows[4],
-            }}
-          >
+          sx={{
+            width: "100%",
+            backgroundColor: "#0A192F",
+            color: "white",
+            textAlign: "center",
+            py: 2,
+            boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)",
+          }}
+        >
           <Typography variant="h5">
             Welcome, {username}! Your dashboard is ready to go.
           </Typography>
         </Box>
 
-
         <Container sx={{ mt: 5, ml: 2, maxWidth: "xl" }}>
           <Grid container spacing={3}>
-            {/* Large Centered Card for Active Applications */}
+            {/* Applications Card */}
             <Grid item xs={12} md={6}>
-              <Card sx={{ textAlign: "center", p: 3 }} id="applications-card">
+              <Card sx={{ textAlign: "center", p: 3 }}>
                 <CardContent>
                   <Typography variant="h6">Applications in Usage</Typography>
-                  <CircularProgress 
-                    id="active-applications"
-                    variant="determinate" 
-                    value={(activeApplications / totalApplications) * 100} 
-                    size={120} 
-                    thickness={5} 
+                  <CircularProgress
+                    variant="determinate"
+                    value={(activeApplications / totalApplications) * 100}
+                    size={120}
+                    thickness={5}
                   />
                   <Typography variant="h5" sx={{ mt: 2 }}>
                     {activeApplications}/{totalApplications}
@@ -144,9 +158,9 @@ const HomePage = () => {
               </Card>
             </Grid>
 
-            {/* Bar Chart for Failed Applications */}
+            {/* Failed Applications Chart */}
             <Grid item xs={12} md={6}>
-              <Card sx={{ p: 2 }} id="failed-applications">
+              <Card sx={{ p: 2 }}>
                 <CardContent>
                   <Typography variant="h6">Failed Applications</Typography>
                   <ResponsiveContainer width="100%" height={180}>
@@ -161,9 +175,9 @@ const HomePage = () => {
               </Card>
             </Grid>
 
-            {/* Two Smaller Cards for Recent Logins & Placeholder for Additional Data */}
+            {/* Recent Logins */}
             <Grid item xs={12} sm={6} md={4}>
-              <Card sx={{ p: 2 }} id="recent-logins">
+              <Card sx={{ p: 2 }}>
                 <CardContent>
                   <Typography variant="h6">Recent Logins</Typography>
                   <Divider sx={{ my: 1 }} />
@@ -178,8 +192,9 @@ const HomePage = () => {
               </Card>
             </Grid>
 
+            {/* Upcoming Events */}
             <Grid item xs={12} sm={6} md={4}>
-              <Card sx={{ p: 2 }} id="upcoming-events">
+              <Card sx={{ p: 2 }}>
                 <CardContent>
                   <Typography variant="h6">Upcoming Events</Typography>
                   <Divider sx={{ my: 1 }} />
@@ -188,9 +203,9 @@ const HomePage = () => {
               </Card>
             </Grid>
 
-            {/* Full-width Card for Additional Info or Logs */}
+            {/* System Logs */}
             <Grid item xs={12} md={8}>
-              <Card sx={{ p: 2 }} id="system-logs">
+              <Card sx={{ p: 2 }}>
                 <CardContent>
                   <Typography variant="h6">System Logs</Typography>
                   <Divider sx={{ my: 1 }} />
