@@ -6,6 +6,7 @@ const lightTheme = createTheme({
     mode: "light",  // Light theme mode
     primary: {
       main: "#12255f",
+      contrastText: "#ffffff",
     },
     secondary: {
       main: "#12255f",
@@ -13,12 +14,19 @@ const lightTheme = createTheme({
     background: {
       default: "#ffffff",
       paper: "#f5f5f5",
+      banner: "#0A192F"
     },
     text: {
       primary: "#000000", // Black text for light mode
       secondary: "#666666",
     },
+
   },
+  
+
+
+
+  
   typography: {
     fontFamily: "'Roboto', 'Helvetica', 'Arial', sans-serif",
     h1: {
@@ -44,7 +52,7 @@ const lightTheme = createTheme({
     h5: {
       fontWeight: 400,
       fontSize: "1.125rem",
-      color: "#000000",
+      color: "#ffffff",
     },
     h6: {
       fontWeight: 400,
@@ -124,6 +132,68 @@ const lightTheme = createTheme({
   },
 });
 
+
+const defaultTheme = createTheme({                            // Default
+  palette: {
+    mode: "light",
+    primary: {
+      main: "#12255f", 
+    },
+    secondary: {
+      main: "#12255f", 
+    },
+    background: {
+      default: "#1e3c72", 
+      paper: "#ffffff",  
+      banner: "#0A192F"
+    },
+    text: {
+      primary: "#0b3d2e",
+      secondary: "#4a5f56",
+    },
+  },
+  typography: {
+    fontFamily: "'Poppins', 'Roboto', sans-serif",
+    h1: { fontWeight: 600, fontSize: "2.25rem" },
+    h2: { fontWeight: 600, fontSize: "1.875rem" },
+    h3: { fontWeight: 500, fontSize: "1.5rem" },
+    h4: { fontWeight: 500, fontSize: "1.25rem" },
+    h5: { fontWeight: 400, fontSize: "1.125rem" },
+    h6: { fontWeight: 400, fontSize: "1rem" },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#37966f",
+          color: "#ffffff",
+          fontWeight: "bold",
+          "&:hover": {
+            backgroundColor: "#2e7d5b",
+          },
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#ffffff",
+          borderRadius: "12px",
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#356859",
+        },
+      },
+    },
+  },
+});
+
+
+
 // Define dark theme
 const darkTheme = createTheme({
   palette: {
@@ -137,6 +207,7 @@ const darkTheme = createTheme({
     background: {
       default: "#121212",
       paper: "#1d1d1d",
+      banner: "#0A192F"
     },
     text: {
       primary: "#ffffff", // White text for dark mode
@@ -256,4 +327,4 @@ const darkTheme = createTheme({
   },
 });
 
-export { lightTheme, darkTheme };
+export { lightTheme, darkTheme, defaultTheme };

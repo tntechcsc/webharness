@@ -2,11 +2,10 @@ import React, { useState, useEffect } from "react";
 import "../App"; // Ensure your styles are linked correctly
 import Navbar from "../components/Navbar";
 import Topbar from "../components/Topbar";
-import { Box, Container, Typography, Divider, Card, CardContent, Grid, CircularProgress, List, ListItem, ListItemText } from "@mui/material";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Box, Container, Typography, Divider, Card, CardContent, Grid, CircularProgress, List, ListItem, ListItemText, } from "@mui/material";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, } from "recharts";
 import { useTheme } from "@mui/material/styles";
 import "bootstrap/dist/css/bootstrap.min.css";
-
 
 // Fake data
 const baseURL = window.location.origin;
@@ -27,6 +26,33 @@ const HomePage = () => {
   const theme = useTheme();
   const [activeApplications, setActiveApplications] = useState(0);
   const [totalApplications, setTotalApplications] = useState(0);
+  const [username, setUsername] = useState("User");
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const session_id = sessionStorage.getItem("session_id");
+        if (!session_id) return;
+
+        const res = await fetch(`${baseURL}/api/user/info`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": session_id,
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch user info");
+
+        const data = await res.json();
+        setUsername(data.username || "User");
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
 
   // Fetch total applications from the backend
   useEffect(() => {
@@ -85,11 +111,42 @@ const HomePage = () => {
   }, []);
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", backgroundColor: theme.palette.background.default, justifyContent: "center" }}>
-      <Navbar /> {/* Vertical navbar */}
+    <Box
+       sx={{
+         display: "flex",
+         minHeight: "100vh",
+         overflow: "hidden",
+         backgroundColor: theme.palette.background.default,
+         justifyContent: "center",
+       }}
+       >
+       <Navbar />
+ 
+       <Box
+         sx={{
+           flexGrow: 1,
+           display: "flex",
+           flexDirection: "column",
+           overflow: "hidden",
+         }}
+       >
+         <Topbar />
 
-      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <Topbar /> {/* Horizontal navbar */}
+        {/* ✅ Welcome Banner */}
+        <Box
+            sx={{
+              width: "100%",
+              backgroundColor: theme.palette.background.banner,
+              textAlign: "center",
+              py: 2,
+              boxShadow: theme.shadows[4],
+            }}
+          >
+          <Typography variant="h5">
+            Welcome, {username}! Your dashboard is ready to go.
+          </Typography>
+        </Box>
+
 
         <Container sx={{ mt: 5, ml: 2, maxWidth: "xl" }}>
           <Grid container spacing={3}>
