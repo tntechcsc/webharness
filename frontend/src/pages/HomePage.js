@@ -34,7 +34,7 @@ const HomePage = () => {
         const session_id = sessionStorage.getItem("session_id");
         if (!session_id) return;
 
-        const res = await fetch(`${baseURL}/api/user/info`, {
+        const res = await fetch(`${baseURL}:3000/api/user/info`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
