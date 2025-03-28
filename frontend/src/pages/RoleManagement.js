@@ -51,6 +51,10 @@ const RoleManagement = () => {
     
   };
 
+  const copyPasswordToClipboard = () => {
+    navigator.clipboard.writeText(displayedPassword)
+  }
+
   const handleResetPasswordConfirm = (username) => {
     // Implement the reset password functionality here, then open the success dialog
     handleResetPassword(username); //for displaying the password that is reset this sets it after a success
@@ -380,8 +384,19 @@ const RoleManagement = () => {
                               <DialogTitle id="reset-password-success-title">Password Reset</DialogTitle>
                               <DialogContent>
                                 <DialogContentText id="reset-password-success-description">
-                                  The password for the user has been successfully reset. <br/> {displayedPassword}
+                                  The password for the user has been successfully reset. 
                                 </DialogContentText>
+                                <TextField 
+                                  id="outlined-read-only-input"
+                                  label="Password"
+                                  defaultValue={displayedPassword}
+                                  InputProps={{
+                                    readOnly: true,
+                                    style: { width: displayedPassword?.length ? `${displayedPassword.length + 1}ch` : '100px' }
+                                  }}
+                                  sx={{ mt: 2 }}
+                                />
+
                               </DialogContent>
                               <DialogActions>
                                 <Button variant="outlined" onClick={() => setOpenResetPasswordSuccess(false)} sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
