@@ -8,6 +8,7 @@ import { handleLogout } from "../utils/authUtils";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { useTheme } from '@mui/material/styles';
+import { setHashLocation } from "../utils/utils.js"
 
 const Topbar = () => {
   const { mode, toggleTheme } = useContext(ThemeContext); // ✅ Use ThemeContext
@@ -84,7 +85,7 @@ const Topbar = () => {
               </IconButton>
 
               <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} sx={{ mt: 1 }}>
-                <MenuItem onClick={() => (window.location.href = "/profile")}>View Profile</MenuItem>
+                <MenuItem onClick={() => (setHashLocation("profile"))}>View Profile</MenuItem>
                 <MenuItem
                   onClick={() => {
                     handleMenuClose();

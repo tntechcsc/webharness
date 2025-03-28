@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
-import { checkSession } from "../utils/authUtils"
+import { Navigate, useLocation  } from "react-router-dom";
+import { checkSession } from "../utils/authUtils";
+import { setHashLocation } from "../utils/utils.js"
 
 // Protected route component
 const ProtectedRoute = ({ element }) => {
@@ -21,7 +22,7 @@ const ProtectedRoute = ({ element }) => {
   
     // If the user is not authenticated, redirect to login page
     if (!isAuthenticated) {
-      return <Navigate to="/login" />;
+      setHashLocation("login");
     }
   
     return element; // Show the protected element

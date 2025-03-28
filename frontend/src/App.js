@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom'; //may have to switch to hash router
+import { HashRouter as Router, Route, Routes, useLocation } from 'react-router-dom'; //may have to switch to hash router
 import HomePage from './pages/HomePage';
 import Application from './pages/Application';
 import RoleManagement from './pages/RoleManagement';
@@ -47,9 +47,10 @@ function App() {
           <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
           <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
           <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
-          <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} /> {/* ✅ New Route */}
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} />
+          <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
           <Route path="login" element={<Login />} />
+          <Route path="*" element={<ProtectedRoute element={<>404</>} />} />
         </Routes>
       </div>
     </div>
