@@ -22,4 +22,4 @@ npm run dev
 
 ## Normal run script
 to run normally:
-npm run start
+`npm run start`
