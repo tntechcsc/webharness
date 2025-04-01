@@ -138,6 +138,7 @@ const EditApplication = () => {
     setSelectedCategories(selectedOptions || []);
   };
 
+  //TODO: Have this hit the update application endpoint instead, and change the edit application endpoint to take in categories
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
