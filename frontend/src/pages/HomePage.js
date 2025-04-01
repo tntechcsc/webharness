@@ -18,17 +18,13 @@ const failedApplicationsData = [
   { date: "Feb 23", count: 6 },
 ];
 
-const recentLogins = [
-  { user: "John Doe", time: "2025-02-24 10:15 AM" },
-  { user: "Jane Smith", time: "2025-02-24 09:45 AM" },
-  { user: "Alice Johnson", time: "2025-02-23 08:30 PM" },
-];
-
 const HomePage = () => {
   const theme = useTheme();
   const { mode } = useContext(ThemeContext);
   const [activeApplications, setActiveApplications] = useState(0);
   const [totalApplications, setTotalApplications] = useState(0);
+  const [recentLogins, setRecentLogins] = useState([]);
+  const [systemLogs, setSystemLogs] = useState([]);
 
   // Fetch total applications from the backend
   useEffect(() => {
@@ -55,6 +51,49 @@ const HomePage = () => {
     };
 
     fetchTotalApplications();
+  }, []); // Run only once when the component mounts
+
+  // Fetch recent logins and system logs
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        // Fetch recent logins
+        const loginResponse = await fetch(`${baseURL}:3000/api/system_logs?event_type=login`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": sessionStorage.getItem("session_id"),
+          },
+        });
+
+        if (loginResponse.ok) {
+          const loginData = await loginResponse.json();
+          setRecentLogins(loginData.logs || []);
+        } else {
+          console.error("Failed to fetch recent logins");
+        }
+
+        // Fetch all other system logs
+        const logsResponse = await fetch(`${baseURL}:3000/api/system_logs`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": sessionStorage.getItem("session_id"),
+          },
+        });
+
+        if (logsResponse.ok) {
+          const logsData = await logsResponse.json();
+          setSystemLogs(logsData.logs || []);
+        } else {
+          console.error("Failed to fetch system logs");
+        }
+      } catch (error) {
+        console.error("Error fetching logs:", error);
+      }
+    };
+
+    fetchLogs();
   }, []); // Run only once when the component mounts
 
   useEffect(() => {
@@ -158,16 +197,19 @@ const HomePage = () => {
               </Card>
             </Grid>
 
-            {/* Two Smaller Cards for Recent Logins & Placeholder for Additional Data */}
+            {/* Recent Logins */}
             <Grid item xs={12} sm={6} md={4}>
               <Card sx={{ p: 2 }} id="recent-logins">
                 <CardContent>
                   <Typography variant="h6">Recent Logins</Typography>
                   <Divider sx={{ my: 1 }} />
                   <List>
-                    {recentLogins.map((login, index) => (
+                    {recentLogins.map((log, index) => (
                       <ListItem key={index}>
-                        <ListItemText primary={login.user} secondary={login.time} />
+                        <ListItemText
+                          primary={log.data.actor || "Unknown User"}
+                          secondary={log.data.timestamp || "Unknown Time"}
+                        />
                       </ListItem>
                     ))}
                   </List>
@@ -175,24 +217,32 @@ const HomePage = () => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={4}>
-              <Card sx={{ p: 2 }} id="upcoming-events">
-                <CardContent>
-                  <Typography variant="h6">Upcoming Events</Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography variant="body2">No events scheduled.</Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Full-width Card for Additional Info or Logs */}
+            {/* System Logs */}
             <Grid item xs={12} md={8}>
               <Card sx={{ p: 2 }} id="system-logs">
                 <CardContent>
                   <Typography variant="h6">System Logs</Typography>
                   <Divider sx={{ my: 1 }} />
-                  <Typography variant="body2">[System] All services running smoothly.</Typography>
-                  <Typography variant="body2">[Security] No unauthorized access detected.</Typography>
+                  <List>
+                    {systemLogs.map((log, index) => (
+                      <ListItem key={index}>
+                      <ListItemText
+                        primary={`[${log.event}]`}
+                        secondary={
+                          <>
+                            <Typography variant="body2" color="textSecondary">
+                              {log.timestamp ? new Date(log.timestamp).toLocaleString() : "Unknown Time"}
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary">
+                              {JSON.stringify(log.data, null, 2)}
+                            </Typography>
+                          </>
+                        }                        
+                      />
+                    </ListItem>
+                                       
+                    ))}
+                  </List>
                 </CardContent>
               </Card>
             </Grid>

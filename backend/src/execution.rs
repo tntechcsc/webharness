@@ -400,9 +400,17 @@ fn stop_process(
     process_map: &State<ProcessMap>,    // For tracking process status
     app_process_map: &State<AppProcessMap>,  // For association application id with process id
     connections: &State<ProcessConnections>,
-    process_count_channel: &State<ProcessCountChannel>
+    process_count_channel: &State<ProcessCountChannel>,
+    db: &rocket::State<Arc<DB>>,
 ) -> Result<Json<serde_json::Value>, Status> {
     println!("Received request to stop process: {}", identifier);
+    let conn = db.conn.lock().unwrap();
+    let actor = session_to_user(_session_id.0.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
+
+    if actor.is_empty() {
+        return Err(Status::Unauthorized);
+    }
 
     let process_id = if identifier.contains("-") {
         app_process_map.lock().unwrap().get(&identifier).cloned().ok_or(Status::NotFound)?
@@ -442,6 +450,29 @@ fn stop_process(
     }
 
     remove_process(&process_id, process_map, process_count_channel);
+
+    // Retrieve the application's name from the database
+    let application_name: Option<String> = conn
+        .query_row(
+            "SELECT name FROM Application WHERE id = ?1",
+            [&identifier],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| {
+            eprintln!("Database error while retrieving application name: {:?}", e);
+            Status::InternalServerError
+        })?;
+
+    // Log the process stop event
+    let log_data = json!({
+        "actor": actor,
+        "application_name": application_name.unwrap_or_else(|| "Unknown Application".to_string()),
+    });
+
+    if let Err(e) = insert_system_log("process_stopped", &log_data, &conn) {
+        eprintln!("Failed to log process stop: {}", e);
+    }
 
     Ok(Json(json!({
         "status": "success",
@@ -541,6 +572,16 @@ fn add_application(
     if let Err(e) = result {
         error!("Database error while inserting application: {:?}", e);
         return Err(Status::InternalServerError);
+    }
+
+    // Log the application addition
+    let log_data = json!({
+        "actor": actor,
+        "application_name": application_data.name,
+    });
+
+    if let Err(e) = insert_system_log("application_added", &log_data, &conn) {
+        eprintln!("Failed to log application addition: {}", e);
     }
 
     Ok(Json(json!({
@@ -1218,7 +1259,74 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/system_logs",
+    tag = "System Logs",
+    responses(
+        (status = 200, description = "System logs retrieved successfully", body = [SystemLog]),
+        (status = 500, description = "Failed to retrieve system logs")
+    ),
+    params(
+        ("event_type" = Option<String>, Query, description = "Filter logs by event type (e.g., 'application_added')")
+    ),
+    security(
+        ("session_id" = [])
+    )
+)]
+#[get("/api/system_logs?<event_type>")]
+fn get_system_logs(
+    _session_id: SessionGuard,
+    event_type: Option<String>,
+    db: &rocket::State<Arc<DB>>,
+) -> Result<Json<serde_json::Value>, Status> {
+    // Lock the database connection.
+    let conn = db.conn.lock().unwrap();
+
+    // Build the base query.
+    let mut query = "SELECT id, event, data, timestamp FROM SystemLogs".to_owned();
+    let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+
+    // If an event filter is provided, add the WHERE clause.
+    if let Some(ref event) = event_type {
+        query.push_str(" WHERE event = ?");
+        params.push(event);
+    }
+
+    // Append the ORDER BY and LIMIT clause.
+    query.push_str(" ORDER BY rowid DESC LIMIT 100");
+
+    // Prepare the SQL statement.
+    let mut stmt = conn.prepare(&query).map_err(|e| {
+        error!("Database error preparing query: {:?}", e);
+        Status::InternalServerError
+    })?;
+
+    // Execute the query and map the rows into SystemLog objects.
+    let logs_result: Result<Vec<SystemLog>, _> = stmt
+        .query_map(params.as_slice(), |row| {
+            Ok(SystemLog {
+                id: row.get(0)?,
+                event: row.get(1)?,
+                data: serde_json::from_str(&row.get::<_, String>(2)?)
+                    .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?,
+                timestamp: row.get(3)?, // Retrieve the timestamp
+            })
+        })
+        .and_then(|rows| rows.collect());
+
+    // Return the result as JSON.
+    match logs_result {
+        Ok(logs) => Ok(Json(json!({ "status": "success", "logs": logs }))),
+        Err(e) => {
+            error!("Database error while retrieving logs: {:?}", e);
+            Err(Status::InternalServerError)
+        }
+    }
+}
+
+
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories, ws_process_status, ws_process_count]
+    routes![execute_program, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories, ws_process_status, ws_process_count, get_system_logs]
 }
