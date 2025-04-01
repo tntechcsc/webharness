@@ -130,6 +130,7 @@ fn rocket() -> _ {
             crate::execution::add_category,
             crate::execution::delete_category,
             crate::execution::get_all_categories,
+            crate::execution::get_system_logs,
         ),
         modifiers(&SecurityAddon),
     )]

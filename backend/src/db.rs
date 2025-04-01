@@ -185,7 +185,17 @@ impl DB {
                 )",
                 [],
             )?;
-    
+            
+            conn_use.execute(
+                "CREATE TABLE IF NOT EXISTS SystemLogs (
+                     id VARCHAR(36) PRIMARY KEY,       -- Unique identifier for the log entry
+                     event TEXT NOT NULL,              -- The type of event (e.g., 'user_deleted', 'app_started')
+                     data TEXT NOT NULL,               -- JSON data containing additional details about the event
+                     timestamp DATETIME DEFAULT (datetime('now','localtime')) -- Local timestamp of the log entry
+                 )",
+                [],
+            )?;            
+
             // Creating Superadmin, admin, and viewer roles
             conn_use.execute(
                 "INSERT OR IGNORE INTO Roles (roleId, roleName, description) VALUES (?1, ?2, ?3)",
