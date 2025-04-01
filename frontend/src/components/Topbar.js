@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useContext } from "react";
-import { AppBar, Toolbar, IconButton, Typography, Box, Avatar, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from "@mui/material";
+import { AppBar, Toolbar, IconButton, Typography, Box, Avatar, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import { Brightness4, Brightness7 } from "@mui/icons-material"; // Theme icons
-import { ThemeContext } from "../context/themecontext"; // ✅ Import ThemeContext
+import { Brightness4, Brightness7 } from "@mui/icons-material";
+import { ThemeContext } from "../context/themecontext";
 import logo from "../assets/LogoHarness.jpeg";
 import { handleLogout } from "../utils/authUtils";
-import { useTheme } from '@mui/material/styles';
-import { setHashLocation } from "../utils/utils.js"
+import { setHashLocation } from "../utils/utils.js";
 
 const Topbar = () => {
-  const { mode, toggleTheme } = useContext(ThemeContext); // ✅ Use ThemeContext
+  const { mode, toggleTheme } = useContext(ThemeContext);
 
   const [username, setUsername] = useState(null);
+  const [role, setRole] = useState(null);
   const [profilePic, setProfilePic] = useState(null);
   const baseURL = window.location.origin;
   const [anchorEl, setAnchorEl] = useState(null);
@@ -19,7 +19,7 @@ const Topbar = () => {
 
   useEffect(() => {
     const uri = `${baseURL}:3000/api/user/info`;
-    let session_id = sessionStorage.getItem("session_id");
+    const session_id = sessionStorage.getItem("session_id");
 
     if (!session_id) return;
 
@@ -33,6 +33,7 @@ const Topbar = () => {
       .then((res) => (res.ok ? res.json() : Promise.reject("Failed to fetch user data")))
       .then((user) => {
         setUsername(user.username);
+        setRole(user.roleName);
       })
       .catch((error) => console.error(error));
   }, []);
@@ -45,44 +46,53 @@ const Topbar = () => {
       <AppBar
         position="static"
         sx={{
-          backgroundColor: "primary.main", // ✅ Use primary color from theme
-          boxShadow: 'none'
+          backgroundColor: "#12255f",
+          boxShadow: "none",
         }}
       >
         <Toolbar variant="dense" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          {/* Left Side: Logo */}
+          {/* Logo Section */}
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <img src={logo} alt="Logo" style={{ height: 50, marginRight: 10 }} />
-            <Typography variant="h6" color="inherit">Mangrove</Typography>
+          <img src={logo} alt="Logo" style={{ height: 50, marginRight: 10 }} />
+          <Typography variant="h6" color="inherit" sx={{ fontWeight: 'bold' }}>
+            Project Mangrove
+          </Typography>
           </Box>
 
-          {/* Right Side: Theme Toggle, Profile */}
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            {/* ✅ Theme Toggle Button (Placed BEFORE Profile) */}
+
+          {/* Right Section: Theme Toggle + Profile Info */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {/* Theme Toggle */}
             <IconButton
               onClick={toggleTheme}
               sx={{
-                marginRight: 10,
-                backgroundColor: mode === "dark" ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)", // ✅ Slight background tint
-                color: mode === "dark" ? "#FFD700" : "#ffffff", // ✅ Yellowish icon in dark mode, dark icon in light mode
-                borderRadius: "8px", // ✅ Softer rounded corners
-                padding: "6px", // ✅ Slight padding for better visibility
+                backgroundColor: mode === "dark" ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+                color: mode === "dark" ? "#FFD700" : "#ffffff",
+                borderRadius: "8px",
+                padding: "6px",
                 "&:hover": {
-                  backgroundColor: mode === "dark" ? "rgba(117, 234, 129, 255)" : "rgba(117, 234, 129, 255)", // ✅ Brighter hover effect
+                  backgroundColor: "rgba(117, 234, 129, 255)",
                 },
               }}
             >
               {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
             </IconButton>
 
-            {/* Profile Section */}
+            {/* Avatar + Role */}
             {username && (
               <>
-                <IconButton onClick={handleMenuOpen} sx={{ padding: 0 }}>
-                  <Avatar src={profilePic} sx={{ width: 40, height: 40 }}>
-                    {!profilePic && <AccountCircleIcon sx={{ fontSize: 40 }} />}
-                  </Avatar>
-                </IconButton>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <IconButton onClick={handleMenuOpen} sx={{ padding: 0 }}>
+                    <Avatar src={profilePic} sx={{ width: 40, height: 40 }}>
+                      {!profilePic && <AccountCircleIcon sx={{ fontSize: 40 }} />}
+                    </Avatar>
+                  </IconButton>
+
+                  {/* Role displayed to the right of the avatar */}
+                  <Typography variant="body1" color="inherit" sx={{ whiteSpace: "nowrap" }}>
+                    {role || "Loading..."}
+                  </Typography>
+                </Box>
 
                 <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} sx={{ mt: 1 }}>
                   <MenuItem onClick={() => setHashLocation("profile")}>View Profile</MenuItem>
@@ -101,10 +111,8 @@ const Topbar = () => {
         </Toolbar>
       </AppBar>
 
-      <Dialog
-        open={logoutDialogOpen}
-        onClose={() => setLogoutDialogOpen(false)}
-      >
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={logoutDialogOpen} onClose={() => setLogoutDialogOpen(false)}>
         <DialogTitle>{"Log Out Confirmation"}</DialogTitle>
         <DialogContent>
           <DialogContentText>
