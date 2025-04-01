@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Box, Container, TextField, MenuItem, Button, Typography, CircularProgress, Paper, IconButton } from "@mui/material";
-import { FaPlus } from "react-icons/fa";
+import { RiEditLine } from "react-icons/ri";
 import { IoReturnDownBackSharp } from "react-icons/io5";
 import Select from "react-select";
 import { useTheme } from "@mui/material/styles";
@@ -272,7 +272,7 @@ const EditApplication = () => {
             sx={{ py: 1.5, mt: 2 }}
             disabled={loading}
           >
-            {loading ? <CircularProgress size={24} /> : <IconButton><FaPlus /></IconButton>}
+            {loading ? <CircularProgress size={24} /> : <IconButton><RiEditLine /></IconButton>}
           </Button>
         </form>
         <Box sx={{ mt: 3 }}>
