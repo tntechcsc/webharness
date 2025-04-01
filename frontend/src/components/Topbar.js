@@ -1,20 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import {
-  AppBar,
-  Toolbar,
-  IconButton,
-  Typography,
-  Box,
-  Avatar,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Button,
-} from "@mui/material";
+import { AppBar, Toolbar, IconButton, Typography, Box, Avatar, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
 import { ThemeContext } from "../context/themecontext";
@@ -61,7 +46,7 @@ const Topbar = () => {
       <AppBar
         position="static"
         sx={{
-          backgroundColor: "primary.main",
+          backgroundColor: "#12255f",
           boxShadow: "none",
         }}
       >

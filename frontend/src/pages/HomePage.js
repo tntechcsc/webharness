@@ -91,6 +91,22 @@ const HomePage = () => {
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <Topbar /> {/* Horizontal navbar */}
 
+                {/* ✅ Welcome Banner Below Topbar */}
+        <Box 
+          sx={{ 
+            width: "100%", 
+            backgroundColor: "#0A192F",
+            color: "white", 
+            textAlign: "center",
+            py: 2, 
+            boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)",
+          }}
+        >
+       <Typography variant="h5" sx={{ color: "white" }}>
+        Welcome! Your dashboard is ready to go.
+       </Typography>
+        </Box>
+
         <Container sx={{ mt: 5, ml: 2, maxWidth: "xl" }}>
           <Grid container spacing={3}>
             {/* Large Centered Card for Active Applications */}
