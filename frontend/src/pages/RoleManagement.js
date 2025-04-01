@@ -308,7 +308,7 @@ const RoleManagement = () => {
                       </TableHead>
                       <TableBody>
                         {sortedUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user, index) => (
-                          <TableRow key={user.id}>
+                          <TableRow key={user.id} sx={{ height: '50px' }}>
                             <TableCell>{user.username}</TableCell>
                             <TableCell>{user.email}</TableCell>
                             <TableCell>
@@ -337,8 +337,8 @@ const RoleManagement = () => {
                                 </Select>
                               )}
                             </TableCell>
-                            <TableCell sx={{ display: "flex", justifyContent: "center" }}>
-                              {user.roleName !== "Superadmin" && user.username !== username && (
+                            <TableCell sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                              {user.roleName !== "Superadmin" && user.username !== username ? (
                                 <>
                                   <Button onClick={() => setOpenResetPasswordConfirm(true)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                                     <IconButton aria-label="reset-password" style={{ marginRight: '8px' }}>
@@ -446,6 +446,8 @@ const RoleManagement = () => {
                                     </DialogActions>
                                   </Dialog>
                                 </>
+                              ) : (
+                                <Box sx={{ height: '50px', visibility: 'hidden' }} />
                               )}
                             </TableCell>
                           </TableRow>
