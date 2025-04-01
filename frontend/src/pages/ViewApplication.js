@@ -22,6 +22,7 @@ const ViewApplication = () => {
 
   useEffect(() => {
     fetchApplication();
+    console.log(id)
   }, []);
 
   const fetchApplication = async () => {
@@ -207,7 +208,7 @@ const ViewApplication = () => {
           >
             <IconButton><FaPlay /></IconButton>
           </Button>
-          <RouterLink to="/edit-application">
+          <RouterLink to={`/edit-application/`+id}>
             <Button
               variant="contained"
               color="error"

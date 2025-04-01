@@ -48,7 +48,7 @@ function App() {
           <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
           <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
           <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
-          <Route path="/edit-application" element={<ProtectedRoute element={<EditApplication />} />} />
+          <Route path="/edit-application/:id" element={<ProtectedRoute element={<EditApplication />} />} />
           <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} />
           <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
           <Route path="login" element={<Login />} />

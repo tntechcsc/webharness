@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Box, Container, TextField, MenuItem, Button, Typography, CircularProgress, Paper, IconButton } from "@mui/material";
 import { FaPlus } from "react-icons/fa";
 import { IoReturnDownBackSharp } from "react-icons/io5";
@@ -14,6 +14,7 @@ const baseURL = window.location.origin;
 
 const EditApplication = () => {
   const navigate = useNavigate();
+  const { id } = useParams(); // Get application ID from URL
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -31,7 +32,8 @@ const EditApplication = () => {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+    fetchApplication();
+  }, [id]);
 
   // Fetch categories from backend
   const fetchCategories = async () => {
@@ -55,6 +57,49 @@ const EditApplication = () => {
     } catch (error) {
       console.error("Error fetching categories:", error);
     }
+  };
+
+  const fetchApplication = async () => {
+    setLoading(true);
+    try {
+      let session_id = sessionStorage.getItem("session_id");
+      if (!session_id) {
+        setStatusMessage("Unauthorized: No session ID found.");
+        return;
+      }
+
+      const response = await fetch(`${baseURL}:3000/api/applications/${id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          setStatusMessage("Application not found.");
+        } else {
+          setStatusMessage("Failed to fetch application details.");
+        }
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      setFormData({
+        name: data.application.name,
+        description: data.application.description,
+        executable_path: data.instructions.path,
+        arguments: data.instructions.arguments,
+        contact: data.application.contact
+      });
+      setSelectedCategories(data.application.categories.map(cat => ({ value: cat.id, label: cat.name })));
+    } catch (error) {
+      console.error("Error fetching application:", error);
+      setStatusMessage("Error fetching application details.");
+    }
+    setLoading(false);
   };
 
   // Fetch current user ID // shoulnt be required technically as we should use session id from sessionguard to work. as it is now, someone could theoretically use someone elses user id to add an application
@@ -152,7 +197,7 @@ const EditApplication = () => {
   return (
     <Container maxWidth="sm">
       <Box component={Paper} sx={{ mt: 5, padding: 3, backgroundColor: theme.palette.background.paper, textColor: theme.palette.text.primary, borderRadius: "8px", boxShadow: 3 }}>
-        <Typography variant="h4" gutterBottom sx={{textColor: theme.palette.text.primary}}>Add Application</Typography>
+        <Typography variant="h4" gutterBottom sx={{textColor: theme.palette.text.primary}}>Edit Application</Typography>
         
         {statusMessage && (
           <Typography variant="body2" color="error" sx={{ mb: 2 }}>
