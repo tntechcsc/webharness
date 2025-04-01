@@ -10,7 +10,7 @@ import RegisterUser from './pages/RegisterUser'; // ✅ Import RegisterUser.js
 import { checkSession } from './utils/authUtils';
 import { ThemeProvider } from '@mui/material/styles';
 import { ThemeContext } from './context/themecontext'; // ✅ Import ThemeContext
-import { lightTheme, darkTheme } from './theme'; // ✅ Import light and dark themes
+import { lightTheme, darkTheme, defaultTheme } from './theme';
 import Profile from './pages/Profile';
 import "intro.js/minified/introjs.min.css";
 import ProtectedRoute from './components/ProtectedRoute';
@@ -60,9 +60,12 @@ function App() {
 // Wrap the App component with the Router and ThemeProvider
 export default function WrappedApp() {
   const { mode } = useContext(ThemeContext); // Get the current theme mode (light or dark)
-
   return (
-    <ThemeProvider theme={mode === 'dark' ? darkTheme : lightTheme}> {/* Use the correct theme */}
+    <ThemeProvider theme={
+      mode === 'dark' ? darkTheme :
+      mode === 'light' ? lightTheme :
+      defaultTheme
+    }>
       <Router>
         <App />
       </Router>

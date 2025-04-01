@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useContext } from "react";
 import { AppBar, Toolbar, IconButton, Typography, Box, Avatar, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import { Brightness4, Brightness7 } from "@mui/icons-material";
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 import { ThemeContext } from "../context/themecontext";
 import logo from "../assets/LogoHarness.jpeg";
 import { handleLogout } from "../utils/authUtils";
@@ -64,19 +66,21 @@ const Topbar = () => {
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             {/* Theme Toggle */}
             <IconButton
-              onClick={toggleTheme}
-              sx={{
-                backgroundColor: mode === "dark" ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
-                color: mode === "dark" ? "#FFD700" : "#ffffff",
-                borderRadius: "8px",
-                padding: "6px",
-                "&:hover": {
-                  backgroundColor: "rgba(117, 234, 129, 255)",
-                },
-              }}
-            >
-              {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
-            </IconButton>
+  onClick={toggleTheme}
+  sx={{
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
+    color: "#ffffff",
+    borderRadius: "8px",
+    padding: "6px",
+    "&:hover": {
+      backgroundColor: "rgba(117, 234, 129, 255)",
+    },
+  }}
+>
+  {mode === "light" && <DarkModeIcon />}
+  {mode === "dark" && <SettingsBrightnessIcon />}
+  {mode === "default" && <LightModeIcon />}
+</IconButton>
 
             {/* Avatar + Role */}
             {username && (
