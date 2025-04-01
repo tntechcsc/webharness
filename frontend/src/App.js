@@ -6,6 +6,7 @@ import RoleManagement from './pages/RoleManagement';
 import Login from './pages/login';
 import ViewApplication from './pages/ViewApplication';
 import AddApplication from './pages/AddApplication';
+import EditApplication from './pages/EditApplication';
 import RegisterUser from './pages/RegisterUser'; // ✅ Import RegisterUser.js
 import { checkSession } from './utils/authUtils';
 import { ThemeProvider } from '@mui/material/styles';
@@ -47,6 +48,7 @@ function App() {
           <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
           <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
           <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
+          <Route path="/edit-application" element={<ProtectedRoute element={<EditApplication />} />} />
           <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} />
           <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
           <Route path="login" element={<Login />} />
