@@ -21,6 +21,7 @@ const baseURL = window.location.origin;
 const RoleManagement = () => {
   const [userRole, setUserRole] = useState("Viewer");
   const [username, setUsername] = useState("");
+  const [userDelete, setUserDelete] = useState("");
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
@@ -303,54 +304,12 @@ const RoleManagement = () => {
                                 <LuClipboardPenLine />
                               </IconButton>
                             </Button>
-                            <Button onClick={() => setOpenDeleteConfirm(true)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                            <Button onClick={() => { setUserDelete(user.username);setOpenDeleteConfirm(true)}} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton aria-label="delete" color="error" >
                                 <FaTrashAlt />
                               </IconButton>
                             </Button>
-
-                            <Dialog
-                              open={openDeleteConfirm}
-                              onClose={() => setOpenDeleteConfirm(false)}
-                              aria-labelledby="alert-dialog-title"
-                              aria-describedby="alert-dialog-description"
-                            >
-                              <DialogTitle id="alert-dialog-title">{"Confirm Delete"}</DialogTitle>
-                              <DialogContent>
-                                <DialogContentText id="alert-dialog-description">
-                                  Are you sure you want to delete this user?
-                                </DialogContentText>
-                              </DialogContent>
-                              <DialogActions>
-                                <Button variant="outlined" onClick={() => setOpenDeleteConfirm(false)}
-                                  sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
-                                  Cancel
-                                </Button>
-                                <Button variant="outlined" onClick={() => {
-                                  handleDeleteUserConfirm(user.username);
-                                }} sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
-                                  Delete
-                                </Button>
-                              </DialogActions>
-                            </Dialog>
-                            <Dialog
-                              open={openDeleteSuccess}
-                              onClose={() => setOpenDeleteSuccess(false)}
-                              aria-labelledby="simple-dialog-title"
-                              aria-describedby="simple-dialog-description"
-                            >
-                              <DialogTitle id="simple-dialog-title">User Deleted</DialogTitle>
-                              <DialogContent>
-                                <DialogContentText id="simple-dialog-description">
-                                  The user has been successfully deleted.
-                                </DialogContentText>
-                              </DialogContent>
-                              <DialogActions>
-                                <Button variant="outlined" onClick={() => setOpenDeleteSuccess(false)} sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
-                                  OK
-                                </Button>
-                              </DialogActions>
-                            </Dialog>
+                            
                             <Dialog
                               open={openResetPasswordConfirm}
                               onClose={() => setOpenResetPasswordConfirm(false)}
@@ -430,6 +389,50 @@ const RoleManagement = () => {
           </Container>
         </Box>
       </Box>
+
+      
+      <Dialog
+                              open={openDeleteConfirm}
+                              onClose={() => setOpenDeleteConfirm(false)}
+                              aria-labelledby="alert-dialog-title"
+                              aria-describedby="alert-dialog-description"
+                            >
+                              <DialogTitle id="alert-dialog-title">{"Confirm Delete"}</DialogTitle>
+                              <DialogContent>
+                                <DialogContentText id="alert-dialog-description">
+                                  Are you sure you want to delete this user? {userDelete}
+                                </DialogContentText>
+                              </DialogContent>
+                              <DialogActions>
+                                <Button variant="outlined" onClick={() => setOpenDeleteConfirm(false)}
+                                  sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+                                  Cancel
+                                </Button>
+                                <Button variant="outlined" onClick={() => {
+                                  handleDeleteUserConfirm(userDelete);
+                                }} sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
+                                  Delete
+                                </Button>
+                              </DialogActions>
+                            </Dialog>
+                            <Dialog
+                              open={openDeleteSuccess}
+                              onClose={() => setOpenDeleteSuccess(false)}
+                              aria-labelledby="simple-dialog-title"
+                              aria-describedby="simple-dialog-description"
+                            >
+                              <DialogTitle id="simple-dialog-title">User Deleted</DialogTitle>
+                              <DialogContent>
+                                <DialogContentText id="simple-dialog-description">
+                                  The user has been successfully deleted.
+                                </DialogContentText>
+                              </DialogContent>
+                              <DialogActions>
+                                <Button variant="outlined" onClick={() => setOpenDeleteSuccess(false)} sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+                                  OK
+                                </Button>
+                              </DialogActions>
+                            </Dialog>
     </>
   );
 };
