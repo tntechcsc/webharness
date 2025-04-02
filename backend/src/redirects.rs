@@ -45,12 +45,6 @@ use crate::utils::*;
 use crate::models::*;  // Now Login, User, and other public items are in scope
 use crate::SessionGuard;
 
-#[catch(401)] //may have to change this to something else
-fn unauthorized(req: &Request) -> Redirect {
-    // Redirect the user to your React login page
-    Redirect::to("/login")
-}
-
 #[catch(403)]
 fn not_found(req: &Request) -> Redirect {
     // Redirect the user to your React login page
@@ -60,5 +54,5 @@ fn not_found(req: &Request) -> Redirect {
 
 // Export the routes
 pub fn redirect_routes() -> Vec<Catcher> {
-    catchers![not_found, unauthorized]
+    catchers![not_found]
 }
