@@ -43,23 +43,6 @@ const HomePage = () => {
   const recentLoginsLimit = 5;
   const systemLogsLimit = 5;
 
-  // Logs state and totals from backend
-  const [recentLogins, setRecentLogins] = useState([]);
-  const [recentLoginsTotal, setRecentLoginsTotal] = useState(0);
-  const [systemLogs, setSystemLogs] = useState([]);
-  const [systemLogsTotal, setSystemLogsTotal] = useState(0);
-  const [systemLogsError, setSystemLogsError] = useState("");
-  const [recentLoginsError, setRecentLoginsError] = useState("");
-
-
-  // Pagination state for recent logins and system logs
-  const [recentLoginsPage, setRecentLoginsPage] = useState(1);
-  const [systemLogsPage, setSystemLogsPage] = useState(1);
-
-  // Define limits for each paginated endpoint
-  const recentLoginsLimit = 5;
-  const systemLogsLimit = 5;
-
   // Fetch total applications from the backend
   useEffect(() => {
     const fetchTotalApplications = async () => {
@@ -84,61 +67,6 @@ const HomePage = () => {
       }
     };
     fetchTotalApplications();
-  }, []);
-
-  // Helper function to fetch logs.
-  // Expects a backend response with the shape { logs: [...], total: <number> }.
-  const fetchLogsFor = async (eventType, page, limit, errorSetter) => {
-    const offset = (page - 1) * limit;
-    const url = eventType
-      ? `${baseURL}:3000/api/system_logs?event_type=${eventType}&offset=${offset}&limit=${limit}`
-      : `${baseURL}:3000/api/system_logs?offset=${offset}&limit=${limit}`;
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "x-session-id": sessionStorage.getItem("session_id"),
-      },
-    });
-    if (response.status === 401) {
-      errorSetter("You do not have permission to view logs.");
-      return { logs: [], total: 0 };
-    }
-    if (response.ok) {
-      const data = await response.json();
-      errorSetter("");
-      return { logs: data.logs || [], total: data.total || 0 };
-    } else {
-      console.error(`Failed to fetch logs for ${eventType || "system logs"}`);
-      errorSetter("Failed to fetch logs.");
-      return { logs: [], total: 0 };
-    }
-  };
-  
-
-  // Fetch recent logins when recentLoginsPage changes
-  useEffect(() => {
-    const fetchRecentLogins = async () => {
-      const result = await fetchLogsFor("Login", recentLoginsPage, recentLoginsLimit, setRecentLoginsError);
-      const { logs, total } = result;
-      setRecentLogins(logs);
-      setRecentLoginsTotal(total);
-    };
-    fetchRecentLogins();
-  }, [recentLoginsPage]);
-
-  // Fetch system logs when systemLogsPage changes
-  useEffect(() => {
-    const fetchSystemLogs = async () => {
-      const result = await fetchLogsFor(null, systemLogsPage, systemLogsLimit, setSystemLogsError);
-      const { logs, total } = result;
-      setSystemLogs(logs);
-      setSystemLogsTotal(total);
-    };
-    fetchSystemLogs();
-  }, [systemLogsPage]);
-
-  // WebSocket for active application count
   }, []);
 
   // Helper function to fetch logs.

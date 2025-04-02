@@ -86,6 +86,23 @@ fn execute_program(
 ) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap();
 
+    // Retrieve the application's name from the database
+    let application_name: Option<String> = conn
+        .query_row(
+            "SELECT name FROM Application WHERE id = ?1",
+            [&request.application_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| {
+            eprintln!("Database error while retrieving application name: {}", e);
+            Status::InternalServerError
+        })?;
+
+    if application_name.is_none() {
+        return Err(Status::BadRequest); // Application not found
+    }
+
     // Get the executable path from the database
     let query = "SELECT path FROM Instructions WHERE application_id = ?";
     let path: SqlResult<String> = conn.query_row(query, [&request.application_id], |row| row.get(0));
@@ -118,6 +135,15 @@ fn execute_program(
                 Arc::clone(process_count_channel),
             );
 
+            // Log the program execution
+            let log_data = json!({
+                "actor": session_to_user(_session_id.0.clone(), &conn),
+                "application name": application_name.unwrap_or_else(|| "Unknown Application".to_string()),
+            });
+
+            if let Err(e) = insert_system_log("Program Launched", &log_data, &conn) {
+                eprintln!("Failed to log program execution: {}", e);
+            }
 
             Ok(Json(json!({
                 "status": "success",
@@ -1028,15 +1054,21 @@ fn delete_category(
         return Err(Status::Unauthorized); // Only Superadmins (1) & Admins (2) can delete categories
     }
 
-    // Check if category exists
-    let query = "SELECT COUNT(*) FROM Category WHERE id = ?1";
-    let category_exists: i64 = match conn.query_row(query, [&category_id], |row| row.get(0)) {
-        Ok(count) => count,
-        Err(_) => return Err(Status::InternalServerError),
-    };
+    // Retrieve the category name before deletion
+    let category_name: Option<String> = conn
+        .query_row(
+            "SELECT name FROM Category WHERE id = ?1",
+            [&category_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| {
+            error!("Database error while retrieving category name: {:?}", e);
+            Status::InternalServerError
+        })?;
 
-    if category_exists == 0 {
-        return Err(Status::NotFound);
+    if category_name.is_none() {
+        return Err(Status::NotFound); // Category not found
     }
 
     // Delete from CategoryApplication first (prevents foreign key constraint failure)
@@ -1053,6 +1085,16 @@ fn delete_category(
     if let Err(e) = result {
         error!("Database error while deleting category: {:?}", e);
         return Err(Status::InternalServerError);
+    }
+
+    // Log the category deletion
+    let log_data = json!({
+        "actor": actor,
+        "category name": category_name.unwrap_or_else(|| "Unknown Category".to_string()),
+    });
+
+    if let Err(e) = insert_system_log("Category Deleted", &log_data, &conn) {
+        eprintln!("Failed to log category deletion: {}", e);
     }
 
     Ok(Json(json!({
