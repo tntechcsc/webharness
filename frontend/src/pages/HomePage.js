@@ -6,7 +6,8 @@ import { Box, Container, Typography, Divider, Card, CardContent, Grid, CircularP
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useTheme } from "@mui/material/styles";
 import "bootstrap/dist/css/bootstrap.min.css";
-
+import { useContext } from "react";
+import { ThemeContext } from "../context/themecontext";
 
 // Fake data
 const baseURL = window.location.origin;
@@ -25,6 +26,7 @@ const recentLogins = [
 
 const HomePage = () => {
   const theme = useTheme();
+  const { mode } = useContext(ThemeContext);
   const [activeApplications, setActiveApplications] = useState(0);
   const [totalApplications, setTotalApplications] = useState(0);
 
@@ -85,7 +87,18 @@ const HomePage = () => {
   }, []);
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", backgroundColor: theme.palette.background.default, justifyContent: "center" }}>
+        <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        overflow: "hidden",
+        background:
+          mode === "default"
+            ? theme.custom?.gradients?.homeBackground || "linear-gradient(to bottom, #132060, #3e8e7e)"
+            : theme.palette.background.default,
+        justifyContent: "center"
+      }}
+      >
       <Navbar /> {/* Vertical navbar */}
 
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>

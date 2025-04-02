@@ -5,8 +5,9 @@ const lightTheme = createTheme({
   palette: {
     mode: "light",
     primary: {
-      main: "#ffffff",
-      contrastText: "#ffffff",
+      main: "#000000",
+      contrastText: "#000000",
+      light: "#ffffff"
     },
     secondary: {
       main: "#12255f",
@@ -32,7 +33,7 @@ const lightTheme = createTheme({
     h2: { fontWeight: 600, fontSize: "1.875rem", color: "#000000" },
     h3: { fontWeight: 500, fontSize: "1.5rem", color: "#000000" },
     h4: { fontWeight: 500, fontSize: "1.25rem", color: "#000000" },
-    h5: { fontWeight: 400, fontSize: "1.125rem", color: "#ffffff" },
+    h5: { fontWeight: 400, fontSize: "1.125rem", color: "#000000" },
     h6: { fontWeight: 400, fontSize: "1rem", color: "#000000" },
   },
 
@@ -40,7 +41,7 @@ const lightTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          backgroundColor: "#132060", // Card body color
+          backgroundColor: "#ffffff", // Card body color
           borderRadius: "12px",
           boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.3)",
           transition: "all 0.3s ease-in-out",
@@ -53,17 +54,18 @@ const lightTheme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          backgroundColor: "#75ea81",
+          backgroundColor: "#12255f",
           textColor: "#12255f",
-          padding: "2px 0px",
+          padding: "8px 16px", 
           fontWeight: "bold",
           "&:hover": {
-            backgroundColor: "#5fcf69",
+            backgroundColor: "#12255f",
+           
           },
         },
         contained: {
-          backgroundColor: "#75ea81",
-          color: "#12255f",
+          backgroundColor: "#6ffb78",
+          color: "#000000",
           fontWeight: "bold",
         },
       },
@@ -125,7 +127,9 @@ const defaultTheme = createTheme({                            // Default
   palette: {
     mode: "light",
     primary: {
-      main: "#12255f", 
+      main: "#ffffff", 
+      contrastText: "#12255f",
+      light: "#ffffff"
     },
     secondary: {
       main: "#6ffb78", 
@@ -136,11 +140,11 @@ const defaultTheme = createTheme({                            // Default
     }, 
     background: {
       default: "#ffffff", 
-      paper: "#ffffff",  
-      banner: "#0A192F"
+      paper: "#12255f",  
+      banner: "#12255f"
     },
     text: {
-      primary: "#0b3d2e",
+      primary: "#ffffff",
       secondary: "#4a5f56",
     },
     
@@ -165,11 +169,13 @@ const defaultTheme = createTheme({                            // Default
     MuiButton: {
       styleOverrides: {
         root: {
-          backgroundColor: "#37966f",
+          backgroundColor: "#6ffb78",
           color: "#ffffff",
           fontWeight: "bold",
+          padding: "8px 16px", 
           "&:hover": {
-            backgroundColor: "#2e7d5b",
+            backgroundColor: "#2a3b6f",
+           
           },
         },
       },
@@ -233,6 +239,7 @@ const darkTheme = createTheme({
     mode: "light", // Intentional override due to navbar compatibility
     primary: {
       main: "#2a2a2a",
+      light: "#2a2a2a"
     },
     secondary: {
       main: "#ffffff",
@@ -274,18 +281,19 @@ const darkTheme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          backgroundColor: "#75ea81",
-          textColor: "#12255f",
-          padding: "2px 0px",
+          backgroundColor: "#12255f",
+          textColor: "#ffffff",
+          padding: "8px 16px", 
           fontWeight: "bold",
           "&:hover": {
-            backgroundColor: "#5fcf69",
+            backgroundColor: "#6ffb78",
           },
         },
         contained: {
-          backgroundColor: "#75ea81",
-          color: "#12255f",
+          backgroundColor: "#12255f",
+          color: "#ffffff",
           fontWeight: "bold",
+          
         },
       },
     },

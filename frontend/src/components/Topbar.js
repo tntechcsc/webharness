@@ -56,7 +56,7 @@ const Topbar = () => {
           {/* Logo Section */}
           <Box sx={{ display: "flex", alignItems: "center" }}>
           <img src={logo} alt="Logo" style={{ height: 50, marginRight: 10 }} />
-          <Typography variant="h6" color="inherit" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h6" color="#ffffff" sx={{ fontWeight: 'bold' }}>
             Project Mangrove
           </Typography>
           </Box>
@@ -85,15 +85,15 @@ const Topbar = () => {
             {/* Avatar + Role */}
             {username && (
               <>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box sx={{ display: "flex" , alignItems: "center", gap: 1 }}>
                   <IconButton onClick={handleMenuOpen} sx={{ padding: 0 }}>
-                    <Avatar src={profilePic} sx={{ width: 40, height: 40 }}>
-                      {!profilePic && <AccountCircleIcon sx={{ fontSize: 40 }} />}
+                    <Avatar src={profilePic} sx={{ width: 40, height: 40, backgroundColor: "#ffffff", color: "#12255f" }}>
+                      {!profilePic && <AccountCircleIcon sx={{ fontSize: 40, }} />}
                     </Avatar>
                   </IconButton>
 
                   {/* Role displayed to the right of the avatar */}
-                  <Typography variant="body1" color="inherit" sx={{ whiteSpace: "nowrap" }}>
+                  <Typography variant="body1" color="#ffffff" sx={{ whiteSpace: "nowrap" }}>
                     {role || "Loading..."}
                   </Typography>
                 </Box>

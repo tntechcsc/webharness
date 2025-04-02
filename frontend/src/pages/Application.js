@@ -26,6 +26,8 @@ import { FaPlay, FaEye, FaPlus, FaStop, FaTags } from "react-icons/fa";
 import { useTheme } from "@mui/material/styles";
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import { ThemeContext } from "../context/themecontext";
+import { useContext } from "react";
 
 const baseURL = window.location.origin;
 
@@ -44,6 +46,7 @@ function Application() {
   const [categoryName, setCategoryName] = useState('');
   const [categoryDescription, setCategoryDescription] = useState('');
   const [categories, setCategories] = useState([]);
+  const { mode } = useContext(ThemeContext);
 
   useEffect(() => {
     fetchApplications();
@@ -484,8 +487,17 @@ function Application() {
   });
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}> {/* Boilter plate for our page content*/}
-      <Navbar />
+    <Box
+    sx={{
+      display: "flex",
+      minHeight: "100vh",
+      background:
+        mode === "default"
+          ? theme.custom?.gradients?.homeBackground || "linear-gradient(to bottom, #132060, #3e8e7e)"
+          : theme.palette.background.default,
+        }}
+      >
+        <Navbar />
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         <Topbar />
 
@@ -494,7 +506,7 @@ function Application() {
 
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <Box id="applications-overview" sx={{ p: 3, backgroundColor: theme.palette.background.paper, textColor: theme.palette.text.primary, borderRadius: "8px" }}>
+              <Box id="applications-overview" sx={{ p: 3, backgroundColor: theme.palette.tertiary.main, textColor: theme.palette.text.primary, borderRadius: "8px" }}>
                 <Typography variant="h6">Applications Overview</Typography>
                 <Divider sx={{ my: 2 }} />
 
@@ -541,6 +553,7 @@ function Application() {
                     size="small"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                 
                   />
                 </Box>
   

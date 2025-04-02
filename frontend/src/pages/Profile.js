@@ -14,12 +14,15 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import KeyboardCapslockIcon from '@mui/icons-material/KeyboardCapslock';
 import Checkbox from '@mui/material/Checkbox';
+import { useContext } from "react";
+import { ThemeContext } from "../context/themecontext";
 
 
 const baseURL = window.location.origin;
 
 const Profile = () => {
   const theme = useTheme();
+  const { mode } = useContext(ThemeContext);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profilePic, setProfilePic] = useState(null);
@@ -130,7 +133,17 @@ const Profile = () => {
   }
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        background:
+          mode === "default"
+            ? theme.custom?.gradients?.homeBackground || "linear-gradient(to bottom, #132060, #3e8e7e)"
+            : theme.palette.background.default,
+      }}
+    >
+
       <Navbar />
 
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", height: "100vh" }}>
@@ -138,10 +151,17 @@ const Profile = () => {
 
         <Container sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
           {/* Profile Picture */}
-          <Paper sx={{ p: 4, maxWidth: 600, width: "100%", textAlign: "center", backgroundColor: theme.palette.background.paper }}>
+          <Paper sx={{ p: 4, maxWidth: 600, width: "100%", textAlign: "center", backgroundColor: theme.palette.background.paper, borderRadius: "20px",
+             boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.3)", // 🔥 shadow like HomePage cards
+             transition: "all 0.3s ease-in-out",
+             "&:hover": {
+             boxShadow: "0px 12px 24px rgba(0, 0, 0, 0.5)", // stronger on hover
+             }
+          }}>
+
             <Avatar
               src={profilePic}
-              sx={{ width: 100, height: 100, margin: "auto", mb: 2, bgcolor: theme.palette.primary.main }}
+              sx={{ width: 100, height: 100, margin: "auto", mb: 2, bgcolor: theme.palette.primary.light }}
             >
               {!profilePic && <AccountCircleIcon sx={{ fontSize: 100, color: theme.palette.primary.contrastText }} />}
             </Avatar>
@@ -149,7 +169,7 @@ const Profile = () => {
             <Typography variant="h5" sx={{ fontWeight: "bold", color: theme.palette.text.primary }}>
               {userData?.username || "User"}
             </Typography>
-            <Typography variant="subtitle1" color="textSecondary">
+            <Typography variant="subtitle1" sx={{ color: theme.palette.text.primary }}>
               {userData?.roleName || "Role not available"}
             </Typography>
 
