@@ -470,7 +470,7 @@ fn stop_process(
         "application_name": application_name.unwrap_or_else(|| "Unknown Application".to_string()),
     });
 
-    if let Err(e) = insert_system_log("process_stopped", &log_data, &conn) {
+    if let Err(e) = insert_system_log("Process Stopped", &log_data, &conn) {
         eprintln!("Failed to log process stop: {}", e);
     }
 
@@ -580,7 +580,7 @@ fn add_application(
         "application_name": application_data.name,
     });
 
-    if let Err(e) = insert_system_log("application_added", &log_data, &conn) {
+    if let Err(e) = insert_system_log("Application Added", &log_data, &conn) {
         eprintln!("Failed to log application addition: {}", e);
     }
 
@@ -1268,33 +1268,67 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
         (status = 500, description = "Failed to retrieve system logs")
     ),
     params(
-        ("event_type" = Option<String>, Query, description = "Filter logs by event type (e.g., 'application_added')")
+        ("event_type" = Option<String>, Query, description = "Filter logs by event type (e.g., 'application_added')"),
+        ("offset" = Option<u32>, Query, description = "Pagination offset (default 0)"),
+        ("limit" = Option<u32>, Query, description = "Number of items to return (default 100)")
     ),
     security(
         ("session_id" = [])
     )
 )]
-#[get("/api/system_logs?<event_type>")]
+#[get("/api/system_logs?<event_type>&<offset>&<limit>")]
 fn get_system_logs(
     _session_id: SessionGuard,
     event_type: Option<String>,
+    offset: Option<u32>,
+    limit: Option<u32>,
     db: &rocket::State<Arc<DB>>,
 ) -> Result<Json<serde_json::Value>, Status> {
     // Lock the database connection.
     let conn = db.conn.lock().unwrap();
 
-    // Build the base query.
-    let mut query = "SELECT id, event, data, timestamp FROM SystemLogs".to_owned();
-    let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+    let actor = session_to_user(_session_id.0.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
+    let actor_role = user_role_search(actor.clone(), &conn);
+    let actor_role: i32 = actor_role.parse().expect("Not a valid number");
 
-    // If an event filter is provided, add the WHERE clause.
-    if let Some(ref event) = event_type {
-        query.push_str(" WHERE event = ?");
-        params.push(event);
+    if actor_role > 2 {
+        println!("User role: {} tried to access system logs", actor_role);
+        return Err(Status::Unauthorized); // Only Superadmin (1) or Admin (2) can view logs
     }
 
-    // Append the ORDER BY and LIMIT clause.
-    query.push_str(" ORDER BY rowid DESC LIMIT 100");
+    // If `event_type` is Some, we filter by that. Otherwise, we exclude 'Login'.
+    let (where_clause, filter_params): (String, Vec<&dyn rusqlite::ToSql>) = if let Some(ref ev) = event_type {
+        // Filter by a specific event
+        (" WHERE event = ?".to_string(), vec![ev as &dyn rusqlite::ToSql])
+    } else {
+        // Return all logs *except* 'Login'
+        (" WHERE event != 'Login'".to_string(), vec![])
+    };
+
+    // First, run a count query to get the total number of matching logs.
+    let count_query = format!("SELECT COUNT(*) FROM SystemLogs{}", where_clause);
+    let total_count: u32 = conn.query_row(
+        &count_query,
+        filter_params.as_slice(),
+        |row| row.get(0)
+    ).map_err(|e| {
+        error!("Database error counting logs: {:?}", e);
+        Status::InternalServerError
+    })?;
+
+    // Define default values for pagination.
+    let limit_val = limit.unwrap_or(100);
+    let offset_val = offset.unwrap_or(0);
+
+    // Build the main query by reusing the where clause.
+    let mut query = format!("SELECT id, event, data, timestamp FROM SystemLogs{}", where_clause);
+    query.push_str(" ORDER BY rowid DESC LIMIT ? OFFSET ?");
+
+    // Combine filter parameters with pagination parameters.
+    let mut params: Vec<&dyn rusqlite::ToSql> = filter_params;
+    params.push(&limit_val);
+    params.push(&offset_val);
 
     // Prepare the SQL statement.
     let mut stmt = conn.prepare(&query).map_err(|e| {
@@ -1315,9 +1349,9 @@ fn get_system_logs(
         })
         .and_then(|rows| rows.collect());
 
-    // Return the result as JSON.
+    // Return the logs along with the total count.
     match logs_result {
-        Ok(logs) => Ok(Json(json!({ "status": "success", "logs": logs }))),
+        Ok(logs) => Ok(Json(json!({ "status": "success", "logs": logs, "total": total_count }))),
         Err(e) => {
             error!("Database error while retrieving logs: {:?}", e);
             Err(Status::InternalServerError)
