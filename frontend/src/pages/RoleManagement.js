@@ -21,7 +21,7 @@ const baseURL = window.location.origin;
 const RoleManagement = () => {
   const [userRole, setUserRole] = useState("Viewer");
   const [username, setUsername] = useState("");
-  const [userDelete, setUserDelete] = useState("");
+  const [target, setTarget] = useState("");
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
@@ -299,70 +299,16 @@ const RoleManagement = () => {
                           <TableCell sx={{ display: "   ", justifyContent: "" }}>
 			                      { user.roleName != "Superadmin"  && user.username != username && //we do not want people to be able to delete our superuser or themselves
                             <>
-                            <Button onClick={() => setOpenResetPasswordConfirm(true)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                            <Button onClick={() => {setTarget(user.username);setOpenResetPasswordConfirm(true)}} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton aria-label="reset-password"  style={{ marginRight: '8px' }}>
                                 <LuClipboardPenLine />
                               </IconButton>
                             </Button>
-                            <Button onClick={() => { setUserDelete(user.username);setOpenDeleteConfirm(true)}} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                            <Button onClick={() => { setTarget(user.username);setOpenDeleteConfirm(true)}} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
                               <IconButton aria-label="delete" color="error" >
                                 <FaTrashAlt />
                               </IconButton>
                             </Button>
-                            
-                            <Dialog
-                              open={openResetPasswordConfirm}
-                              onClose={() => setOpenResetPasswordConfirm(false)}
-                              aria-labelledby="reset-password-dialog-title"
-                              aria-describedby="reset-password-dialog-description"
-                            >
-                              <DialogTitle id="reset-password-dialog-title">{"Confirm Password Reset"}</DialogTitle>
-                              <DialogContent>
-                                <DialogContentText id="reset-password-dialog-description">
-                                  Are you sure you want to reset the password for this user?
-                                </DialogContentText>
-                              </DialogContent>
-                              <DialogActions>
-                                <Button variant="outlined" onClick={() => setOpenResetPasswordConfirm(false)}
-                                  sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }} >
-                                  Cancel
-                                </Button>
-                                <Button variant="outlined" onClick={() => {
-                                  handleResetPasswordConfirm(user.username);
-                                }} sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
-                                  Reset Password
-                                </Button>
-                              </DialogActions>
-                            </Dialog>
-                            <Dialog
-                              open={openResetPasswordSuccess}
-                              onClose={() => setOpenResetPasswordSuccess(false)}
-                              aria-labelledby="reset-password-success-title"
-                              aria-describedby="reset-password-success-description"
-                            >
-                              <DialogTitle id="reset-password-success-title">Password Reset</DialogTitle>
-                              <DialogContent>
-                                <DialogContentText id="reset-password-success-description">
-                                  The password for the user has been successfully reset. 
-                                </DialogContentText>
-                                <TextField 
-                                  id="outlined-read-only-input"
-                                  label="Password"
-                                  value={displayedPassword}
-                                  InputProps={{
-                                    readOnly: true,
-                                    style: { width: displayedPassword?.length ? `${displayedPassword.length + 1}ch` : '100px' }
-                                  }}
-                                  sx={{ mt: 2 }}
-                                />
-
-                              </DialogContent>
-                              <DialogActions>
-                                <Button variant="outlined" onClick={() => setOpenResetPasswordSuccess(false)} sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
-                                  OK
-                                </Button>
-                              </DialogActions>
-                            </Dialog>
                             </>
                             /*and pwd change*/}
                             
@@ -390,7 +336,62 @@ const RoleManagement = () => {
         </Box>
       </Box>
 
-      
+      {/* Password Reset Modal */}
+      <Dialog
+        open={openResetPasswordConfirm}
+        onClose={() => setOpenResetPasswordConfirm(false)}
+        aria-labelledby="reset-password-dialog-title"
+        aria-describedby="reset-password-dialog-description"
+      >
+        <DialogTitle id="reset-password-dialog-title">{"Confirm Password Reset"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="reset-password-dialog-description">
+            Are you sure you want to reset the password for this user? {target}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={() => setOpenResetPasswordConfirm(false)}
+            sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }} >
+            Cancel
+          </Button>
+          <Button variant="outlined" onClick={() => {
+            handleResetPasswordConfirm(target);
+          }} sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
+            Reset Password
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={openResetPasswordSuccess}
+        onClose={() => setOpenResetPasswordSuccess(false)}
+        aria-labelledby="reset-password-success-title"
+        aria-describedby="reset-password-success-description"
+      >
+        <DialogTitle id="reset-password-success-title">Password Reset</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="reset-password-success-description">
+            The password for the user has been successfully reset. 
+          </DialogContentText>
+          <TextField 
+            id="outlined-read-only-input"
+            label="Password"
+            value={displayedPassword}
+            InputProps={{
+              readOnly: true,
+              style: { width: displayedPassword?.length ? `${displayedPassword.length + 1}ch` : '100px' }
+            }}
+            sx={{ mt: 2 }}
+          />
+
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={() => setOpenResetPasswordSuccess(false)} sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete User Modal */}
       <Dialog
           open={openDeleteConfirm}
           onClose={() => setOpenDeleteConfirm(false)}
@@ -400,7 +401,7 @@ const RoleManagement = () => {
           <DialogTitle id="alert-dialog-title">{"Confirm Delete"}</DialogTitle>
           <DialogContent>
             <DialogContentText id="alert-dialog-description">
-              Are you sure you want to delete this user? {userDelete}
+              Are you sure you want to delete this user? {target}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
@@ -409,7 +410,7 @@ const RoleManagement = () => {
               Cancel
             </Button>
             <Button variant="outlined" onClick={() => {
-              handleDeleteUserConfirm(userDelete);
+              handleDeleteUserConfirm(target);
             }} sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
               Delete
             </Button>
