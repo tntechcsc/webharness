@@ -86,6 +86,23 @@ fn execute_program(
 ) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap();
 
+    // Retrieve the application's name from the database
+    let application_name: Option<String> = conn
+        .query_row(
+            "SELECT name FROM Application WHERE id = ?1",
+            [&request.application_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| {
+            eprintln!("Database error while retrieving application name: {}", e);
+            Status::InternalServerError
+        })?;
+
+    if application_name.is_none() {
+        return Err(Status::BadRequest); // Application not found
+    }
+
     // Get the executable path from the database
     let query = "SELECT path FROM Instructions WHERE application_id = ?";
     let path: SqlResult<String> = conn.query_row(query, [&request.application_id], |row| row.get(0));
@@ -118,6 +135,15 @@ fn execute_program(
                 Arc::clone(process_count_channel),
             );
 
+            // Log the program execution
+            let log_data = json!({
+                "actor": session_to_user(_session_id.0.clone(), &conn),
+                "application name": application_name.unwrap_or_else(|| "Unknown Application".to_string()),
+            });
+
+            if let Err(e) = insert_system_log("Program Launched", &log_data, &conn) {
+                eprintln!("Failed to log program execution: {}", e);
+            }
 
             Ok(Json(json!({
                 "status": "success",
@@ -400,9 +426,17 @@ fn stop_process(
     process_map: &State<ProcessMap>,    // For tracking process status
     app_process_map: &State<AppProcessMap>,  // For association application id with process id
     connections: &State<ProcessConnections>,
-    process_count_channel: &State<ProcessCountChannel>
+    process_count_channel: &State<ProcessCountChannel>,
+    db: &rocket::State<Arc<DB>>,
 ) -> Result<Json<serde_json::Value>, Status> {
     println!("Received request to stop process: {}", identifier);
+    let conn = db.conn.lock().unwrap();
+    let actor = session_to_user(_session_id.0.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
+
+    if actor.is_empty() {
+        return Err(Status::Unauthorized);
+    }
 
     let process_id = if identifier.contains("-") {
         app_process_map.lock().unwrap().get(&identifier).cloned().ok_or(Status::NotFound)?
@@ -442,6 +476,29 @@ fn stop_process(
     }
 
     remove_process(&process_id, process_map, process_count_channel);
+
+    // Retrieve the application's name from the database
+    let application_name: Option<String> = conn
+        .query_row(
+            "SELECT name FROM Application WHERE id = ?1",
+            [&identifier],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| {
+            eprintln!("Database error while retrieving application name: {:?}", e);
+            Status::InternalServerError
+        })?;
+
+    // Log the process stop event
+    let log_data = json!({
+        "actor": actor,
+        "application_name": application_name.unwrap_or_else(|| "Unknown Application".to_string()),
+    });
+
+    if let Err(e) = insert_system_log("Process Stopped", &log_data, &conn) {
+        eprintln!("Failed to log process stop: {}", e);
+    }
 
     Ok(Json(json!({
         "status": "success",
@@ -541,6 +598,16 @@ fn add_application(
     if let Err(e) = result {
         error!("Database error while inserting application: {:?}", e);
         return Err(Status::InternalServerError);
+    }
+
+    // Log the application addition
+    let log_data = json!({
+        "actor": actor,
+        "application_name": application_data.name,
+    });
+
+    if let Err(e) = insert_system_log("Application Added", &log_data, &conn) {
+        eprintln!("Failed to log application addition: {}", e);
     }
 
     Ok(Json(json!({
@@ -987,15 +1054,21 @@ fn delete_category(
         return Err(Status::Unauthorized); // Only Superadmins (1) & Admins (2) can delete categories
     }
 
-    // Check if category exists
-    let query = "SELECT COUNT(*) FROM Category WHERE id = ?1";
-    let category_exists: i64 = match conn.query_row(query, [&category_id], |row| row.get(0)) {
-        Ok(count) => count,
-        Err(_) => return Err(Status::InternalServerError),
-    };
+    // Retrieve the category name before deletion
+    let category_name: Option<String> = conn
+        .query_row(
+            "SELECT name FROM Category WHERE id = ?1",
+            [&category_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| {
+            error!("Database error while retrieving category name: {:?}", e);
+            Status::InternalServerError
+        })?;
 
-    if category_exists == 0 {
-        return Err(Status::NotFound);
+    if category_name.is_none() {
+        return Err(Status::NotFound); // Category not found
     }
 
     // Delete from CategoryApplication first (prevents foreign key constraint failure)
@@ -1012,6 +1085,16 @@ fn delete_category(
     if let Err(e) = result {
         error!("Database error while deleting category: {:?}", e);
         return Err(Status::InternalServerError);
+    }
+
+    // Log the category deletion
+    let log_data = json!({
+        "actor": actor,
+        "category name": category_name.unwrap_or_else(|| "Unknown Category".to_string()),
+    });
+
+    if let Err(e) = insert_system_log("Category Deleted", &log_data, &conn) {
+        eprintln!("Failed to log category deletion: {}", e);
     }
 
     Ok(Json(json!({
@@ -1218,7 +1301,108 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/system_logs",
+    tag = "System Logs",
+    responses(
+        (status = 200, description = "System logs retrieved successfully", body = [SystemLog]),
+        (status = 500, description = "Failed to retrieve system logs")
+    ),
+    params(
+        ("event_type" = Option<String>, Query, description = "Filter logs by event type (e.g., 'application_added')"),
+        ("offset" = Option<u32>, Query, description = "Pagination offset (default 0)"),
+        ("limit" = Option<u32>, Query, description = "Number of items to return (default 100)")
+    ),
+    security(
+        ("session_id" = [])
+    )
+)]
+#[get("/api/system_logs?<event_type>&<offset>&<limit>")]
+fn get_system_logs(
+    _session_id: SessionGuard,
+    event_type: Option<String>,
+    offset: Option<u32>,
+    limit: Option<u32>,
+    db: &rocket::State<Arc<DB>>,
+) -> Result<Json<serde_json::Value>, Status> {
+    // Lock the database connection.
+    let conn = db.conn.lock().unwrap();
+
+    let actor = session_to_user(_session_id.0.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
+    let actor_role = user_role_search(actor.clone(), &conn);
+    let actor_role: i32 = actor_role.parse().expect("Not a valid number");
+
+    if actor_role > 2 {
+        println!("User role: {} tried to access system logs", actor_role);
+        return Err(Status::Unauthorized); // Only Superadmin (1) or Admin (2) can view logs
+    }
+
+    // If `event_type` is Some, we filter by that. Otherwise, we exclude 'Login'.
+    let (where_clause, filter_params): (String, Vec<&dyn rusqlite::ToSql>) = if let Some(ref ev) = event_type {
+        // Filter by a specific event
+        (" WHERE event = ?".to_string(), vec![ev as &dyn rusqlite::ToSql])
+    } else {
+        // Return all logs *except* 'Login'
+        (" WHERE event != 'Login'".to_string(), vec![])
+    };
+
+    // First, run a count query to get the total number of matching logs.
+    let count_query = format!("SELECT COUNT(*) FROM SystemLogs{}", where_clause);
+    let total_count: u32 = conn.query_row(
+        &count_query,
+        filter_params.as_slice(),
+        |row| row.get(0)
+    ).map_err(|e| {
+        error!("Database error counting logs: {:?}", e);
+        Status::InternalServerError
+    })?;
+
+    // Define default values for pagination.
+    let limit_val = limit.unwrap_or(100);
+    let offset_val = offset.unwrap_or(0);
+
+    // Build the main query by reusing the where clause.
+    let mut query = format!("SELECT id, event, data, timestamp FROM SystemLogs{}", where_clause);
+    query.push_str(" ORDER BY rowid DESC LIMIT ? OFFSET ?");
+
+    // Combine filter parameters with pagination parameters.
+    let mut params: Vec<&dyn rusqlite::ToSql> = filter_params;
+    params.push(&limit_val);
+    params.push(&offset_val);
+
+    // Prepare the SQL statement.
+    let mut stmt = conn.prepare(&query).map_err(|e| {
+        error!("Database error preparing query: {:?}", e);
+        Status::InternalServerError
+    })?;
+
+    // Execute the query and map the rows into SystemLog objects.
+    let logs_result: Result<Vec<SystemLog>, _> = stmt
+        .query_map(params.as_slice(), |row| {
+            Ok(SystemLog {
+                id: row.get(0)?,
+                event: row.get(1)?,
+                data: serde_json::from_str(&row.get::<_, String>(2)?)
+                    .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?,
+                timestamp: row.get(3)?, // Retrieve the timestamp
+            })
+        })
+        .and_then(|rows| rows.collect());
+
+    // Return the logs along with the total count.
+    match logs_result {
+        Ok(logs) => Ok(Json(json!({ "status": "success", "logs": logs, "total": total_count }))),
+        Err(e) => {
+            error!("Database error while retrieving logs: {:?}", e);
+            Err(Status::InternalServerError)
+        }
+    }
+}
+
+
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories, ws_process_status, ws_process_count]
+    routes![execute_program, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories, ws_process_status, ws_process_count, get_system_logs]
 }

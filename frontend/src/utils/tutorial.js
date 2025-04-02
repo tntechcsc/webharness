@@ -21,7 +21,6 @@ export const useStartTutorial = () => {
         { element: "#active-applications", intro: "This progress bar displays the percentage of active applications." },
         { element: "#failed-applications", intro: "This chart displays application failures over time." },
         { element: "#recent-logins", intro: "This section shows the most recent user logins." },
-        { element: "#upcoming-events", intro: "This card displays any scheduled upcoming events." },
         { element: "#system-logs", intro: "System logs provide important operational details." },
       ];
     } else if (currentPage === "applications") {

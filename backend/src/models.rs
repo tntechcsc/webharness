@@ -228,3 +228,18 @@ pub struct CategoryDetails {
     #[schema(example = "Applications related to system utilities")]
     pub description: Option<String>,
 }
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct SystemLog {
+    #[schema(example = "95dcd4e0-7e1f-4686-bc90-b010ff98213e")]
+    pub id: String, // Unique identifier for the log entry
+
+    #[schema(example = "application_added")]
+    pub event: String, // The type of event (e.g., "user_deleted", "application_added")
+
+    #[schema(example = json!({"actor": "admin", "application_name": "MyApp", "timestamp": "2025-03-31T12:34:56Z"}))]
+    pub data: serde_json::Value, // JSON data containing additional details about the event
+
+    #[schema(example = "2025-03-31T12:34:56Z")]
+    pub timestamp: String,
+}
