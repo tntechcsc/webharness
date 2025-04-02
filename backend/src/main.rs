@@ -6,11 +6,14 @@ use rocket::serde::{Serialize, Deserialize, json::Json}; // for handling jsons
 use rocket::State; // for handling state???
 use rocket::request::{FromRequest, Outcome}; //for outcome and optional handling
 use rocket::response::Redirect; //for redirecting on a failed session id check
+use rocket::{fairing::{Fairing, Info, Kind}, Build, Rocket};
+
 
 //for jsons
 use serde_json::json;
 //for our db connection
 use rusqlite::{Connection, Result, OptionalExtension};
+use rusqlite::Error;
 // for thread-safe access
 use std::sync::{Arc, Mutex}; 
 
@@ -58,9 +61,57 @@ mod execution; // Add this line
 mod redirects;
 
 pub struct SessionGuard(String);
+pub struct CleanupOldLogsFairing;
 
 // For websocket connections
 use tokio::sync::broadcast;
+use tokio::time::{interval, Duration as TokioDuration};
+
+async fn cleanup_old_logs(db: Arc<DB>) {
+    // Set an interval to run once every day (86400 seconds)
+    let mut interval = interval(TokioDuration::from_secs(86_400));
+    loop {
+        // Wait until the next tick.
+        interval.tick().await;
+        {
+            // Lock the connection.
+            let conn = db.conn.lock().unwrap();
+            // Execute the deletion query, delete logs older than 30 days
+            match conn.execute(
+                "DELETE FROM SystemLogs WHERE timestamp < datetime('now', '-30 days')",
+                [],
+            ) {
+                Ok(deleted) => {
+                    println!("Deleted {} old logs", deleted);
+                }
+                Err(e) => {
+                    eprintln!("Failed to delete old logs: {:?}", e);
+                }
+            }
+        }
+    }
+}
+
+#[rocket::async_trait]
+impl Fairing for CleanupOldLogsFairing {
+    fn info(&self) -> Info {
+        Info {
+            name: "Cleanup Old Logs Task",
+            kind: Kind::Ignite,
+        }
+    }
+
+    async fn on_ignite(&self, rocket: Rocket<Build>) -> rocket::fairing::Result {
+        // Clone the DB state to move into the async task.
+        if let Some(db) = rocket.state::<Arc<DB>>() {
+            let db_clone = db.clone();
+            rocket::tokio::spawn(async move {
+                cleanup_old_logs(db_clone).await;
+            });
+        }
+        Ok(rocket)
+    }
+}
 
 impl SessionGuard{
     fn is_valid_session(session_id: &str, conn: &Connection) -> bool {
@@ -168,6 +219,7 @@ fn rocket() -> _ {
     let db = Arc::new(db::DB::new().expect("Failed to initialize database"));
     rocket::build()
         .attach(cors.to_cors().unwrap()) //attaching cors for rocket to manage it
+        .attach(CleanupOldLogsFairing) // Used to delete logs older than 30 days
         .manage(db)
         .manage(process_map)        // Used to keep track of the current processes
         .manage(process_connections) // Used to keep track of the current websocket connections
