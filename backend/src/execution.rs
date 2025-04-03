@@ -59,6 +59,74 @@ pub type ProcessMap = Arc<Mutex<HashMap<String, ProcessInfo>>>;
 pub type AppProcessMap = Arc<Mutex<HashMap<String, String>>>;  // application_id -> process_id
 pub type ProcessCountChannel = Arc<Mutex<Option<broadcast::Sender<usize>>>>; // Used for sending process count updates
 
+//Resource Utilization monitoring
+use sysinfo::{System, SystemExt, ProcessExt, PidExt};
+use crate::ProcessUtilChannel;
+
+pub async fn monitor_resource_utilization(
+    process_map: ProcessMap,
+    resource_channel: ProcessUtilChannel,
+) {
+    let mut sys = sysinfo::System::new_all();
+    loop {
+        sleep(TokioDuration::from_secs(5)).await;
+        sys.refresh_all();
+
+        let map = process_map.lock().unwrap();
+        let mut usage_updates = Vec::new();
+
+        for (proc_id, proc_info) in map.iter() {
+            let pid = sysinfo::Pid::from(proc_info.pid as usize);
+            if let Some(process) = sys.process(pid) {
+                let cpu = process.cpu_usage();
+                let memory_bytes = process.memory();
+                let memory_gb = memory_bytes as f64 / 1024.0 / 1024.0 / 1024.0; // Convert to GB
+                usage_updates.push(json!({
+                    "process_name": proc_info.name, // include the stored name
+                    "cpu_usage": cpu,
+                    "memory_gb": memory_gb,
+                }));
+            }
+        }
+
+        let msg = serde_json::to_string(&usage_updates).unwrap();
+        if let Some(sender) = resource_channel.lock().unwrap().clone() {
+            if let Err(e) = sender.send(msg) {
+                eprintln!("Failed to send resource utilization update: {}", e);
+            }
+        }
+    }
+}
+
+
+#[get("/ws/resource_util")]
+fn ws_resource_util(
+    ws: WebSocket,
+    resource_channel: &State<ProcessUtilChannel>,
+) -> Result<MessageStream<'static, impl Stream<Item = Result<Message, rocket_ws::result::Error>>>, Status> {
+    let receiver = {
+        let mut lock = resource_channel.lock().unwrap();
+        if lock.is_none() {
+            // Create the channel if it doesn't exist.
+            let (tx, rx) = broadcast::channel(10);
+            *lock = Some(tx);
+            rx
+        } else {
+            lock.as_ref().unwrap().subscribe()
+        }
+    };
+
+    Ok(ws.stream(move |_| {
+        futures_util::stream::unfold(receiver, |mut rx| async {
+            match rx.recv().await {
+                Ok(msg) => Some((Ok(Message::Text(msg)), rx)),
+                Err(_) => None,
+            }
+        })
+    }))
+}
+
+
 #[utoipa::path(
     post,
     path = "/api/execute",
@@ -125,6 +193,7 @@ fn execute_program(
 
             // Store the process ID in the application process map
             app_process_map.lock().unwrap().insert(application_id.clone(), process_id.clone());
+            let process_name = application_name.clone().unwrap_or_else(|| "Unknown Application".to_string());
 
             // Store process tracking info
             add_process(
@@ -133,6 +202,7 @@ fn execute_program(
                 Arc::clone(process_map),
                 Arc::clone(connections),
                 Arc::clone(process_count_channel),
+                process_name,
             );
 
             // Log the program execution
@@ -310,7 +380,7 @@ fn monitor_process(
 
 
 // **Track and Monitor a New Process**
-fn add_process(process_id: String, pid: u32, process_map: ProcessMap, connections: ProcessConnections, process_count_channel: ProcessCountChannel) {
+fn add_process(process_id: String, pid: u32, process_map: ProcessMap, connections: ProcessConnections, process_count_channel: ProcessCountChannel, process_name: String) {
     let child_pids = get_child_pids(pid);
 
     {
@@ -322,6 +392,7 @@ fn add_process(process_id: String, pid: u32, process_map: ProcessMap, connection
                 child_pids: Arc::new(Mutex::new(child_pids.clone())),
                 status: Arc::new(Mutex::new("Running".to_string())),
                 exit_code: Arc::new(Mutex::new(None)),
+                name: process_name,
             },
         );
     }
@@ -1404,5 +1475,5 @@ fn get_system_logs(
 
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories, ws_process_status, ws_process_count, get_system_logs]
+    routes![execute_program, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories, ws_process_status, ws_process_count, get_system_logs, ws_resource_util]
 }
