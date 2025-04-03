@@ -523,8 +523,14 @@ function Application() {
                         padding: '2px 0px',
                         transform: "scale(0.75)",
                       }}
+                      aria-label="Add a new application"
                     >
-                      <IconButton variant="contained" color="primary" style={{ color: '#12255f' }}>
+                      <IconButton
+                        variant="contained"
+                        color="primary"
+                        style={{ color: '#12255f' }}
+                        aria-label="Add application icon"
+                      >
                         <FaPlus />
                       </IconButton>
                     </Button>
@@ -538,8 +544,14 @@ function Application() {
                         padding: '2px 0px',
                         transform: 'scale(0.75)',
                       }}
+                      aria-label="Add a new category"
                     >
-                      <IconButton variant="contained" color="primary" style={{ color: '#12255f' }}>
+                      <IconButton
+                        variant="contained"
+                        color="primary"
+                        style={{ color: '#12255f' }}
+                        aria-label="Add category icon"
+                      >
                         <FaTags />
                       </IconButton>
                     </Button>
@@ -619,20 +631,63 @@ function Application() {
                           <TableCell>{runningApplications[row.application.id] ? "Active" : "Inactive"}</TableCell>
                           <TableCell sx={{ display: "", justifyContent: "" }}>
                             {runningApplications[row.application.id] ? (
-                              <Button id={index === 0 ? "stop-button" : undefined} variant="contained" color="error" onClick={() => stopApplication(row.application.id, row.application.name)} title="Stop" size="small" style={{ backgroundColor: '#ea7575', padding: '2px 0px', transform: "scale(0.75)" }}>
-                                <IconButton variant="contained" color="primary" style={{ color: '#12255f' }}>
+                              <Button
+                                id={index === 0 ? "stop-button" : undefined}
+                                variant="contained"
+                                color="error"
+                                onClick={() => stopApplication(row.application.id, row.application.name)}
+                                title="Stop"
+                                size="small"
+                                style={{ backgroundColor: "#ea7575", padding: "2px 0px", transform: "scale(0.75)" }}
+                                aria-label={`Stop application ${row.application.name}`}
+                              >
+                                <IconButton
+                                  variant="contained"
+                                  color="primary"
+                                  style={{ color: "#12255f" }}
+                                  aria-label={`Stop icon for ${row.application.name}`}
+                                >
                                   <FaStop />
                                 </IconButton>
                               </Button>
                             ) : (
-                              <Button id={index === 0 ? "run-button" : undefined} variant="contained" color="success" onClick={() => runApplication(row.application.id, row.application.name)} title="Run" size="small" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                                <IconButton variant="contained" color="primary" style={{ color: '#12255f' }}>
+                              <Button
+                                id={index === 0 ? "run-button" : undefined}
+                                variant="contained"
+                                color="success"
+                                onClick={() => runApplication(row.application.id, row.application.name)}
+                                title="Run"
+                                size="small"
+                                style={{ backgroundColor: "#75ea81", padding: "2px 0px", transform: "scale(0.75)" }}
+                                aria-label={`Run application ${row.application.name}`}
+                              >
+                                <IconButton
+                                  variant="contained"
+                                  color="primary"
+                                  style={{ color: "#12255f" }}
+                                  aria-label={`Run icon for ${row.application.name}`}
+                                >
                                   <FaPlay />
                                 </IconButton>
                               </Button>
                             )}
-                            <Button id={index === 0 ? "view-button" : undefined} variant="contained" color="success" component={Link} to={`/view-application/${row.application.id}`} size="small" title="View" style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                              <IconButton variant="contained" color="primary"  style={{ color: '#12255f' }}>
+                            <Button
+                              id={index === 0 ? "view-button" : undefined}
+                              variant="contained"
+                              color="success"
+                              component={Link}
+                              to={`/view-application/${row.application.id}`}
+                              size="small"
+                              title="View"
+                              style={{ backgroundColor: "#75ea81", padding: "2px 0px", transform: "scale(0.75)" }}
+                              aria-label={`View application ${row.application.name}`}
+                            >
+                              <IconButton
+                                variant="contained"
+                                color="primary"
+                                style={{ color: "#12255f" }}
+                                aria-label={`View icon for ${row.application.name}`}
+                              >
                                 <FaEye />
                               </IconButton>
                             </Button>

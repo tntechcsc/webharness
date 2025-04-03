@@ -257,8 +257,9 @@ const RoleManagement = () => {
                       component={Link}
                       to="/register-user"
                       style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}
+                      aria-label="Register a new user"
                     >
-                      <IconButton>
+                      <IconButton aria-label="Add user icon">
                         <FaPlus />
                       </IconButton>
                     </Button>
