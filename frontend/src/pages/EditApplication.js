@@ -154,7 +154,7 @@ const EditApplication = () => {
       ...formData,
       user_id,
       id,
-      //category_ids: selectedCategories.map(option => option.value),
+      categories: selectedCategories.map(option => option.value),
     };
 
     try {
