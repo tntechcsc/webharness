@@ -10,8 +10,8 @@ export const useStartTutorial = () => {
   useEffect(() => {
     fetchRole().then((role) => {
       setUserRole(role);
-    })
-  })
+    });
+  }, []);
   const startTutorialManually = (currentPage) => {
     let steps = [];
 
