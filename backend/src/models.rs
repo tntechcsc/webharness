@@ -179,13 +179,17 @@ pub struct ApplicationUpdateForm {
     #[schema(example = "user-id-1234")]
     pub user_id: Option<String>,
 
+    #[schema(example = "Jesus")]
+    pub contact: Option<String>, //not required,
+
     #[schema(example = "/path/to/executable")]
     pub executable_path: Option<String>,
 
     #[schema(example = "--arg1 --arg2")]
     pub arguments: Option<String>, // Optional arguments for the application
 
-    //TODO ADD CATEGORY AFTER ITS UPDATED
+    #[schema(example = "rust, navy, etc")]
+    pub categories: Option<Vec<String>> //categories
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]

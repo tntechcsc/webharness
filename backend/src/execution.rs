@@ -49,6 +49,9 @@ use rusqlite::params;
 //For ddebugging
 use rocket::info;
 
+//for len, why isnt it usable by default?
+use crate::rocket::form::validate::Len;
+
 use tokio::sync::broadcast; // For sending updates to WebSocket clients
 use tokio::task; // For spawning async tasks
 use tokio::time::{sleep, Duration as TokioDuration}; // For async delays in background monitoring tasks
@@ -1239,7 +1242,7 @@ fn get_all_categories(
         ("session_id" = [])
     ),
     )]
-#[patch("/api/application/update", data = "<application_data>")]
+#[patch("/api/applications/update", data = "<application_data>")]
 fn update_application(_session_id: SessionGuard, application_data: Json<ApplicationUpdateForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let session_id = &_session_id.0;
@@ -1275,12 +1278,21 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
 
     //------------------------------------------- done with checking the application
 
+    // inserting into application
+
+    // Validate the path
+    if let Some(path) = &application_data.executable_path {
+        if !std::path::Path::new(path).exists() {
+            return Err(Status::BadRequest);
+        }    
+    }
     let mut query: String = "UPDATE Application SET".to_string();
     
     let fields = [
         ("name", &application_data.name),
         ("description", &application_data.description),
         ("userId", &application_data.user_id),
+        ("contact", &application_data.contact),
     ];
     let mut updateVector = Vec::<&dyn rusqlite::ToSql>::new();  // Creates an empty vector
     let mut i = 1;
@@ -1328,9 +1340,9 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
 
     //------------------------------------ build query to update instruction field
 
-    let mut query: String = "UPDATE Instructions SET".to_string();
+    let mut query: String = "UPDATE Instructions SET".to_string(); 
     
-    let fields = [
+    let fields = [ //they should make this a macro bro, they need some sort of query builder
         ("path", &application_data.executable_path),
         ("arguments", &application_data.arguments),
     ];
@@ -1358,18 +1370,86 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
     let mut result = conn.execute(&query, rusqlite::params_from_iter(updateVector.iter()));
 
     match result {
-        Ok(0) => Err(Status::NotFound),
+        Ok(0) => return Err(Status::NotFound),
         Ok(_) => {
-            Ok(Json(json!({
-                "status": "success",
-                "message": "Successfully updated."
-            })))
         }//moveon to update instructions}
         Err(e) => {
             eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
-            Err(Status::InternalServerError)
+            return Err(Status::InternalServerError)
         }
     }
+
+    //-- If no category passed
+    if !application_data.categories.is_none() {
+        //-- Checking if each category they passed is real (real)
+        let category_names = application_data
+            .categories
+            .as_ref() // Convert Option<Vec<String>> to Option<&Vec<String>>
+            .map(|categories| categories.join(", ")) // Join the vector with ", "
+            .unwrap_or_else(|| "".to_string()); // Default to empty string if None    
+
+        println!("category_names: {}", category_names);
+        if application_data.categories.len() != 0 {
+            let query: String = format!("SELECT COUNT(*) FROM Category WHERE id IN ({})", category_names);
+            println!("{}", query);
+
+            let mut stmt = conn.prepare(&query).unwrap();
+            let mut result = stmt.query([]).unwrap();
+
+            match result.next() {
+                Ok(Some(unwrapped_row)) => {
+                    let count: usize = unwrapped_row.get(0).unwrap();
+                    if count != application_data.categories.len() {
+                        return Err(Status::BadRequest); //an error with finding their categories
+                    }
+                }
+                Ok(None) => {
+                    return Err(Status::BadRequest); //nothing found, so clearly an issue
+                }
+                Err(e) => {
+                    eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
+                    return Err(Status::InternalServerError)
+                }
+            }
+        }
+        
+
+        //--just delete every category and add all in categories idiot
+        let query = "DELETE FROM CategoryApplication WHERE application_id = ?";
+        let result = conn.execute(&query, &[&application_data.id]);
+        match result {
+            Ok(_) => {
+                //GOOD
+            }
+            Err(e) => {
+                eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
+                return Err(Status::InternalServerError)
+            }
+
+        }
+
+        if let Some(categories) = &application_data.categories {
+            let query = "INSERT INTO CategoryApplication (application_id, category_id) VALUES (?1, ?2)";
+            for category in categories.iter() {
+                let result = conn.execute(&query, &[&application_data.id, &category]);
+                match result {
+                    Ok(_) => {
+                        //GOOD
+                    }
+                    Err(e) => {
+                        return Err(Status::InternalServerError);
+                    }
+                }
+            }
+        } else {
+            println!("categories is null?")
+        }
+    }
+
+    return Ok(Json(json!({
+        "status": "success",
+        "message": "Successfully updated."
+    })))
 }
 
 #[utoipa::path(

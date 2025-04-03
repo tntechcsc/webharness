@@ -6,6 +6,7 @@ import { IoReturnDownBackSharp, IoTrashBinOutline } from "react-icons/io5";
 import { FaPlay, FaEye, FaPlus  } from "react-icons/fa";
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import { LuClipboardPenLine } from "react-icons/lu";
 
 
 const baseURL = window.location.origin;
@@ -21,6 +22,7 @@ const ViewApplication = () => {
 
   useEffect(() => {
     fetchApplication();
+    console.log(id)
   }, []);
 
   const fetchApplication = async () => {
@@ -198,6 +200,7 @@ const ViewApplication = () => {
             <IconButton><IoTrashBinOutline /></IconButton>
           </Button>
           <Button
+            sx={{ mr: 2 }}
             variant="contained"
             color="error"
             onClick={runApplication}
@@ -205,7 +208,18 @@ const ViewApplication = () => {
           >
             <IconButton><FaPlay /></IconButton>
           </Button>
+          <RouterLink to={`/edit-application/`+id}>
+            <Button
+              variant="contained"
+              color="error"
+              disabled={!instructions.path}
+            >
+              <IconButton><LuClipboardPenLine /></IconButton>
+            </Button>
+          </RouterLink>
+
         </Box>
+        
 
         <Box sx={{ mt: 3 }}>
           <RouterLink to="/applications">
@@ -214,6 +228,7 @@ const ViewApplication = () => {
             </Button>
           </RouterLink>
         </Box>
+
       </Box>
     </Container>
   );
