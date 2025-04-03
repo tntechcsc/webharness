@@ -1250,47 +1250,7 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
     }
     
 
-    //-- Checking related categories and seeing which ones we dont need to overwrite
-    //using format cause i dont wanna use a propery query builder
-    //& is for to owned
-    //as str is cause prepare expects a str, not a String
-    let query = format!("
-    SELECT DISTINCT Category.id as category_id
-    FROM CategoryApplication JOIN Category RIGHT JOIN Application
-    ON Application.id = CategoryApplication.application_id
-    AND CategoryApplication.category_id = Category.id
-    OR CategoryApplication.category_id IS NULL
-    WHERE Category.id IN ({})
-    AND Application.id = ?", category_names);
-    println!("category intersection query: {}", query);
-    let mut stmt = conn.prepare(&query.as_str()).unwrap();
-        //we are just looking for every single category for an application from the list we are passed with application.categories
-        //we are gonna create another vector with the categories that were not found in there
-    let mut rows = stmt.query(&[&application_data.id]).unwrap();
-
-    let mut found_categories = Vec::new();
-
-    while let Some(row) = rows.next().unwrap() {
-        let category_id: String = row.get("category_id").unwrap();
-        found_categories.push(category_id);
-    }
-    println!("found_categories: {:?}", found_categories);
-
-    let mut missing_categories: Vec<String> = vec![];
-    if let Some(categories) = &application_data.categories { //unwrapping the option for any issues
-        missing_categories = categories
-            .iter() //iterable to go through categories
-            .filter(|&category| !found_categories.contains(&category.to_string())) //filter out the intersection of found_categories and categories
-            .cloned() //cloning it for ownership
-            .collect(); // collecting it to a vector
-    } else {
-        //all good
-        println!("Categories is a None")
-    }
-
-    println!("Missing Categories: {:?}", missing_categories);
-
-    
+    //--just delete every category and add all in categories idiot
 
 
     return Ok(Json(json!({
