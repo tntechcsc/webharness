@@ -490,7 +490,7 @@ const HomePage = () => {
                         {recentLogins.map((log, index) => (
                           <ListItem key={index} alignItems="flex-start">
                             <ListItemText
-                              primary={`[${log.event}]`}
+                              primary={`${log.event}`}
                               secondary={
                                 <>
                                   <Typography variant="body2" color="textSecondary">
@@ -601,6 +601,7 @@ const HomePage = () => {
                     value={(activeApplications / totalApplications) * 100}
                     size={120}
                     thickness={5}
+                    aria-label={`Active Applications progress: ${activeApplications} out of ${totalApplications}`}
                   />
                   <Typography variant="h5" sx={{ mt: 2 }}>
                     {activeApplications}/{totalApplications}

@@ -145,7 +145,7 @@ const defaultTheme = createTheme({                            // Default
     },
     text: {
       primary: "#ffffff",
-      secondary: "#4a5f56",
+      secondary: "#b0b0b0",
     },
     
   },
