@@ -1217,41 +1217,72 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
         }
     }
 
-    //-- Checking if each category they passed is real (real)
-    let category_names = application_data
-        .categories
-        .as_ref() // Convert Option<Vec<String>> to Option<&Vec<String>>
-        .map(|categories| categories.join(", ")) // Join the vector with ", "
-        .unwrap_or_else(|| "".to_string()); // Default to empty string if None    
+    //-- If no category passed
+    if !application_data.categories.is_none() {
+        //-- Checking if each category they passed is real (real)
+        let category_names = application_data
+            .categories
+            .as_ref() // Convert Option<Vec<String>> to Option<&Vec<String>>
+            .map(|categories| categories.join(", ")) // Join the vector with ", "
+            .unwrap_or_else(|| "".to_string()); // Default to empty string if None    
 
-    println!("category_names: {}", category_names);
-    if application_data.categories.len() != 0 {
-        let query: String = format!("SELECT COUNT(*) FROM Category WHERE id IN ({})", category_names);
-        println!("{}", query);
+        println!("category_names: {}", category_names);
+        if application_data.categories.len() != 0 {
+            let query: String = format!("SELECT COUNT(*) FROM Category WHERE id IN ({})", category_names);
+            println!("{}", query);
 
-        let mut stmt = conn.prepare(&query).unwrap();
-        let mut result = stmt.query([]).unwrap();
+            let mut stmt = conn.prepare(&query).unwrap();
+            let mut result = stmt.query([]).unwrap();
 
-        match result.next() {
-            Ok(Some(unwrapped_row)) => {
-                let count: usize = unwrapped_row.get(0).unwrap();
-                if count != application_data.categories.len() {
-                    return Err(Status::BadRequest); //an error with finding their categories
+            match result.next() {
+                Ok(Some(unwrapped_row)) => {
+                    let count: usize = unwrapped_row.get(0).unwrap();
+                    if count != application_data.categories.len() {
+                        return Err(Status::BadRequest); //an error with finding their categories
+                    }
+                }
+                Ok(None) => {
+                    return Err(Status::BadRequest); //nothing found, so clearly an issue
+                }
+                Err(e) => {
+                    eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
+                    return Err(Status::InternalServerError)
                 }
             }
-            Ok(None) => {
-                return Err(Status::BadRequest); //nothing found, so clearly an issue
+        }
+        
+
+        //--just delete every category and add all in categories idiot
+        let query = "DELETE FROM CategoryApplication WHERE application_id = ?";
+        let result = conn.execute(&query, &[&application_data.id]);
+        match result {
+            Ok(_) => {
+                //GOOD
             }
             Err(e) => {
                 eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
                 return Err(Status::InternalServerError)
             }
+
+        }
+
+        if let Some(categories) = &application_data.categories {
+            let query = "INSERT INTO CategoryApplication (application_id, category_id) VALUES (?1, ?2)";
+            for category in categories.iter() {
+                let result = conn.execute(&query, &[&application_data.id, &category]);
+                match result {
+                    Ok(_) => {
+                        //GOOD
+                    }
+                    Err(e) => {
+                        return Err(Status::InternalServerError);
+                    }
+                }
+            }
+        } else {
+            println!("categories is null?")
         }
     }
-    
-
-    //--just delete every category and add all in categories idiot
-
 
     return Ok(Json(json!({
         "status": "success",
