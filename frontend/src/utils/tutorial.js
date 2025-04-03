@@ -32,13 +32,27 @@ export const useStartTutorial = () => {
         { element: "#run-button", intro: "Click this button to start an application." },
         { element: "#view-button", intro: "Click this button to view an application in detail." },
       ];
-    } else if (currentPage === "role-management" && userRole != "Viewer") {
+    } else if (currentPage === "role-management" && userRole !== "Viewer") {
       steps = [
         { element: "#register-user", intro: "Click here to register a new user." },
         { element: "#search-users", intro: "Click here to search for a user." },
-        { element: "#reset-password", intro: "Click here to reset the users password. This will give the user a new auto-generated password" },
-        { element: "#delete-user", intro: "Click here to delete this user." },
       ];
+
+      // Check if the reset-password button exists
+      if (document.querySelector("#reset-password")) {
+        steps.push({
+          element: "#reset-password",
+          intro: "Click here to reset the user's password. This will give the user a new auto-generated password.",
+        });
+      }
+
+      // Check if the delete-user button exists
+      if (document.querySelector("#delete-user")) {
+        steps.push({
+          element: "#delete-user",
+          intro: "Click here to delete this user.",
+        });
+      }
     }
 
     if (steps.length > 0) {
