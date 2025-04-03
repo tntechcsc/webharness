@@ -175,7 +175,7 @@ const EditApplication = () => {
           title: <i>Success</i>,
           text: formData.name + " has been added!",
           icon: "success",
-        }).then(() => navigate("/applications"));
+        }).then(() => navigate(-1));
       } else {
         withReactContent(Swal).fire({
           title: <i>Failure</i>,
