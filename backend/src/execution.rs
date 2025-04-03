@@ -1124,6 +1124,14 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
 
     //------------------------------------------- done with checking the application
 
+    // inserting into application
+
+    // Validate the path
+    if let Some(path) = &application_data.executable_path {
+        if !std::path::Path::new(path).exists() {
+            return Err(Status::BadRequest);
+        }    
+    }
     let mut query: String = "UPDATE Application SET".to_string();
     
     let fields = [
