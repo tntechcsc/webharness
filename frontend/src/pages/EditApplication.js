@@ -153,13 +153,14 @@ const EditApplication = () => {
     const applicationData = {
       ...formData,
       user_id,
-      category_ids: selectedCategories.map(option => option.value),
+      id,
+      //category_ids: selectedCategories.map(option => option.value),
     };
 
     try {
       let session_id = sessionStorage.getItem("session_id");
-      const response = await fetch(`${baseURL}:3000/api/applications/add`, {
-        method: "POST",
+      const response = await fetch(`${baseURL}:3000/api/applications/update`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           "x-session-id": session_id

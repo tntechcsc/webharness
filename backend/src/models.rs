@@ -178,6 +178,9 @@ pub struct ApplicationUpdateForm {
     #[schema(example = "user-id-1234")]
     pub user_id: Option<String>,
 
+    #[schema(example = "Jesus")]
+    pub contact: Option<String>, //not required,
+
     #[schema(example = "/path/to/executable")]
     pub executable_path: Option<String>,
 

@@ -1085,7 +1085,7 @@ fn get_all_categories(
         ("session_id" = [])
     ),
     )]
-#[patch("/api/application/update", data = "<application_data>")]
+#[patch("/api/applications/update", data = "<application_data>")]
 fn update_application(_session_id: SessionGuard, application_data: Json<ApplicationUpdateForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let session_id = &_session_id.0;
@@ -1127,6 +1127,7 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
         ("name", &application_data.name),
         ("description", &application_data.description),
         ("userId", &application_data.user_id),
+        ("contact", &application_data.contact),
     ];
     let mut updateVector = Vec::<&dyn rusqlite::ToSql>::new();  // Creates an empty vector
     let mut i = 1;
