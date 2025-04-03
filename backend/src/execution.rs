@@ -49,6 +49,9 @@ use rusqlite::params;
 //For ddebugging
 use rocket::info;
 
+//for len, why isnt it usable by default?
+use crate::rocket::form::validate::Len;
+
 use tokio::sync::broadcast; // For sending updates to WebSocket clients
 use tokio::task; // For spawning async tasks
 use tokio::time::{sleep, Duration as TokioDuration}; // For async delays in background monitoring tasks
@@ -1175,9 +1178,9 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
 
     //------------------------------------ build query to update instruction field
 
-    let mut query: String = "UPDATE Instructions SET".to_string();
+    let mut query: String = "UPDATE Instructions SET".to_string(); 
     
-    let fields = [
+    let fields = [ //they should make this a macro bro, they need some sort of query builder
         ("path", &application_data.executable_path),
         ("arguments", &application_data.arguments),
     ];
@@ -1205,18 +1208,55 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
     let mut result = conn.execute(&query, rusqlite::params_from_iter(updateVector.iter()));
 
     match result {
-        Ok(0) => Err(Status::NotFound),
+        Ok(0) => return Err(Status::NotFound),
         Ok(_) => {
-            Ok(Json(json!({
-                "status": "success",
-                "message": "Successfully updated."
-            })))
         }//moveon to update instructions}
         Err(e) => {
             eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
-            Err(Status::InternalServerError)
+            return Err(Status::InternalServerError)
         }
     }
+
+    //-- Checking if each category they passed is real (real)
+    if application_data.categories.len() != 0 {
+        let category_names = application_data.categories.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+        let query: String = format!("SELECT COUNT(*) FROM my_table WHERE name IN ({})", category_names);
+
+        let mut stmt = conn.prepare(&query).unwrap();
+        let mut result = stmt.query([]).unwrap();
+
+        match result.next() {
+            Ok(Some(unwrapped_row)) => {
+                let count: usize = unwrapped_row.get(0).unwrap();
+                if count != application_data.categories.len() {
+                    return Err(Status::BadRequest); //an error with finding their categories
+                }
+            }
+            Ok(None) => {
+                return Err(Status::BadRequest); //nothing found, so clearly an issue
+            }
+            Err(e) => {
+                eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
+                return Err(Status::InternalServerError)
+            }
+        }
+    }
+    
+
+    //-- Checking related categories and seeing which ones we dont need to overwrite
+    let mut stmt = conn.prepare("
+        SELECT DISTINCT Application.id as application_id, CategoryApplication.category_id as category_id
+        FROM Application LEFT JOIN CategoryApplication
+        ON Application.id = CategoryApplication.application_id
+        OR CategoryApplication.category_id IS NULL
+        WHERE Application.id = ?").unwrap();
+    let mut rows = stmt.query(&[&application_data.id]).unwrap();
+
+
+    return Ok(Json(json!({
+        "status": "success",
+        "message": "Successfully updated."
+    })))
 }
 
 // Export the routes
