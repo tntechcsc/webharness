@@ -236,6 +236,10 @@ const RoleManagement = () => {
     );
   }
 
+  const hasEligibleUsers = users.some(
+    (user) => user.roleName !== "Superadmin" && user.username !== username
+  );
+
   return (
     <>
       <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
@@ -257,8 +261,9 @@ const RoleManagement = () => {
                       component={Link}
                       to="/register-user"
                       style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}
+                      aria-label="Register a new user"
                     >
-                      <IconButton>
+                      <IconButton aria-label="Add user icon">
                         <FaPlus />
                       </IconButton>
                     </Button>
@@ -340,12 +345,20 @@ const RoleManagement = () => {
                             <TableCell sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
                               {user.roleName !== "Superadmin" && user.username !== username ? (
                                 <>
-                                  <Button onClick={() => setOpenResetPasswordConfirm(true)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                                  <Button
+                                    id={hasEligibleUsers && !users.some((u, i) => i < index && u.roleName !== "Superadmin" && u.username !== username) ? `reset-password` : undefined}
+                                    onClick={() => setOpenResetPasswordConfirm(true)}
+                                    style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}
+                                  >
                                     <IconButton aria-label="reset-password" style={{ marginRight: '8px' }}>
                                       <LuClipboardPenLine />
                                     </IconButton>
                                   </Button>
-                                  <Button onClick={() => setOpenDeleteConfirm(true)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
+                                  <Button
+                                    id={hasEligibleUsers && !users.some((u, i) => i < index && u.roleName !== "Superadmin" && u.username !== username) ? `delete-user` : undefined}
+                                    onClick={() => setOpenDeleteConfirm(true)}
+                                    style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}
+                                  >
                                     <IconButton aria-label="delete" color="error">
                                       <FaTrashAlt />
                                     </IconButton>

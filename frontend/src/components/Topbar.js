@@ -66,27 +66,28 @@ const Topbar = () => {
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             {/* Theme Toggle */}
             <IconButton
-  onClick={toggleTheme}
-  sx={{
-    backgroundColor: "rgba(0, 0, 0, 0.1)",
-    color: "#ffffff",
-    borderRadius: "8px",
-    padding: "6px",
-    "&:hover": {
-      backgroundColor: "rgba(117, 234, 129, 255)",
-    },
-  }}
->
-  {mode === "light" && <DarkModeIcon />}
-  {mode === "dark" && <SettingsBrightnessIcon />}
-  {mode === "default" && <LightModeIcon />}
-</IconButton>
+              onClick={toggleTheme}
+              sx={{
+                backgroundColor: "rgba(0, 0, 0, 0.1)",
+                color: "#ffffff",
+                borderRadius: "8px",
+                padding: "6px",
+                "&:hover": {
+                  backgroundColor: "rgba(117, 234, 129, 255)",
+                },
+              }}
+              aria-label="Toggle theme"
+            >
+              {mode === "light" && <DarkModeIcon />}
+              {mode === "dark" && <SettingsBrightnessIcon />}
+              {mode === "default" && <LightModeIcon />}
+            </IconButton>
 
             {/* Avatar + Role */}
             {username && (
               <>
                 <Box sx={{ display: "flex" , alignItems: "center", gap: 1 }}>
-                  <IconButton onClick={handleMenuOpen} sx={{ padding: 0 }}>
+                  <IconButton onClick={handleMenuOpen} sx={{ padding: 0 }} aria-label="Open profile menu">
                     <Avatar src={profilePic} sx={{ width: 40, height: 40, backgroundColor: "#ffffff", color: "#12255f" }}>
                       {!profilePic && <AccountCircleIcon sx={{ fontSize: 40, }} />}
                     </Avatar>

@@ -225,7 +225,7 @@ fn user_info(_session_id: SessionGuard, db: &rocket::State<Arc<DB>>) -> Result<J
     tag = "User Management",
     responses(
         (status = 200, description = "Session is valid"),
-        (status = 401, description = "Unauthorized")
+        (status = 440, description = "Invalid Session")
     ),
     params(
     ),
@@ -411,8 +411,7 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
             return Err(Status::BadRequest);
         }
         Err(_) => {
-            // Querying error, return 500 Internal Server Error // any sort of errors
-            return Err(Status::InternalServerError);
+            return Err(Status::InternalServerError); // Return 500 for any database errors
         }
     }
 
@@ -426,6 +425,14 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
 
     match result { // switch statement
         Ok(_) => { // if its ok, then we return success
+            let log_data = json!({
+                "username": user_data.username,
+            });
+    
+            if let Err(e) = insert_system_log("Login", &log_data, &conn) {
+                eprintln!("Failed to log user login: {}", e);
+            }
+    
             // Successfully added user, return 200 OK with a success message
             Ok(Json(json!({
                 "status": "success",

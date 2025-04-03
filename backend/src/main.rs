@@ -6,11 +6,14 @@ use rocket::serde::{Serialize, Deserialize, json::Json}; // for handling jsons
 use rocket::State; // for handling state???
 use rocket::request::{FromRequest, Outcome}; //for outcome and optional handling
 use rocket::response::Redirect; //for redirecting on a failed session id check
+use rocket::{fairing::{Fairing, Info, Kind}, Build, Rocket};
+
 
 //for jsons
 use serde_json::json;
 //for our db connection
 use rusqlite::{Connection, Result, OptionalExtension};
+use rusqlite::Error;
 // for thread-safe access
 use std::sync::{Arc, Mutex}; 
 
@@ -58,9 +61,83 @@ mod execution; // Add this line
 mod redirects;
 
 pub struct SessionGuard(String);
+pub struct CleanupOldLogsFairing;
 
 // For websocket connections
 use tokio::sync::broadcast;
+use tokio::time::{interval, Duration as TokioDuration};
+pub type ProcessUtilChannel = Arc<Mutex<Option<broadcast::Sender<String>>>>;
+use crate::execution::monitor_resource_utilization;
+
+pub struct ResourceUtilizationFairing;
+
+#[rocket::async_trait]
+impl Fairing for ResourceUtilizationFairing {
+    fn info(&self) -> Info {
+        Info {
+            name: "Resource Utilization Monitoring",
+            kind: Kind::Ignite,
+        }
+    }
+
+    async fn on_ignite(&self, rocket: Rocket<Build>) -> rocket::fairing::Result {
+        // Get the managed state
+        let process_map = rocket.state::<ProcessMap>().unwrap().clone();
+        let resource_channel = rocket.state::<ProcessUtilChannel>().unwrap().clone();
+
+        // Spawn the background task within the Tokio runtime
+        rocket::tokio::spawn(async move {
+            monitor_resource_utilization(process_map, resource_channel).await;
+        });
+        Ok(rocket)
+    }
+}
+
+async fn cleanup_old_logs(db: Arc<DB>) {
+    // Set an interval to run once every day (86400 seconds)
+    let mut interval = interval(TokioDuration::from_secs(86_400));
+    loop {
+        // Wait until the next tick.
+        interval.tick().await;
+        {
+            // Lock the connection.
+            let conn = db.conn.lock().unwrap();
+            // Execute the deletion query, delete logs older than 30 days
+            match conn.execute(
+                "DELETE FROM SystemLogs WHERE timestamp < datetime('now', '-30 days')",
+                [],
+            ) {
+                Ok(deleted) => {
+                    println!("Deleted {} old logs", deleted);
+                }
+                Err(e) => {
+                    eprintln!("Failed to delete old logs: {:?}", e);
+                }
+            }
+        }
+    }
+}
+
+#[rocket::async_trait]
+impl Fairing for CleanupOldLogsFairing {
+    fn info(&self) -> Info {
+        Info {
+            name: "Cleanup Old Logs Task",
+            kind: Kind::Ignite,
+        }
+    }
+
+    async fn on_ignite(&self, rocket: Rocket<Build>) -> rocket::fairing::Result {
+        // Clone the DB state to move into the async task.
+        if let Some(db) = rocket.state::<Arc<DB>>() {
+            let db_clone = db.clone();
+            rocket::tokio::spawn(async move {
+                cleanup_old_logs(db_clone).await;
+            });
+        }
+        Ok(rocket)
+    }
+}
 
 impl SessionGuard{
     fn is_valid_session(session_id: &str, conn: &Connection) -> bool {
@@ -89,10 +166,10 @@ impl<'r> FromRequest<'r> for SessionGuard {
         
         match request.headers().get_one("x-session-id") {
             None => {
-                Outcome::Error((Status::Unauthorized, ()))
+                Outcome::Error((Status::new(440), ()))
             },
             Some(session_id) if !Self::is_valid_session(session_id, &conn) => {
-                Outcome::Error((Status::Unauthorized, ()))
+                Outcome::Error((Status::new(440), ()))
             },
             Some(session_id) => Outcome::Success(SessionGuard(session_id.to_string())),
         }
@@ -130,6 +207,7 @@ fn rocket() -> _ {
             crate::execution::add_category,
             crate::execution::delete_category,
             crate::execution::get_all_categories,
+            crate::execution::get_system_logs,
         ),
         modifiers(&SecurityAddon),
     )]
@@ -163,15 +241,19 @@ fn rocket() -> _ {
     let process_connections: ProcessConnections = Arc::new(Mutex::new(HashMap::new()));
     let app_process_map: AppProcessMap = Arc::new(Mutex::new(HashMap::new()));
     let process_count_channel: ProcessCountChannel = Arc::new(Mutex::new(None));
-
+    let resource_channel: ProcessUtilChannel = Arc::new(Mutex::new(None));
     let db = Arc::new(db::DB::new().expect("Failed to initialize database"));
+
     rocket::build()
         .attach(cors.to_cors().unwrap()) //attaching cors for rocket to manage it
+        .attach(CleanupOldLogsFairing) // Used to delete logs older than 30 days
+        .attach(ResourceUtilizationFairing) // USed to track resource utilization
         .manage(db)
         .manage(process_map)        // Used to keep track of the current processes
         .manage(process_connections) // Used to keep track of the current websocket connections
         .manage(app_process_map)  // Used to track application_id to process_id mapping. This allows us to stop programs using their application_id. We could probably combine this with process_map but I like having it seperated
         .manage(process_count_channel) // Used to keep track of the number of processes running.
+        .manage(resource_channel)
         .mount("/", user_management::user_management_routes())
         .mount("/", execution::execution_routes())
         .register("/", redirects::redirect_routes())

@@ -10,8 +10,8 @@ export const useStartTutorial = () => {
   useEffect(() => {
     fetchRole().then((role) => {
       setUserRole(role);
-    })
-  })
+    });
+  }, []);
   const startTutorialManually = (currentPage) => {
     let steps = [];
 
@@ -19,10 +19,9 @@ export const useStartTutorial = () => {
       steps = [
         { element: "#applications-card", intro: "This card shows the number of active applications." },
         { element: "#active-applications", intro: "This progress bar displays the percentage of active applications." },
-        { element: "#failed-applications", intro: "This chart displays application failures over time." },
         { element: "#recent-logins", intro: "This section shows the most recent user logins." },
-        { element: "#upcoming-events", intro: "This card displays any scheduled upcoming events." },
         { element: "#system-logs", intro: "System logs provide important operational details." },
+        { element: "#resource-utilization", intro: "This chart shows the resource utilization of running applications." },
       ];
     } else if (currentPage === "applications") {
       steps = [
@@ -33,13 +32,27 @@ export const useStartTutorial = () => {
         { element: "#run-button", intro: "Click this button to start an application." },
         { element: "#view-button", intro: "Click this button to view an application in detail." },
       ];
-    } else if (currentPage === "role-management" && userRole != "Viewer") {
+    } else if (currentPage === "role-management" && userRole !== "Viewer") {
       steps = [
         { element: "#register-user", intro: "Click here to register a new user." },
         { element: "#search-users", intro: "Click here to search for a user." },
-        { element: "#reset-password", intro: "Click here to reset the users password. This will give the user a new auto-generated password" },
-        { element: "#delete-user", intro: "Click here to delete this user." },
       ];
+
+      // Check if the reset-password button exists
+      if (document.querySelector("#reset-password")) {
+        steps.push({
+          element: "#reset-password",
+          intro: "Click here to reset the user's password. This will give the user a new auto-generated password.",
+        });
+      }
+
+      // Check if the delete-user button exists
+      if (document.querySelector("#delete-user")) {
+        steps.push({
+          element: "#delete-user",
+          intro: "Click here to delete this user.",
+        });
+      }
     }
 
     if (steps.length > 0) {

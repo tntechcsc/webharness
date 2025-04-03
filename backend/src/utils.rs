@@ -6,6 +6,8 @@ use rocket::request::{FromRequest, Outcome}; //for outcome and optional handling
 
 //for jsons
 use serde_json::json;
+use serde_json::Value;
+
 //for our db connection
 use rusqlite::{Connection, Result, OptionalExtension};
 // for thread-safe access
@@ -359,4 +361,15 @@ pub fn generate_passphrase() -> String {
     return password;
 }
 
+pub fn insert_system_log(
+    event: &str,
+    data: &Value,
+    conn: &std::sync::MutexGuard<'_, rusqlite::Connection>,
+) -> Result<(), rusqlite::Error> {
+    let id = Uuid::new_v4().to_string(); // Generate a unique ID for the log entry
+    let timestamp = chrono::Local::now().to_rfc3339(); // Get the current timestamp in RFC3339 format
+    let query = "INSERT INTO SystemLogs (id, event, data, timestamp) VALUES (?1, ?2, ?3, ?4)";
+    conn.execute(query, rusqlite::params![id, event, data.to_string(), timestamp])?;
+    Ok(())
+}
 

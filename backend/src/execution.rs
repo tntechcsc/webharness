@@ -49,6 +49,9 @@ use rusqlite::params;
 //For ddebugging
 use rocket::info;
 
+//for len, why isnt it usable by default?
+use crate::rocket::form::validate::Len;
+
 use tokio::sync::broadcast; // For sending updates to WebSocket clients
 use tokio::task; // For spawning async tasks
 use tokio::time::{sleep, Duration as TokioDuration}; // For async delays in background monitoring tasks
@@ -58,6 +61,74 @@ pub type ProcessConnections = Arc<Mutex<HashMap<String, broadcast::Sender<String
 pub type ProcessMap = Arc<Mutex<HashMap<String, ProcessInfo>>>;
 pub type AppProcessMap = Arc<Mutex<HashMap<String, String>>>;  // application_id -> process_id
 pub type ProcessCountChannel = Arc<Mutex<Option<broadcast::Sender<usize>>>>; // Used for sending process count updates
+
+//Resource Utilization monitoring
+use sysinfo::{System, SystemExt, ProcessExt, PidExt};
+use crate::ProcessUtilChannel;
+
+pub async fn monitor_resource_utilization(
+    process_map: ProcessMap,
+    resource_channel: ProcessUtilChannel,
+) {
+    let mut sys = sysinfo::System::new_all();
+    loop {
+        sleep(TokioDuration::from_secs(5)).await;
+        sys.refresh_all();
+
+        let map = process_map.lock().unwrap();
+        let mut usage_updates = Vec::new();
+
+        for (proc_id, proc_info) in map.iter() {
+            let pid = sysinfo::Pid::from(proc_info.pid as usize);
+            if let Some(process) = sys.process(pid) {
+                let cpu = process.cpu_usage();
+                let memory_bytes = process.memory();
+                let memory_gb = memory_bytes as f64 / 1024.0 / 1024.0 / 1024.0; // Convert to GB
+                usage_updates.push(json!({
+                    "process_name": proc_info.name, // include the stored name
+                    "cpu_usage": cpu,
+                    "memory_gb": memory_gb,
+                }));
+            }
+        }
+
+        let msg = serde_json::to_string(&usage_updates).unwrap();
+        if let Some(sender) = resource_channel.lock().unwrap().clone() {
+            if let Err(e) = sender.send(msg) {
+                eprintln!("Failed to send resource utilization update: {}", e);
+            }
+        }
+    }
+}
+
+
+#[get("/ws/resource_util")]
+fn ws_resource_util(
+    ws: WebSocket,
+    resource_channel: &State<ProcessUtilChannel>,
+) -> Result<MessageStream<'static, impl Stream<Item = Result<Message, rocket_ws::result::Error>>>, Status> {
+    let receiver = {
+        let mut lock = resource_channel.lock().unwrap();
+        if lock.is_none() {
+            // Create the channel if it doesn't exist.
+            let (tx, rx) = broadcast::channel(10);
+            *lock = Some(tx);
+            rx
+        } else {
+            lock.as_ref().unwrap().subscribe()
+        }
+    };
+
+    Ok(ws.stream(move |_| {
+        futures_util::stream::unfold(receiver, |mut rx| async {
+            match rx.recv().await {
+                Ok(msg) => Some((Ok(Message::Text(msg)), rx)),
+                Err(_) => None,
+            }
+        })
+    }))
+}
+
 
 #[utoipa::path(
     post,
@@ -86,6 +157,23 @@ fn execute_program(
 ) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap();
 
+    // Retrieve the application's name from the database
+    let application_name: Option<String> = conn
+        .query_row(
+            "SELECT name FROM Application WHERE id = ?1",
+            [&request.application_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| {
+            eprintln!("Database error while retrieving application name: {}", e);
+            Status::InternalServerError
+        })?;
+
+    if application_name.is_none() {
+        return Err(Status::BadRequest); // Application not found
+    }
+
     // Get the executable path from the database
     let query = "SELECT path FROM Instructions WHERE application_id = ?";
     let path: SqlResult<String> = conn.query_row(query, [&request.application_id], |row| row.get(0));
@@ -108,6 +196,7 @@ fn execute_program(
 
             // Store the process ID in the application process map
             app_process_map.lock().unwrap().insert(application_id.clone(), process_id.clone());
+            let process_name = application_name.clone().unwrap_or_else(|| "Unknown Application".to_string());
 
             // Store process tracking info
             add_process(
@@ -116,8 +205,18 @@ fn execute_program(
                 Arc::clone(process_map),
                 Arc::clone(connections),
                 Arc::clone(process_count_channel),
+                process_name,
             );
 
+            // Log the program execution
+            let log_data = json!({
+                "actor": session_to_user(_session_id.0.clone(), &conn),
+                "application name": application_name.unwrap_or_else(|| "Unknown Application".to_string()),
+            });
+
+            if let Err(e) = insert_system_log("Program Launched", &log_data, &conn) {
+                eprintln!("Failed to log program execution: {}", e);
+            }
 
             Ok(Json(json!({
                 "status": "success",
@@ -284,7 +383,7 @@ fn monitor_process(
 
 
 // **Track and Monitor a New Process**
-fn add_process(process_id: String, pid: u32, process_map: ProcessMap, connections: ProcessConnections, process_count_channel: ProcessCountChannel) {
+fn add_process(process_id: String, pid: u32, process_map: ProcessMap, connections: ProcessConnections, process_count_channel: ProcessCountChannel, process_name: String) {
     let child_pids = get_child_pids(pid);
 
     {
@@ -296,6 +395,7 @@ fn add_process(process_id: String, pid: u32, process_map: ProcessMap, connection
                 child_pids: Arc::new(Mutex::new(child_pids.clone())),
                 status: Arc::new(Mutex::new("Running".to_string())),
                 exit_code: Arc::new(Mutex::new(None)),
+                name: process_name,
             },
         );
     }
@@ -400,9 +500,17 @@ fn stop_process(
     process_map: &State<ProcessMap>,    // For tracking process status
     app_process_map: &State<AppProcessMap>,  // For association application id with process id
     connections: &State<ProcessConnections>,
-    process_count_channel: &State<ProcessCountChannel>
+    process_count_channel: &State<ProcessCountChannel>,
+    db: &rocket::State<Arc<DB>>,
 ) -> Result<Json<serde_json::Value>, Status> {
     println!("Received request to stop process: {}", identifier);
+    let conn = db.conn.lock().unwrap();
+    let actor = session_to_user(_session_id.0.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
+
+    if actor.is_empty() {
+        return Err(Status::Unauthorized);
+    }
 
     let process_id = if identifier.contains("-") {
         app_process_map.lock().unwrap().get(&identifier).cloned().ok_or(Status::NotFound)?
@@ -442,6 +550,29 @@ fn stop_process(
     }
 
     remove_process(&process_id, process_map, process_count_channel);
+
+    // Retrieve the application's name from the database
+    let application_name: Option<String> = conn
+        .query_row(
+            "SELECT name FROM Application WHERE id = ?1",
+            [&identifier],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| {
+            eprintln!("Database error while retrieving application name: {:?}", e);
+            Status::InternalServerError
+        })?;
+
+    // Log the process stop event
+    let log_data = json!({
+        "actor": actor,
+        "application_name": application_name.unwrap_or_else(|| "Unknown Application".to_string()),
+    });
+
+    if let Err(e) = insert_system_log("Process Stopped", &log_data, &conn) {
+        eprintln!("Failed to log process stop: {}", e);
+    }
 
     Ok(Json(json!({
         "status": "success",
@@ -541,6 +672,16 @@ fn add_application(
     if let Err(e) = result {
         error!("Database error while inserting application: {:?}", e);
         return Err(Status::InternalServerError);
+    }
+
+    // Log the application addition
+    let log_data = json!({
+        "actor": actor,
+        "application_name": application_data.name,
+    });
+
+    if let Err(e) = insert_system_log("Application Added", &log_data, &conn) {
+        eprintln!("Failed to log application addition: {}", e);
     }
 
     Ok(Json(json!({
@@ -987,15 +1128,21 @@ fn delete_category(
         return Err(Status::Unauthorized); // Only Superadmins (1) & Admins (2) can delete categories
     }
 
-    // Check if category exists
-    let query = "SELECT COUNT(*) FROM Category WHERE id = ?1";
-    let category_exists: i64 = match conn.query_row(query, [&category_id], |row| row.get(0)) {
-        Ok(count) => count,
-        Err(_) => return Err(Status::InternalServerError),
-    };
+    // Retrieve the category name before deletion
+    let category_name: Option<String> = conn
+        .query_row(
+            "SELECT name FROM Category WHERE id = ?1",
+            [&category_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| {
+            error!("Database error while retrieving category name: {:?}", e);
+            Status::InternalServerError
+        })?;
 
-    if category_exists == 0 {
-        return Err(Status::NotFound);
+    if category_name.is_none() {
+        return Err(Status::NotFound); // Category not found
     }
 
     // Delete from CategoryApplication first (prevents foreign key constraint failure)
@@ -1012,6 +1159,16 @@ fn delete_category(
     if let Err(e) = result {
         error!("Database error while deleting category: {:?}", e);
         return Err(Status::InternalServerError);
+    }
+
+    // Log the category deletion
+    let log_data = json!({
+        "actor": actor,
+        "category name": category_name.unwrap_or_else(|| "Unknown Category".to_string()),
+    });
+
+    if let Err(e) = insert_system_log("Category Deleted", &log_data, &conn) {
+        eprintln!("Failed to log category deletion: {}", e);
     }
 
     Ok(Json(json!({
@@ -1085,7 +1242,7 @@ fn get_all_categories(
         ("session_id" = [])
     ),
     )]
-#[patch("/api/application/update", data = "<application_data>")]
+#[patch("/api/applications/update", data = "<application_data>")]
 fn update_application(_session_id: SessionGuard, application_data: Json<ApplicationUpdateForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let session_id = &_session_id.0;
@@ -1121,12 +1278,21 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
 
     //------------------------------------------- done with checking the application
 
+    // inserting into application
+
+    // Validate the path
+    if let Some(path) = &application_data.executable_path {
+        if !std::path::Path::new(path).exists() {
+            return Err(Status::BadRequest);
+        }    
+    }
     let mut query: String = "UPDATE Application SET".to_string();
     
     let fields = [
         ("name", &application_data.name),
         ("description", &application_data.description),
         ("userId", &application_data.user_id),
+        ("contact", &application_data.contact),
     ];
     let mut updateVector = Vec::<&dyn rusqlite::ToSql>::new();  // Creates an empty vector
     let mut i = 1;
@@ -1174,9 +1340,9 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
 
     //------------------------------------ build query to update instruction field
 
-    let mut query: String = "UPDATE Instructions SET".to_string();
+    let mut query: String = "UPDATE Instructions SET".to_string(); 
     
-    let fields = [
+    let fields = [ //they should make this a macro bro, they need some sort of query builder
         ("path", &application_data.executable_path),
         ("arguments", &application_data.arguments),
     ];
@@ -1204,21 +1370,190 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
     let mut result = conn.execute(&query, rusqlite::params_from_iter(updateVector.iter()));
 
     match result {
-        Ok(0) => Err(Status::NotFound),
+        Ok(0) => return Err(Status::NotFound),
         Ok(_) => {
-            Ok(Json(json!({
-                "status": "success",
-                "message": "Successfully updated."
-            })))
         }//moveon to update instructions}
         Err(e) => {
             eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
+            return Err(Status::InternalServerError)
+        }
+    }
+
+    //-- If no category passed
+    if !application_data.categories.is_none() {
+        //-- Checking if each category they passed is real (real)
+        let category_names = application_data
+            .categories
+            .as_ref() // Convert Option<Vec<String>> to Option<&Vec<String>>
+            .map(|categories| categories.join(", ")) // Join the vector with ", "
+            .unwrap_or_else(|| "".to_string()); // Default to empty string if None    
+
+        println!("category_names: {}", category_names);
+        if application_data.categories.len() != 0 {
+            let query: String = format!("SELECT COUNT(*) FROM Category WHERE id IN ({})", category_names);
+            println!("{}", query);
+
+            let mut stmt = conn.prepare(&query).unwrap();
+            let mut result = stmt.query([]).unwrap();
+
+            match result.next() {
+                Ok(Some(unwrapped_row)) => {
+                    let count: usize = unwrapped_row.get(0).unwrap();
+                    if count != application_data.categories.len() {
+                        return Err(Status::BadRequest); //an error with finding their categories
+                    }
+                }
+                Ok(None) => {
+                    return Err(Status::BadRequest); //nothing found, so clearly an issue
+                }
+                Err(e) => {
+                    eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
+                    return Err(Status::InternalServerError)
+                }
+            }
+        }
+        
+
+        //--just delete every category and add all in categories idiot
+        let query = "DELETE FROM CategoryApplication WHERE application_id = ?";
+        let result = conn.execute(&query, &[&application_data.id]);
+        match result {
+            Ok(_) => {
+                //GOOD
+            }
+            Err(e) => {
+                eprintln!("Database error: {:?}", e);  // <-- Add this to log errors
+                return Err(Status::InternalServerError)
+            }
+
+        }
+
+        if let Some(categories) = &application_data.categories {
+            let query = "INSERT INTO CategoryApplication (application_id, category_id) VALUES (?1, ?2)";
+            for category in categories.iter() {
+                let result = conn.execute(&query, &[&application_data.id, &category]);
+                match result {
+                    Ok(_) => {
+                        //GOOD
+                    }
+                    Err(e) => {
+                        return Err(Status::InternalServerError);
+                    }
+                }
+            }
+        } else {
+            println!("categories is null?")
+        }
+    }
+
+    return Ok(Json(json!({
+        "status": "success",
+        "message": "Successfully updated."
+    })))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/system_logs",
+    tag = "System Logs",
+    responses(
+        (status = 200, description = "System logs retrieved successfully", body = [SystemLog]),
+        (status = 500, description = "Failed to retrieve system logs")
+    ),
+    params(
+        ("event_type" = Option<String>, Query, description = "Filter logs by event type (e.g., 'application_added')"),
+        ("offset" = Option<u32>, Query, description = "Pagination offset (default 0)"),
+        ("limit" = Option<u32>, Query, description = "Number of items to return (default 100)")
+    ),
+    security(
+        ("session_id" = [])
+    )
+)]
+#[get("/api/system_logs?<event_type>&<offset>&<limit>")]
+fn get_system_logs(
+    _session_id: SessionGuard,
+    event_type: Option<String>,
+    offset: Option<u32>,
+    limit: Option<u32>,
+    db: &rocket::State<Arc<DB>>,
+) -> Result<Json<serde_json::Value>, Status> {
+    // Lock the database connection.
+    let conn = db.conn.lock().unwrap();
+
+    let actor = session_to_user(_session_id.0.clone(), &conn);
+    let actor = user_name_search(actor, &conn);
+    let actor_role = user_role_search(actor.clone(), &conn);
+    let actor_role: i32 = actor_role.parse().expect("Not a valid number");
+
+    if actor_role > 2 {
+        println!("User role: {} tried to access system logs", actor_role);
+        return Err(Status::Unauthorized); // Only Superadmin (1) or Admin (2) can view logs
+    }
+
+    // If `event_type` is Some, we filter by that. Otherwise, we exclude 'Login'.
+    let (where_clause, filter_params): (String, Vec<&dyn rusqlite::ToSql>) = if let Some(ref ev) = event_type {
+        // Filter by a specific event
+        (" WHERE event = ?".to_string(), vec![ev as &dyn rusqlite::ToSql])
+    } else {
+        // Return all logs *except* 'Login'
+        (" WHERE event != 'Login'".to_string(), vec![])
+    };
+
+    // First, run a count query to get the total number of matching logs.
+    let count_query = format!("SELECT COUNT(*) FROM SystemLogs{}", where_clause);
+    let total_count: u32 = conn.query_row(
+        &count_query,
+        filter_params.as_slice(),
+        |row| row.get(0)
+    ).map_err(|e| {
+        error!("Database error counting logs: {:?}", e);
+        Status::InternalServerError
+    })?;
+
+    // Define default values for pagination.
+    let limit_val = limit.unwrap_or(100);
+    let offset_val = offset.unwrap_or(0);
+
+    // Build the main query by reusing the where clause.
+    let mut query = format!("SELECT id, event, data, timestamp FROM SystemLogs{}", where_clause);
+    query.push_str(" ORDER BY rowid DESC LIMIT ? OFFSET ?");
+
+    // Combine filter parameters with pagination parameters.
+    let mut params: Vec<&dyn rusqlite::ToSql> = filter_params;
+    params.push(&limit_val);
+    params.push(&offset_val);
+
+    // Prepare the SQL statement.
+    let mut stmt = conn.prepare(&query).map_err(|e| {
+        error!("Database error preparing query: {:?}", e);
+        Status::InternalServerError
+    })?;
+
+    // Execute the query and map the rows into SystemLog objects.
+    let logs_result: Result<Vec<SystemLog>, _> = stmt
+        .query_map(params.as_slice(), |row| {
+            Ok(SystemLog {
+                id: row.get(0)?,
+                event: row.get(1)?,
+                data: serde_json::from_str(&row.get::<_, String>(2)?)
+                    .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?,
+                timestamp: row.get(3)?, // Retrieve the timestamp
+            })
+        })
+        .and_then(|rows| rows.collect());
+
+    // Return the logs along with the total count.
+    match logs_result {
+        Ok(logs) => Ok(Json(json!({ "status": "success", "logs": logs, "total": total_count }))),
+        Err(e) => {
+            error!("Database error while retrieving logs: {:?}", e);
             Err(Status::InternalServerError)
         }
     }
 }
 
+
 // Export the routes
 pub fn execution_routes() -> Vec<Route> {
-    routes![execute_program, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories, ws_process_status, ws_process_count]
+    routes![execute_program, stop_process, add_application, update_application, remove_application, get_application, get_all_applications, add_category, delete_category, get_all_categories, ws_process_status, ws_process_count, get_system_logs, ws_resource_util]
 }

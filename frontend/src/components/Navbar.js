@@ -58,6 +58,7 @@ const Navbar = () => {
           transition: "transform 0.3s ease-in-out, color 0.3s ease-in-out",
           transform: open ? "rotate(0deg)" : "rotate(180deg)",
         }}
+        aria-label={open ? "Close navigation drawer" : "Open navigation drawer"}
       >
         {open ? <ChevronLeftIcon /> : <MenuIcon />}
       </IconButton>
