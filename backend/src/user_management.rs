@@ -225,7 +225,7 @@ fn user_info(_session_id: SessionGuard, db: &rocket::State<Arc<DB>>) -> Result<J
     tag = "User Management",
     responses(
         (status = 200, description = "Session is valid"),
-        (status = 401, description = "Unauthorized")
+        (status = 440, description = "Invalid Session")
     ),
     params(
     ),

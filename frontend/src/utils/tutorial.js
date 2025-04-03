@@ -19,9 +19,9 @@ export const useStartTutorial = () => {
       steps = [
         { element: "#applications-card", intro: "This card shows the number of active applications." },
         { element: "#active-applications", intro: "This progress bar displays the percentage of active applications." },
-        { element: "#failed-applications", intro: "This chart displays application failures over time." },
         { element: "#recent-logins", intro: "This section shows the most recent user logins." },
         { element: "#system-logs", intro: "System logs provide important operational details." },
+        { element: "#resource-utilization", intro: "This chart shows the resource utilization of running applications." },
       ];
     } else if (currentPage === "applications") {
       steps = [
