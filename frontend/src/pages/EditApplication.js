@@ -173,13 +173,13 @@ const EditApplication = () => {
         setLoading(false);
         withReactContent(Swal).fire({
           title: <i>Success</i>,
-          text: formData.name + " has been added!",
+          text: formData.name + " has been updated!",
           icon: "success",
         }).then(() => navigate(-1));
       } else {
         withReactContent(Swal).fire({
           title: <i>Failure</i>,
-          text: formData.name + " could not be added!",
+          text: formData.name + " could not be updated!",
           icon: "error",
         })
         setLoading(false);
@@ -188,7 +188,7 @@ const EditApplication = () => {
       console.error("Error:", error);
       withReactContent(Swal).fire({
         title: <i>Failure</i>,
-        text: formData.name + " could not be added!",
+        text: formData.name + " could not be updated!",
         icon: "error",
       })
       setLoading(false);
