@@ -16,6 +16,7 @@ import {
   ListItemText,
   Pagination,
   ListItemButton,
+  TextField 
 } from "@mui/material";
 import {
   ResponsiveContainer,
@@ -287,6 +288,16 @@ const HomePage = () => {
   const [selectedApp, setSelectedApp] = useState(null);
   const [availableProcesses, setAvailableProcesses] = useState([]);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const filteredLogs = systemLogs.filter(log =>
+    log.event.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    Object.values(log.data).some(value => String(value).toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   // A single effect that also listens for resource data (just to track process names)
   useEffect(() => {
     const wsUrl = `ws://${window.location.hostname}:3000/ws/resource_util`;
@@ -533,28 +544,37 @@ const HomePage = () => {
             </Grid>
             
             {/* System Logs */}
-            <Grid item xs={12} md={2.5}>
-              <Card sx={{ p: 2 }} id="system-logs">
-                <CardContent>
-                  <Typography variant="h6">System Logs</Typography>
-                  <Divider sx={{ my: 1 }} />
-                  {systemLogsError ? (
+              <Grid item xs={12} md={2.5}>
+                <Card sx={{ p: 2 }} id="system-logs">
+                  <CardContent>
+                    <Typography variant="h6">System Logs</Typography>
+                    <Divider sx={{ my: 1 }} />
+
+                    {/* Search bar */}
+                    <TextField
+                    label="Search Logs"
+                    variant="outlined"
+                    fullWidth
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    sx={{ mb: 2 }}
+                    />
+
+                    {systemLogsError ? (
                     <Typography variant="body1" color="error">
                       {systemLogsError}
                     </Typography>
-                  ) : (
+                    ) : (
                     <>
                       <List>
-                        {systemLogs.map((log, index) => (
+                        {filteredLogs.map((log, index) => (
                           <ListItem key={index} alignItems="flex-start">
                             <ListItemText
                               primary={`${log.event}`}
                               secondary={
                                 <>
                                   <Typography variant="body2" color="textSecondary">
-                                    {log.timestamp
-                                      ? new Date(log.timestamp).toLocaleString()
-                                      : "Unknown Time"}
+                                    {log.timestamp ? new Date(log.timestamp).toLocaleString() : "Unknown Time"}
                                   </Typography>
                                   <Grid container spacing={0} sx={{ mt: 0 }}>
                                     {Object.entries(log.data).map(([key, value]) => (
@@ -585,10 +605,10 @@ const HomePage = () => {
                         />
                       </Box>
                     </>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
             
             {/* Active Applications */}
             <Grid item xs={4} md={3}>
