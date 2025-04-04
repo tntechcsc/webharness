@@ -291,12 +291,16 @@ const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
+    console.log(filteredLogsTotal);
   };
 
   const filteredLogs = systemLogs.filter(log =>
     log.event.toLowerCase().includes(searchQuery.toLowerCase()) || 
     Object.values(log.data).some(value => String(value).toLowerCase().includes(searchQuery.toLowerCase()))
   );
+  const filteredLogsTotal = filteredLogs.length;
+  console.log(systemLogs);
+
 
   // A single effect that also listens for resource data (just to track process names)
   useEffect(() => {
