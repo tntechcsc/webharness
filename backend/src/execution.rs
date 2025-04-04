@@ -1452,7 +1452,7 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
         "application_name": application_data.name,
     });
 
-    if let Err(e) = insert_system_log("Application Added", &log_data, &conn) {
+    if let Err(e) = insert_system_log("Application Updated", &log_data, &conn) {
         eprintln!("Failed to log application addition: {}", e);
     }
 
