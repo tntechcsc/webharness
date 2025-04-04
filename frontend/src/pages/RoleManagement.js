@@ -13,6 +13,9 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
+import { useContext } from "react";
+import { ThemeContext } from "../context/themecontext"; // adjust path if needed
+
 
 const baseURL = window.location.origin;
 
@@ -28,6 +31,7 @@ const RoleManagement = () => {
   const [loading, setLoading] = useState(true);
   const [displayedPassword, setDisplayedPassword] = useState("");
   const theme = useTheme();
+  const { mode } = useContext(ThemeContext);
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [openDeleteSuccess, setOpenDeleteSuccess] = useState(false);
   const [openResetPasswordConfirm, setOpenResetPasswordConfirm] = useState(false);
@@ -242,7 +246,17 @@ const RoleManagement = () => {
 
   return (
     <>
-      <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
+      <Box
+  sx={{
+    display: "flex",
+    minHeight: "100vh",
+    background:
+      mode === "default"
+        ? theme.custom?.gradients?.homeBackground || "linear-gradient(to bottom, #132060, #3e8e7e)"
+        : theme.palette.background.default,
+  }}
+>
+
         <Navbar />
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
           <Topbar />
