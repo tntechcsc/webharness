@@ -351,6 +351,15 @@ fn user_register(_session_id: SessionGuard, user_data: Json<UserInit>, db: &rock
     let result = conn.execute(query, &[&id, &user_data.role]);
     match result {
         Ok(_) => {
+            let log_data = json!({
+                "actor": actor,
+                "user": user_data.username,
+            });
+        
+            if let Err(e) = insert_system_log("User Registered", &log_data, &conn) {
+                eprintln!("Failed to log application addition: {}", e);
+            }
+
             Ok(Json(json!({
                 "status": "success",
                 "message": "User registered successfully",
@@ -515,7 +524,7 @@ fn reset_password(_session_id: SessionGuard, user_data: Json<ModifyUserForm>, db
 
     //session is that of the actor
     let actor = session_to_user(session_id.clone(), &conn);
-    let actor = user_name_search(actor, &conn);
+    let actor = user_name_search(actor.clone(), &conn);
 
     if actor == "" {
         return Err(Status::NotFound);
@@ -525,7 +534,7 @@ fn reset_password(_session_id: SessionGuard, user_data: Json<ModifyUserForm>, db
         return Err(Status::BadRequest);
     }
 
-    else if !compare_roles(actor, target.clone(), &conn) {
+    else if !compare_roles(actor.clone(), target.clone(), &conn) {
         return Err(Status::Unauthorized);
     }
 
@@ -539,6 +548,15 @@ fn reset_password(_session_id: SessionGuard, user_data: Json<ModifyUserForm>, db
         }
         Ok(_) => {
             // Successfully updated the user, return 200 OK with a success message
+            let log_data = json!({
+                "actor": actor,
+                "target": target,
+            });
+        
+            if let Err(e) = insert_system_log("Changed Password", &log_data, &conn) {
+                eprintln!("Failed to log application addition: {}", e);
+            }
+
             Ok(Json(json!({
                 "status": "success",
                 "message": "Password updated successfully",
@@ -634,7 +652,7 @@ fn user_delete(_session_id: SessionGuard, deleteForm: Json<ModifyUserForm>, db: 
 
     //session is that of the actor
     let actor = session_to_user(session_id.clone(), &conn);
-    let actor = user_name_search(actor, &conn);
+    let actor = user_name_search(actor.clone(), &conn);
     let actor_role = user_role_search(actor.clone(), &conn);
     let target_role = user_role_search(target.clone(), &conn);
 
@@ -651,13 +669,13 @@ fn user_delete(_session_id: SessionGuard, deleteForm: Json<ModifyUserForm>, db: 
         return Err(Status::BadRequest);
     }
 
-    else if !compare_roles(actor, target.clone(), &conn) {
+    else if !compare_roles(actor.clone(), target.clone(), &conn) {
         return Err(Status::Unauthorized);
     }
 
     // Prepare the SQL DELETE query
     let query = "DELETE FROM User WHERE username = ?1";
-    let result = conn.execute(query, &[&target]);
+    let result = conn.execute(query, &[&target.clone()]);
 
     match result {
         Ok(0) => {
@@ -665,6 +683,15 @@ fn user_delete(_session_id: SessionGuard, deleteForm: Json<ModifyUserForm>, db: 
             Err(Status::NotFound)
         }
         Ok(_) => {
+            let log_data = json!({
+                "actor": actor,
+                "user": target,
+            });
+        
+            if let Err(e) = insert_system_log("User Deleted", &log_data, &conn) {
+                eprintln!("Failed to log application addition: {}", e);
+            }
+
             // Successfully deleted the user, return 200 OK with a success message
             Ok(Json(json!({
                 "status": "success",

@@ -66,6 +66,7 @@
   "devDependencies": {
     "concurrently": "^9.1.2",
     "electron": "^35.0.0",
-    "electron-packager": "^17.1.2"
+    "electron-packager": "^17.1.2",
+    "prettier": "3.5.3"
   }
 }

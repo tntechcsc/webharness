@@ -1256,7 +1256,7 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
         return Err(Status::NotFound);
     }
 
-    let role = user_role_search(actor, &conn);
+    let role = user_role_search(actor.clone(), &conn);
 
     //if they're a viewer
     if role == "3" {
@@ -1444,6 +1444,16 @@ fn update_application(_session_id: SessionGuard, application_data: Json<Applicat
         } else {
             println!("categories is null?")
         }
+    }
+
+    // Log the application addition
+    let log_data = json!({
+        "actor": actor,
+        "application_name": application_data.name,
+    });
+
+    if let Err(e) = insert_system_log("Application Updated", &log_data, &conn) {
+        eprintln!("Failed to log application addition: {}", e);
     }
 
     return Ok(Json(json!({
