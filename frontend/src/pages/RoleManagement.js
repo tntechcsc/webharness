@@ -197,7 +197,13 @@ const RoleManagement = () => {
       if (response.ok) {
         setOpenRoleConfirm(false);
         setSelectedUserForRoleUpdate(null);
-        setNewRole(role);
+        setNewRole("");
+        //fetchUsers(); //this is the only way i can tell that will properly handle role changing all of them
+        users.forEach(changedUser => {
+          if (changedUser.username == user.username) {
+            changedUser.roleName = role;
+          }
+        })
         handleOpenStatusModal("Success!", "User's role has been changed");
       } else {
         setOpenRoleConfirm(false);
