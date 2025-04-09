@@ -41,6 +41,10 @@ const RoleManagement = () => {
   const [selectedUserForRoleUpdate, setSelectedUserForRoleUpdate] = useState(null);
   const [newRole, setNewRole] = useState("");
 
+  const [displayStatusModal, setDisplayStatusModal] = useState();
+  const [statusModalTitle, setStatusModalTitle] = useState();
+  const [statusModalMessage, setStatusModalMessage] = useState();
+
   const handleDeleteUserConfirm = (username) => {
     // Implement the delete user functionality here, then open the success dialog
     /*
@@ -193,14 +197,20 @@ const RoleManagement = () => {
       if (response.ok) {
         setOpenRoleConfirm(false);
         setSelectedUserForRoleUpdate(null);
+        setNewRole(role);
+        handleOpenStatusModal("Success!", "User's role has been changed");
       } else {
         setOpenRoleConfirm(false);
         setSelectedUserForRoleUpdate(null);
+        setNewRole("");
+        handleOpenStatusModal("Error!", "User's could not be changed");
       }
     }
     catch(e) {
       setOpenRoleConfirm(false);
       setSelectedUserForRoleUpdate(null);
+      setNewRole("");
+      handleOpenStatusModal("Error!", "User's could not be changed");
     }
   };
 
@@ -209,6 +219,18 @@ const RoleManagement = () => {
     setSelectedUserForRoleUpdate(null);
     setNewRole("");
   };
+
+  const handleOpenStatusModal = (title, message) => {
+    setStatusModalTitle(title);
+    setStatusModalMessage(message);
+    setDisplayStatusModal(true);
+  }
+
+  const handleCloseStatusModal = () => {
+    setStatusModalTitle("");
+    setStatusModalMessage("");
+    setDisplayStatusModal(false);
+  }
 
   const fetchUsername = async () => {
     try {
@@ -526,6 +548,26 @@ const RoleManagement = () => {
                       <Button variant="outlined" onClick={() => {handleRoleUpdateConfirm(selectedUserForRoleUpdate, newRole)}}
                         sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
                         Confirm
+                      </Button>
+                    </DialogActions>
+                  </Dialog>
+
+                  <Dialog
+                    open={displayStatusModal}
+                    onClose={handleCloseStatusModal}
+                    aria-labelledby="role-dialog-title"
+                    aria-describedby="role-dialog-description"
+                  >
+                    <DialogTitle id="role-dialog-title">{statusModalTitle}</DialogTitle>
+                    <DialogContent>
+                      <DialogContentText id="role-dialog-description">
+                        {statusModalMessage}
+                      </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                      <Button variant="outlined" onClick={handleCloseStatusModal}
+                        sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+                        Close
                       </Button>
                     </DialogActions>
                   </Dialog>
