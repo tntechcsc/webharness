@@ -196,6 +196,7 @@ fn rocket() -> _ {
             crate::user_management::user_delete, 
             crate::user_management::user_logout,
             crate::user_management::user_all,
+            crate::user_management::role_change,
 
             crate::execution::execute_program, 
             crate::execution::stop_process,

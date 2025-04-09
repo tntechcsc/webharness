@@ -100,6 +100,14 @@ pub struct ModifyUserForm {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
+pub struct RoleChangeForm {
+    #[schema(example = "gbus")]
+    pub target: String,
+    #[schema(example = "Viewer")] //maybe use enums for something like this
+    pub role: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct SetPasswordForm {
     #[schema(example = "StrongPass123!")]
     pub new_password: String,

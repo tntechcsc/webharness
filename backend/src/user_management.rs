@@ -9,6 +9,8 @@ use rocket::Route;
 use serde_json::json;
 //for our db connection
 use rusqlite::{Connection, Result, OptionalExtension};
+//to convert a object to a sql object
+use rusqlite::ToSql;
 // for thread-safe access
 use std::sync::{Arc, Mutex}; 
 
@@ -705,10 +707,136 @@ fn user_delete(_session_id: SessionGuard, deleteForm: Json<ModifyUserForm>, db: 
     }
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/role/",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "Demotes/Promotes a user"),
+        (status = 404, description = "User not found")
+    ),
+    request_body = RoleChangeForm,
+    security(
+        ("session_id" = [])
+    ),
+    )]
+#[put("/api/role", data = "<role_change_data>")]
+fn role_change(_session_id: SessionGuard, role_change_data: Json<RoleChangeForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let target = &role_change_data.target;
+    let role = &role_change_data.role;
+    let session_id = &_session_id.0;
+
+    if role != "Viewer" && role != "Admin" && role != "Superadmin" { //need to submit a proper role
+        return Err(Status::BadRequest);
+    }
+
+    if role == "Superadmin" {
+        return Err(Status::BadRequest);//only 1 superadmin
+    }
+
+    let mut role_id: i32;
+    match role.as_str() {
+        "Viewer" => {
+            role_id = 3;
+        }
+        "Admin" => {
+            role_id = 2;
+        }
+        &_ => {
+            return Err(Status::BadRequest)
+        }
+    }
+
+    if !user_exists(target, &conn) {//not found
+        return Err(Status::NotFound);
+    }
+    
+    //session is that of the actor
+    let actor_id = session_to_user(session_id.clone(), &conn); //returns user_id
+    let actor = user_name_search(actor_id.clone(), &conn);
+
+    if actor == "" {//for any error if the actor is ot found
+        return Err(Status::NotFound);
+    }
+
+    if &actor == target { //cannot change your own role
+        return Err(Status::BadRequest);
+    }
+
+    let actor_role: i32 = user_role_search(actor.clone(), &conn).parse().expect("Not a valid number");
+    let target_role: i32 = user_role_search(target.clone(), &conn).parse().expect("Not a valid number");
+
+    if target_role == 1 { //cannot mutate superadmin
+        return Err(Status::BadRequest);
+    }
+
+    if actor_role == 3 { //viewer cannot mutate anyone
+        return Err(Status::BadRequest)
+    }
+
+    // good if actor_role is 1
+
+    //obviously with proper permissions to do so
+    // if they try to promote a user from viewer to admin with proper permissions, then its fine
+    // check if they are going from viewer to admin
+    //if target_role == 3 && role == "Admin" no checking should actually be done for this
+
+    // only the superadmin can demote a admin to a viewer
+    // check if they are going from admin to viewer and the actor isnt the superadmin
+    if target_role == 2 && role == "Viewer" && actor_role != 1 {
+        return Err(Status::Unauthorized)
+    }
+
+    /* that function was not worth making
+    else if !compare_roles(actor.clone(), target.clone(), &conn) {
+        return Err(Status::Unauthorized);
+    }
+    */
+
+    let query = 
+    "
+        UPDATE UserRoles
+        SET roleId = ?1
+        FROM User
+        WHERE UserRoles.userId = User.id
+            AND User.username = ?2
+    ";
+    let result = conn.execute(query, &[&role_id as &dyn ToSql, target as &dyn ToSql]);
+
+    match result {
+        Ok(0) => {
+            // If no rows were affected, return 404 Not Found
+            Err(Status::NotFound)
+        }
+        Ok(_) => {
+            // Successfully updated the user, return 200 OK with a success message
+            let log_data = json!({
+                "actor": actor,
+                "target": target,
+            });
+        
+            if let Err(e) = insert_system_log("Role Change", &log_data, &conn) {
+                eprintln!("Failed to log role change: {}", e);
+            }
+
+            Ok(Json(json!({
+                "status": "success",
+                "message": "User role changed successfully.",
+            })))
+        }
+        Err(_) => {
+            // Database error, return 500 Internal Server Error
+            Err(Status::InternalServerError)
+        }
+    }
+
+}
+
 
 // Export the routes
 pub fn user_management_routes() -> Vec<Route> {
-    routes![session_validate_api, user_all, user_search, user_info, user_role_search_api, user_register, user_login, user_logout, reset_password, set_password, user_delete]
+    routes![session_validate_api, user_all, user_search, user_info, user_role_search_api, user_register, user_login, user_logout, reset_password, set_password, user_delete, role_change]
 }
 
 pub struct UserSearchPaths;
