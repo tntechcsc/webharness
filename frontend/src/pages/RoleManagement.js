@@ -501,7 +501,7 @@ const RoleManagement = () => {
                                       <TextField
                                         id="outlined-read-only-input"
                                         label="Password"
-                                        defaultValue={displayedPassword}
+                                        value={displayedPassword}
                                         InputProps={{
                                           readOnly: true,
                                           style: { width: displayedPassword?.length ? `${displayedPassword.length + 1}ch` : '100px' }
