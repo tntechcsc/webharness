@@ -180,13 +180,28 @@ const RoleManagement = () => {
     }
   };
 
-  const handleRoleUpdateConfirm = () => {
-    // Place API call here to update user's role (e.g., PUT to backend)
-    // Example: await fetch(`${baseURL}:3000/api/user/updateRole`, { method: 'PUT', headers: { ... }, body: JSON.stringify({ target: selectedUserForRoleUpdate.username, role: newRole }) });
-    setOpenRoleConfirm(false);
-    setSelectedUserForRoleUpdate(null);
-    setNewRole("");
-    // Optionally, refresh the users list: fetchUsers();
+  const handleRoleUpdateConfirm = async (user, role) => {
+    try {
+      const response = await fetch(`${baseURL}:3000/api/role`, {
+        method: "PUT",
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': sessionStorage.getItem('session_id') || '',
+        },
+        body: JSON.stringify({ target: user.username, role: role })
+      });
+      if (response.ok) {
+        setOpenRoleConfirm(false);
+        setSelectedUserForRoleUpdate(null);
+      } else {
+        setOpenRoleConfirm(false);
+        setSelectedUserForRoleUpdate(null);
+      }
+    }
+    catch(e) {
+      setOpenRoleConfirm(false);
+      setSelectedUserForRoleUpdate(null);
+    }
   };
 
   const handleRoleUpdateCancel = () => {
@@ -508,7 +523,7 @@ const RoleManagement = () => {
                         sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
                         Cancel
                       </Button>
-                      <Button variant="outlined" onClick={handleRoleUpdateConfirm}
+                      <Button variant="outlined" onClick={() => {handleRoleUpdateConfirm(selectedUserForRoleUpdate, newRole)}}
                         sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
                         Confirm
                       </Button>

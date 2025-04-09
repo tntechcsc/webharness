@@ -7,3 +7,5 @@
 *~
 *node_modules*
 backend/Cargo.lock
+backend/harnessDB.db-journal
+frontend/harnessDB.db-journal
