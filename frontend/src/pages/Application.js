@@ -513,48 +513,40 @@ function Application() {
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                   {/* Buttons for Add Application and Add Category */}
                   <Box sx={{ display: "flex", gap: 2 }}>
-                    <Button
-                      id="add-application-button"
-                      variant="contained"
-                      component={Link}
-                      to="/add-application"
-                      style={{
-                        backgroundColor: '#75ea81',
-                        padding: '2px 0px',
-                        transform: "scale(0.75)",
-                      }}
-                      aria-label="Add a new application"
-                    >
-                      <IconButton
-                        variant="contained"
-                        color="primary"
-                        style={{ color: '#12255f' }}
-                        aria-label="Add application icon"
-                      >
-                        <FaPlus />
-                      </IconButton>
-                    </Button>
-  
-                    <Button
-                      id="add-category-button"
-                      variant="contained"
-                      onClick={() => setShowAddCategoryModal(true)} // Open the modal
-                      style={{
-                        backgroundColor: '#75ea81',
-                        padding: '2px 0px',
-                        transform: 'scale(0.75)',
-                      }}
-                      aria-label="Add a new category"
-                    >
-                      <IconButton
-                        variant="contained"
-                        color="primary"
-                        style={{ color: '#12255f' }}
-                        aria-label="Add category icon"
-                      >
-                        <FaTags />
-                      </IconButton>
-                    </Button>
+                  <Button
+                    id="add-application-button"
+                    variant="contained"
+                    color="primary"
+                    component={Link}
+                    to="/add-application"
+                    startIcon={<FaPlus />}
+                    style={{
+                      padding: '6px 16px',
+                      transform: 'scale(.95)',
+                    }}
+                    aria-label="Add a new application"
+                  >
+                    Add Application
+                  </Button>
+
+                  <Button
+                    id="add-category-button"
+                    variant="contained"
+                    color="primary"
+                    onClick={() => setShowAddCategoryModal(true)}
+                    startIcon={<FaTags />}
+                    style={{
+                      padding: '6px 16px',
+                      transform: 'scale(0.95)',
+                    }}
+                    aria-label="Add a new category"
+                  >
+                    Add Category
+
+
+                  </Button>
+
+
                   </Box>
   
                   {/* Search Bar */}
