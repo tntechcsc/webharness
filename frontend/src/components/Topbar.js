@@ -125,7 +125,11 @@ const Topbar = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setLogoutDialogOpen(false)} color="primary">
+          <Button
+          onClick={() => setLogoutDialogOpen(false)}
+          color="primary"
+          variant="contained"
+          >
             Cancel
           </Button>
           <Button
@@ -136,6 +140,7 @@ const Topbar = () => {
                 window.location.href = "/login";
               });
             }}
+            variant="contained"
             color="primary"
             autoFocus
           >
