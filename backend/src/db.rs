@@ -2,6 +2,7 @@ use rusqlite::{Connection, Result, OptionalExtension}; // for our sqlite connect
 use std::sync::{Arc, Mutex};
 use bcrypt::{DEFAULT_COST, hash, verify};
 use uuid::Uuid;
+use keyring::Entry;
 
 pub struct DB {
     pub conn: Mutex<Connection>, // rust complains if there is no thread safety with our connection
@@ -18,7 +19,11 @@ impl DB {
 
             // Set the encryption key for SQLCipher
             // we will have to have this read from a environment variable in the future
-            conn_use.execute_batch("PRAGMA key = 'my_secure_passphrase';")?;
+
+            let store = Entry::new("Mangrove", "mangrove_db").expect("Failed to create keyring entry");
+
+            let password = store.get_password().expect("Failed to get password");
+            conn_use.execute_batch(&format!("PRAGMA key = '{}';", password))?;
 
             conn_use.execute(
                 "CREATE TABLE IF NOT EXISTS User (
@@ -210,7 +215,10 @@ impl DB {
                 &["3", "Viewer", "A regular user that can only view and run programs"],
             )?;
 
-            let pass_hash = hash("password123", DEFAULT_COST).unwrap(); // Hash the password
+            let store = Entry::new("Mangrove", "superuser").expect("Failed to create keyring entry");
+
+            let password = store.get_password().expect("Failed to get password");
+            let pass_hash = hash(&password, DEFAULT_COST).unwrap(); // Hash the password
             // Creating Superadmin, admin, and viewer roles
             conn_use.execute(
                 "INSERT OR IGNORE INTO User (id, username, pass_hash, email) VALUES (?1, ?2, ?3, ?4)",
