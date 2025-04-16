@@ -22,3 +22,4 @@ futures-util = "0.3"
 gen_passphrase = { version = "0.1.1", features = ["eff_large"] }
 rand = "0.9.0"
 sysinfo = "0.27"
+keyring = "2.0"
