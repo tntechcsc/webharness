@@ -43,6 +43,40 @@ A key part of this application is to use a secure and effecient way to develop a
 ## SQLCipher
 SQLCipher is our database of choice for this project. SQLCipher is effectively just sqlite with additional security features, but the main one that was wanted from it for this project is encryption at rest. This means that if a malicious actor somehow downloads the database, they would be unable to see the contents of it without the password. This is accomplished via OpenSSL. You don't have to install this locally, but you can still download a database viewer [here](https://sqlitebrowser.org/). That comes with a sqlite and sqlcipher db viewer. 
 
+In order to initialize the passwords for the user `superuser` and as well as the database encryption password you will need to create two entries under the Windows Credential Store. These credentials will be stored by Windows itself and will only be accessible by the user you create them under. Therefore, other users will not be able to edit, read, or delete them. Additionally, only the user that creates those credentials will be able to run that specific instance of Mangrove as the application requires the database credential in order to decrypt the sqlite file at runtime. 
+
+
+### Accessing Windows Credential Store
+
+You should be able to access the windows credential store through the start menu by searching for "Manage Windows Credentials". From there you will be able to create a "generic credential" made up of a:
+- Internet/Network Address
+- Username
+- Password
+
+![](/img/Windows-Cred-Store-Generic.png)
+
+Mangrove is configured to pull the database and superuser credentials from 2 specific entries that you will have to add here. The details you should insert are outlined below:
+
+##### Database Credential
+
+| Field                | Value                    |
+| -------------------- | ------------------------ |
+| Inet/Network Address | mangrove_db.Mangrove     |
+| Username             | mangrove_db              |
+| Password             | `<insert your password>` |
+##### Superuser Credential
+
+| Field                | Value                    |
+| -------------------- | ------------------------ |
+| Inet/Network Address | superuser.Mangrove       |
+| Username             | superuser                |
+| Password             | `<insert your password>` |
+
+Below is a screenshot of the form you will input this information into after you have clicked on "Add a generic credential". After you have correctly filled in your information you can click "OK" and your credential will be added to the credential store.
+
+![](/img/Windows-Cred-Store-Fields.png)
+
+
 ## Building the Backend Server
 To build the backend, just head to /backend and run `cargo build --release`, this will build a executable of the backend. If you just want to make a development server, run `cargo build`. To run this development server, run `cargo run` afterwards. The executable will be at /backend/target/release/backend.exe.
 
