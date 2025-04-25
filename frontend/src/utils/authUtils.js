@@ -29,9 +29,9 @@ export const checkSession = async () => {
       return false; // In case of an error, consider user unauthorized
     }
     return false;
-  };
+};
 
-  export const handleLogout = async () => {
+export const handleLogout = async () => {
     try {
       let session_id = sessionStorage.getItem('session_id');
       if (!session_id) {
@@ -59,4 +59,29 @@ export const checkSession = async () => {
     }
   
   
+}
+
+export const fetchRole = async () => {
+  let session_id = sessionStorage.getItem("session_id");
+  if (!session_id) {
+    return;
   }
+
+  try {
+    const response = await fetch(`${window.location.origin}:3000/api/user/info`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "x-session-id": session_id || "",
+      },
+    });
+
+    if (!response.ok) throw new Error("Failed to fetch profile");
+
+    const user = await response.json();
+    return user.roleName;
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+  } finally {
+  }
+};

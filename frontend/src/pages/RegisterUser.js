@@ -20,7 +20,6 @@ const RegisterUser = () => {
     username: "",
     email: "",
     role: "3", // default to "Viewer"
-    password: "password123", // default password
   });
   const [statusMessage, setStatusMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -47,15 +46,16 @@ const RegisterUser = () => {
         body: JSON.stringify(formData),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         setLoading(false);
         withReactContent(Swal).fire({
           title: <i>Success</i>,
-          text: formData.username + " has been added!",
+          html: "User " + data.username + " registered!<br>Password:<br>" + data.password + "<br>*Hint: No space at the beginning*",
           icon: "success",
         }).then(() => navigate("/role-management"));
       } else {
-        const data = await response.json();
          withReactContent(Swal).fire({
           title: <i>Failure</i>,
           text: "Error with registering " + formData.username,

@@ -6,4 +6,8 @@
 *.log
 *~
 *node_modules*
+*.lock
 backend/Cargo.lock
+frontend/harnessDB.db
+backend/harnessDB.db-journal
+.history

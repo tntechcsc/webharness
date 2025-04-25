@@ -2,6 +2,7 @@
   "name": "front_end",
   "version": "0.1.0",
   "private": true,
+  "main": "main.js",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
@@ -13,7 +14,10 @@
     "ajv-formats": "^3.0.1",
     "axios": "^1.7.9",
     "bootstrap": "^5.3.3",
-    "cross-env": "^7.0.3",
+    "concurrently": "^9.1.2",
+    "electron": "^35.1.2",
+    "electron-packager": "^17.1.2",
+    "fs": "^0.0.1-security",
     "intro.js": "^7.2.0",
     "react": "^18.3.1",
     "react-bootstrap": "^2.10.9",
@@ -29,8 +33,13 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "cross-env PORT=80 GENERATE_SOURCEMAP=false react-scripts start",
-    "build": "GENERATE_SOURCEMAP=false react-scripts build",
+    "start": "cross-env PORT=80 react-scripts start",
+    "build": "react-scripts build",
+    "electron": "electron .",
+    "prepackage": "npm run build",
+    "package": "electron-packager . frontend --platform=win32 --arch=x64 --overwrite --out=./ && cd backend && cargo build --release && node scripts/copy-backend.js",
+    "predev": "node ./scripts/copy-backend.js",
+    "dev": "concurrently \"npm start\" \"npm run electron\"",
     "serve": "npx serve -s build -p 80",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -52,5 +61,12 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^35.0.0",
+    "electron-packager": "^17.1.2",
+    "prettier": "3.5.3"
   }
 }

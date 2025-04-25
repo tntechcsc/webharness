@@ -1,16 +1,29 @@
+// React and related library imports
 import React, { useState, useEffect } from "react";
 import { useParams, Link as RouterLink } from "react-router-dom";
+
+
+// MUI components for styling and layout
 import { Box, Container, Typography, Table, TableBody, TableCell, TableContainer, TableRow, Button, CircularProgress, IconButton } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+
+// Icons used in the UI
 import { IoReturnDownBackSharp, IoTrashBinOutline } from "react-icons/io5";
 import { FaPlay, FaEye, FaPlus  } from "react-icons/fa";
 import Swal from 'sweetalert2';
+
+// SweetAlert for alert dialogs
 import withReactContent from 'sweetalert2-react-content';
+import { LuClipboardPenLine } from "react-icons/lu";
 
 
+// Get the origin of the current window (base URL)
 const baseURL = window.location.origin;
 
+// Main component
 const ViewApplication = () => {
+
+  // State variables
   const theme = useTheme();
   const { id } = useParams(); // Get application ID from URL
   const [application, setApplication] = useState(null);
@@ -18,9 +31,10 @@ const ViewApplication = () => {
   const [statusMessage, setStatusMessage] = useState("Loading application details...");
   const [loading, setLoading] = useState(false);
   
-
+// Run fetch when component mounts
   useEffect(() => {
     fetchApplication();
+    console.log(id) // For debugging: logs the application ID
   }, []);
 
   const fetchApplication = async () => {
@@ -40,6 +54,8 @@ const ViewApplication = () => {
         },
       });
 
+
+      // Handle different HTTP status codes
       if (!response.ok) {
         if (response.status === 404) {
           setStatusMessage("Application not found.");
@@ -61,6 +77,8 @@ const ViewApplication = () => {
     setLoading(false);
   };
 
+
+   // Function to handle starting an application
   const runApplication = async () => {
     try {
       let session_id = sessionStorage.getItem("session_id");
@@ -78,12 +96,15 @@ const ViewApplication = () => {
         body: JSON.stringify({ application_id: application.id }),
       });
 
+
+       // Show success alert
       if (response.ok) {
         withReactContent(Swal).fire({
           title: <i>Success</i>,
           text: application.name + " has been started successfully!",
           icon: "success",
         })
+        // Show failure alert
       } else {
         withReactContent(Swal).fire({
           title: <i>Failure</i>,
@@ -92,6 +113,7 @@ const ViewApplication = () => {
         })
       }
     } catch (error) {
+      // Show fallback failure alert
       withReactContent(Swal).fire({
         title: <i>Failure</i>,
         text: application.name + " failed to start.",
@@ -99,7 +121,7 @@ const ViewApplication = () => {
       })
     }
   };
-
+// Function to delete application from the backend
   const removeApplication = async () => {
     try {
       let session_id = sessionStorage.getItem("session_id");
@@ -113,7 +135,8 @@ const ViewApplication = () => {
           title: <i>Success</i>,
           text: application.name + " has been deleted successfully!",
           icon: "success",
-        }).then(() => {
+           // Redirect to application list after deletion
+        }).then(() => {           
           window.location.href = "/applications";
         });
       } else {
@@ -131,7 +154,7 @@ const ViewApplication = () => {
       })
     }
   };
-  
+   // Trigger confirmation modal before deletion
   const handleRemoveClick = async () => {
     withReactContent(Swal).fire({
       title: <i>Warning</i>,
@@ -142,15 +165,16 @@ const ViewApplication = () => {
       cancelButtonText: "No",
     }).then((result) => {
       if (result.isConfirmed) {
-        removeApplication();
+        removeApplication();            // Proceed if confirmed
       }
     });
   }
-
+ // Show loading spinner while data is being fetched
   if (loading) {
     return <CircularProgress />;
   }
-
+  
+  // Show error message if no application found
   if (!application) {
     return <Typography variant="h6" color="error">{statusMessage || "Loading..."}</Typography>;
   }
@@ -198,6 +222,7 @@ const ViewApplication = () => {
             <IconButton><IoTrashBinOutline /></IconButton>
           </Button>
           <Button
+            sx={{ mr: 2 }}
             variant="contained"
             color="error"
             onClick={runApplication}
@@ -205,15 +230,27 @@ const ViewApplication = () => {
           >
             <IconButton><FaPlay /></IconButton>
           </Button>
+          <RouterLink to={`/edit-application/`+id}>
+            <Button
+              variant="contained"
+              color="error"
+              disabled={!instructions.path}
+            >
+              <IconButton><LuClipboardPenLine /></IconButton>
+            </Button>
+          </RouterLink>
+
         </Box>
+        
 
         <Box sx={{ mt: 3 }}>
           <RouterLink to="/applications">
-            <Button variant="outlined" color="secondary">
+            <Button variant="text" color="secondary">
               <IconButton><IoReturnDownBackSharp /></IconButton>
             </Button>
           </RouterLink>
         </Box>
+
       </Box>
     </Container>
   );

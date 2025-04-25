@@ -1,13 +1,12 @@
-import React, {useState, useEffect } from "react";
-import {Link, useLocation} from "react-router-dom";
-import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton } from "@mui/material";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import SettingsIcon from "@mui/icons-material/Settings";
-import PersonIcon from "@mui/icons-material/Person";
-import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton, } from "@mui/material";
+import HomeIcon from '@mui/icons-material/Home';
+import ViewListIcon from "@mui/icons-material/ViewList";
+import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount";
+import HelpCenterIcon from '@mui/icons-material/HelpCenter';
 import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
-import { startTutorialManually } from "../utils/tutorial";
 import { useStartTutorial } from "../utils/tutorial";
 
 const Navbar = () => {
@@ -16,15 +15,13 @@ const Navbar = () => {
   const location = useLocation();
   const drawerWidth = 200;
   const collapsedWidth = 60;
-  
+
   const [open, setOpen] = useState(() => {
-    // Retrieve the draawer state from localStorage
     const savedState = localStorage.getItem("drawerOpen");
     return savedState === null ? true : JSON.parse(savedState);
   });
 
   useEffect(() => {
-    // Save the drawer state to localStorage whenever it chaanges
     localStorage.setItem("drawerOpen", JSON.stringify(open));
   }, [open]);
 
@@ -34,7 +31,7 @@ const Navbar = () => {
     if (location.pathname.includes("profile")) return "profile";
     if (location.pathname.includes("role-management")) return "role-management";
     return null;
-  };  
+  };
 
   return (
     <Drawer
@@ -47,7 +44,9 @@ const Navbar = () => {
           width: open ? drawerWidth : collapsedWidth,
           transition: "width 0.3s ease-in-out, background-color 0.3s ease-in-out",
           overflowX: "hidden",
-          backgroundColor: theme.palette.secondary.main,
+          backgroundColor: "#12255f",
+          borderRight: "2px solid #ffffff", 
+          boxShadow: "2px 0px 10px rgba(0, 0, 0, 0.2)", 
         },
       }}
     >
@@ -59,49 +58,89 @@ const Navbar = () => {
           transition: "transform 0.3s ease-in-out, color 0.3s ease-in-out",
           transform: open ? "rotate(0deg)" : "rotate(180deg)",
         }}
+        aria-label={open ? "Close navigation drawer" : "Open navigation drawer"}
       >
         {open ? <ChevronLeftIcon /> : <MenuIcon />}
       </IconButton>
 
       <List>
         <ListItem disablePadding>
-          <ListItemButton component={Link} to="/">
-            <ListItemIcon sx={{ color: "white" }}>
-              <DashboardIcon />
-            </ListItemIcon>
-            <ListItemText primary="Dashboard" sx={{ color: "white" }} />
+          <ListItemButton
+            component={Link}
+            to="/"
+            sx={{
+              justifyContent: "space-between",
+              borderTop: "1px solid #ffffff",
+              borderBottom: "1px solid #ffffff",
+              "&:hover": {
+                backgroundColor: "#6FFB78",
+                color: "#fff",
+                transition: "background-color 0.3s ease-in-out",
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: "white" }}>< HomeIcon /></ListItemIcon>
+            <ListItemText primary="Home" sx={{ color: "white" }} />
           </ListItemButton>
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton component={Link} to="/applications">
-            <ListItemIcon sx={{ color: "white" }}>
-              <PersonIcon />
-            </ListItemIcon>
+          <ListItemButton
+            component={Link}
+            to="/applications"
+            sx={{
+              justifyContent: "space-between",
+              borderBottom: "1px solid #ffffff",
+              "&:hover": {
+                backgroundColor: "#6FFB78",
+                color: "#fff",
+                transition: "background-color 0.3s ease-in-out",
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: "white" }}>< ViewListIcon /></ListItemIcon>
             <ListItemText primary="Applications" sx={{ color: "white" }} />
           </ListItemButton>
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton component={Link} to="/role-management">
-            <ListItemIcon sx={{ color: "white" }}>
-              <SettingsIcon />
-            </ListItemIcon>
-            <ListItemText primary="Role" sx={{ color: "white" }} />
+          <ListItemButton
+            component={Link}
+            to="/role-management"
+            sx={{
+              justifyContent: "space-between",
+              borderBottom: "1px solid #ffffff",
+              "&:hover": {
+                backgroundColor: "#6FFB78",
+                color: "#fff",
+                transition: "background-color 0.3s ease-in-out",
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: "white" }}><SupervisorAccountIcon /></ListItemIcon>
+            <ListItemText primary="Roles" sx={{ color: "white" }} />
           </ListItemButton>
         </ListItem>
 
-        {/* Start Tutorial Button */}
         <ListItem disablePadding>
-          <ListItemButton onClick={() => {
-            const pageKey = getPageKey();
-            if (pageKey) {
-              startTutorialManually(pageKey);
-            }
-          }}>
-            <ListItemIcon sx={{ color: "white" }}>
-              <PlayCircleOutlineIcon />
-            </ListItemIcon>
+          <ListItemButton
+            onClick={() => {
+              const pageKey = getPageKey();
+              if (pageKey) {
+                startTutorialManually(pageKey);
+              }
+            }}
+            sx={{
+              justifyContent: "space-between",
+              borderBottom: "1px solid #ffffff",
+              "&:hover": {
+                backgroundColor: "#6FFB78",
+                color: "#fff",
+                transition: "background-color 0.3s ease-in-out",
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: "white" }}><HelpCenterIcon /></ListItemIcon>
             <ListItemText primary="Tutorial" sx={{ color: "white" }} />
           </ListItemButton>
         </ListItem>

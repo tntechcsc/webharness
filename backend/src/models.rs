@@ -59,8 +59,6 @@ pub struct UserInit {
     pub username: String,
     #[schema(example = "gbus@gmail.com")]
     pub email: String,
-    #[schema(example = "password123")]
-    pub password: String,
     #[schema(example = "2 for Admin, 3 for Viewer")]
     pub role: String,
 }
@@ -96,11 +94,17 @@ pub struct Session {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct ResetPasswordForm {
+pub struct ModifyUserForm {
     #[schema(example = "gbus")]
     pub target: String,
-    #[schema(example = "password123")]
-    pub password: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct RoleChangeForm {
+    #[schema(example = "gbus")]
+    pub target: String,
+    #[schema(example = "Viewer")] //maybe use enums for something like this
+    pub role: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -116,6 +120,7 @@ pub struct ProcessInfo {
     pub child_pids: Arc<Mutex<Vec<u32>>>, // Track child processes
     pub status: Arc<Mutex<String>>,           // e.g., "Running", "Exited"
     pub exit_code: Arc<Mutex<Option<i32>>>,   // Exit code if the process has exited
+    pub name: String, // <-- Add this field
 }
 
 #[derive(Serialize, ToSchema)]
@@ -182,13 +187,17 @@ pub struct ApplicationUpdateForm {
     #[schema(example = "user-id-1234")]
     pub user_id: Option<String>,
 
+    #[schema(example = "Jesus")]
+    pub contact: Option<String>, //not required,
+
     #[schema(example = "/path/to/executable")]
     pub executable_path: Option<String>,
 
     #[schema(example = "--arg1 --arg2")]
     pub arguments: Option<String>, // Optional arguments for the application
 
-    //TODO ADD CATEGORY AFTER ITS UPDATED
+    #[schema(example = "rust, navy, etc")]
+    pub categories: Option<Vec<String>> //categories
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -231,4 +240,19 @@ pub struct CategoryDetails {
 
     #[schema(example = "Applications related to system utilities")]
     pub description: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct SystemLog {
+    #[schema(example = "95dcd4e0-7e1f-4686-bc90-b010ff98213e")]
+    pub id: String, // Unique identifier for the log entry
+
+    #[schema(example = "application_added")]
+    pub event: String, // The type of event (e.g., "user_deleted", "application_added")
+
+    #[schema(example = json!({"actor": "admin", "application_name": "MyApp", "timestamp": "2025-03-31T12:34:56Z"}))]
+    pub data: serde_json::Value, // JSON data containing additional details about the event
+
+    #[schema(example = "2025-03-31T12:34:56Z")]
+    pub timestamp: String,
 }

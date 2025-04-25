@@ -1,56 +1,31 @@
 import React, { createContext, useState, useMemo } from 'react';
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import { lightTheme, darkTheme, defaultTheme } from "../theme"; 
 
 export const ThemeContext = createContext();
 
 export const ThemeProviderComponent = ({ children }) => {
-    const [mode, setMode] = useState(localStorage.getItem("theme") || "light");
+  const [mode, setMode] = useState(localStorage.getItem("theme") || "default");
 
-    const toggleTheme = () => {
-        setMode((prevMode) => {
-            const newMode = prevMode === "light" ? "dark" : "light";
-            localStorage.setItem("theme", newMode);
-            return newMode;
-        });
-    };
+  const toggleTheme = () => {
+    const nextMode = mode === "light" ? "dark" : mode === "dark" ? "default" : "light";
+    setMode(nextMode);
+    localStorage.setItem("theme", nextMode);
+  };
 
-    const theme = useMemo(
-        () =>
-          createTheme({
-            palette: {
-              mode,
-              ...(mode === "dark"
-                ? {
-                    primary: {
-                      main: "#90caf9", // light blue
-                    },
-                    background: {
-                      default: "#121212", // dark grey
-                      paper: "#1e1e1e", // dark grey
-                    },
-                  }
-                : {
-                    primary: {
-                      main: "#1976d2", // dark blue
-                    },
-                    background: {
-                      default: "#fff", // white
-                      paper: "#f5f5f5", // light grey
-                    },
-                  }),
-            },
-          }),
-        [mode]
-      );
-      
+  const theme = useMemo(() => {
+    if (mode === "dark") return darkTheme;
+    if (mode === "light") return lightTheme;
+    return defaultTheme;
+  }, [mode]);
 
-    return (
-        <ThemeContext.Provider value={{ mode, toggleTheme }}>
-            <ThemeProvider theme={theme}>
-                <CssBaseline />
-                {children}
-            </ThemeProvider>
-        </ThemeContext.Provider>
-    );
+  return (
+    <ThemeContext.Provider value={{ mode, toggleTheme }}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        {children}
+      </ThemeProvider>
+    </ThemeContext.Provider>
+  );
 };

@@ -1,15 +1,32 @@
+// React core imports and MUI component imports
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Button, Typography, Grid, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, TablePagination, TableSortLabel, IconButton } from '@mui/material';
+import { Box, Container, Button, Typography, Grid, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, TablePagination, TableSortLabel, IconButton, Select, MenuItem } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
 import { FaTrashAlt, FaPlus } from 'react-icons/fa'; // Add icons for actions
 import { LuClipboardPenLine } from "react-icons/lu";
 import Navbar from '../components/Navbar';
 import Topbar from '../components/Topbar';
+import Swal from 'sweetalert2';
+import { fetchRole } from "./../utils/authUtils.js";
 
+// MUI Dialogs for confirmations
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import { useContext } from "react";
+import { ThemeContext } from "../context/themecontext"; // adjust path if needed
+
+// Base URL for API calls
 const baseURL = window.location.origin;
 
 const RoleManagement = () => {
+   // State for user, role, search, pagination, and UI control
+  const [userRole, setUserRole] = useState("Viewer");
+  const [username, setUsername] = useState("");
+  const [target, setTarget] = useState("");
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
@@ -17,41 +34,81 @@ const RoleManagement = () => {
   const [order, setOrder] = useState('asc');
   const [orderBy, setOrderBy] = useState('username');
   const [loading, setLoading] = useState(true);
+  const [displayedPassword, setDisplayedPassword] = useState("");
   const theme = useTheme();
+  const { mode } = useContext(ThemeContext);
 
-  // Fetch users data
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        let session_id = sessionStorage.getItem('session_id');
-        const response = await fetch(`${baseURL}:3000/api/user/search/all`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-session-id': session_id || '',
-          },
-        });
+   // Dialog state for various modals
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
+  const [openDeleteSuccess, setOpenDeleteSuccess] = useState(false);
+  const [openResetPasswordConfirm, setOpenResetPasswordConfirm] = useState(false);
+  const [openResetPasswordSuccess, setOpenResetPasswordSuccess] = useState(false);
 
-        if (!response.ok) throw new Error('Failed to fetch users');
-        const data = await response.json();
-        setUsers(data.users);
-        console.log(users);
-      } catch (err) {
-        console.error('Error fetching users:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // New state for role update confirmation
+  const [openRoleConfirm, setOpenRoleConfirm] = useState(false);
+  const [selectedUserForRoleUpdate, setSelectedUserForRoleUpdate] = useState(null);
+  const [newRole, setNewRole] = useState("");
 
-    fetchUsers();
-  }, []);
+  const [displayStatusModal, setDisplayStatusModal] = useState();
+  const [statusModalTitle, setStatusModalTitle] = useState();
+  const [statusModalMessage, setStatusModalMessage] = useState();
 
+   // Delete user and confirm
+  const handleDeleteUserConfirm = (username) => {
+  
+    handleDeleteUser(username).then(() => {
+      setOpenDeleteConfirm(false); // Close the confirm dialog
+      setOpenDeleteSuccess(true); // Open the success dialog
+    }); 
+  };
+
+
+  
+  // Copies the reset password to clipboard
+  const copyPasswordToClipboard = () => {
+    navigator.clipboard.writeText(displayedPassword);
+  };
+
+  // Confirms and triggers password reset
+  const handleResetPasswordConfirm = (username) => {
+    // Implement the reset password functionality here, then open the success dialog
+    handleResetPassword(username); // for displaying the password that is reset this sets it after a success
+    setOpenResetPasswordConfirm(false); // Close the confirm dialog
+    setOpenResetPasswordSuccess(true); // Open the success dialog
+  };
+
+
+// Fetches user list from the API
+  const fetchUsers = async () => {
+    try {
+      let session_id = sessionStorage.getItem('session_id');
+      const response = await fetch(`${baseURL}:3000/api/user/search/all`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': session_id || '',
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error('Failed to fetch users');
+      setUsers(data.users);
+      console.log(users);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+ // Sorting functionality
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
   };
-
+// Pagination controls
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
@@ -60,13 +117,14 @@ const RoleManagement = () => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
-
+// Filters users by username/email/role based on search
   const filteredUsers = users.filter((user) =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.roleName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+   // Sorts users based on column and order
   const sortedUsers = filteredUsers.sort((a, b) => {
     if (orderBy === 'username') {
       return order === 'asc'
@@ -86,50 +144,212 @@ const RoleManagement = () => {
     return 0;
   });
 
-  const handleDeleteUser = (userId) => {
-    setUsers(users.filter(user => user.id !== userId));
-    console.log(`Deleted user with ID: ${userId}`);
+ // Sends API call to delete a user
+  const handleDeleteUser = async (username) => {
+    try {
+      const response = await fetch(`${baseURL}:3000/api/user/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': sessionStorage.getItem('session_id') || '',
+        },
+        body: JSON.stringify({ target: username }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        fetchUsers();
+      } else {
+        // Handle error if needed
+      }
+    } catch (err) {
+      // Handle exception if needed
+    }
   };
 
-  const handleResetPassword = (userId) => {
-    alert(`Password reset for user ID: ${userId}`);
+  // Sends API call to reset a user's password
+  const handleResetPassword = async (username) => {
+    try {
+      const response = await fetch(`${baseURL}:3000/api/password/reset`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': sessionStorage.getItem('session_id') || '',
+        },
+        body: JSON.stringify({ target: username }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setDisplayedPassword(data.password);
+      } else {
+        // Handle error if needed
+      }
+    } catch (err) {
+      // Handle exception if needed
+    }
   };
+
+  // New functions for role update
+  const handleRoleChange = (user, event) => {
+    const value = event.target.value;
+    if (value !== user.roleName) {
+      setSelectedUserForRoleUpdate(user);
+      setNewRole(value);
+      setOpenRoleConfirm(true);
+    }
+  };
+
+  // Confirms role update and sends API call
+  const handleRoleUpdateConfirm = async (user, role) => {
+    try {
+      const response = await fetch(`${baseURL}:3000/api/role`, {
+        method: "PUT",
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': sessionStorage.getItem('session_id') || '',
+        },
+        body: JSON.stringify({ target: user.username, role: role })
+      });
+      if (response.ok) {
+        setOpenRoleConfirm(false);
+        setSelectedUserForRoleUpdate(null);
+        setNewRole("");
+        users.forEach(changedUser => {
+          if (changedUser.username == user.username) {
+            changedUser.roleName = role;
+          }
+        })
+        handleOpenStatusModal("Success!", "User's role has been changed");
+      } else {
+        setOpenRoleConfirm(false);
+        setSelectedUserForRoleUpdate(null);
+        setNewRole("");
+        handleOpenStatusModal("Error!", "User's could not be changed");
+      }
+    }
+    catch(e) {
+      setOpenRoleConfirm(false);
+      setSelectedUserForRoleUpdate(null);
+      setNewRole("");
+      handleOpenStatusModal("Error!", "User's could not be changed");
+    }
+  };
+
+  const handleRoleUpdateCancel = () => {
+    setOpenRoleConfirm(false);
+    setSelectedUserForRoleUpdate(null);
+    setNewRole("");
+  };
+
+  const handleOpenStatusModal = (title, message) => {
+    setStatusModalTitle(title);
+    setStatusModalMessage(message);
+    setDisplayStatusModal(true);
+  }
+
+  const handleCloseStatusModal = () => {
+    setStatusModalTitle("");
+    setStatusModalMessage("");
+    setDisplayStatusModal(false);
+  }
+
+  // Gets currently logged-in user's username
+  const fetchUsername = async () => {
+    try {
+      const uri = `${baseURL}:3000/api/user/info`;
+      let session_id = sessionStorage.getItem("session_id");
+
+      if (!session_id) return;
+
+      fetch(uri, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": session_id || "",
+        },
+      })
+        .then((res) => (res.ok ? res.json() : Promise.reject("Failed to fetch user data")))
+        .then((user) => {
+          return setUsername(user.username);
+        })
+        .catch((error) => console.error(error));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Fetch users data
+  useEffect(() => {
+    fetchUsers();
+    fetchUsername();
+    fetchRole().then((role) => { setUserRole(role); });
+  }, [userRole]);
+
+  if (userRole === "Viewer") {
+    return (
+      <>
+        <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
+          <Navbar />
+          <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+            <Topbar />
+            {/* Other content for viewers */}
+          </Box>
+        </Box>
+      </>
+    );
+  }
+// Check if there are any users that can be managed
+  const hasEligibleUsers = users.some(
+    (user) => user.roleName !== "Superadmin" && user.username !== username
+  );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
-      <Navbar />
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <Topbar />
+    <>
+      <Box
+  sx={{
+    display: "flex",
+    minHeight: "100vh",
+    background:
+      mode === "default"
+        ? theme.custom?.gradients?.homeBackground || "linear-gradient(to bottom, #132060, #3e8e7e)"
+        : theme.palette.background.default,
+  }}
+>
 
-        <Container sx={{ mt: 5, ml: 2, maxWidth: 'xl' }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: '8px' }}>
-                <Typography variant="h6">Users Overview</Typography>
-                <Divider sx={{ my: 2 }} />
+        <Navbar />
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+          <Topbar />
+          <Container sx={{ mt: 5, maxWidth: 'xl' }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: '8px' }}>
+                  <Typography variant="h6">Users Overview</Typography>
+                  <Divider sx={{ my: 2 }} />
 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Button
-                    id="register-user"
-                    variant="contained"
-                    color="primary"
-                    component={Link}
-                    to="/register-user"
-                    style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}
-                  >
-                    <IconButton>
-                      <FaPlus />
-                    </IconButton>
-                  </Button>
-                  <TextField
-                    id="search-users"
-                    label="Search users..."
-                    variant="outlined"
-                    size="small"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    
+                    <Button
+                      id="register-user"              // Register Button
+                      variant="contained"
+                      color="primary"
+                      component={Link}
+                      to="/register-user"
+                      style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}
+                      aria-label="Register a new user" 
+                    >
+                      
+                      <IconButton aria-label="Add user icon">
+                        <FaPlus />
+                      </IconButton>
+                    </Button>
+                    <TextField
+                      id="search-users"
+                      label="Search users..."
+                      variant="outlined"
+                      size="small"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </Box>
 
                 <TableContainer component={Paper}>
                   <Table>
@@ -165,44 +385,227 @@ const RoleManagement = () => {
                         <TableCell>Actions</TableCell>
                       </TableRow>
                     </TableHead>
-                    <TableBody>
-                      {sortedUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user, index) => (
-                        <TableRow key={user.id}>
-                          <TableCell>{user.username}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>{user.roleName}</TableCell>
-                          <TableCell sx={{ display: "   ", justifyContent: "" }}>
-                            <Button id={index === 0 ? "reset-password" : undefined} variant="outlined" onClick={() => handleResetPassword(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                              <IconButton aria-label="delete">
-                                <LuClipboardPenLine />
-                              </IconButton>
-                            </Button>
-                            <Button id={index === 0 ? "delete-user" : undefined} variant="contained" color="error" onClick={() => handleDeleteUser(user.id)} style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}>
-                              <IconButton aria-label="delete">
-                                <FaTrashAlt />
-                              </IconButton>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    component="div"
-                    count={filteredUsers.length}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                  />
-                </TableContainer>
-              </Box>
+                      
+                      <TableBody>
+                        {sortedUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user, index) => (
+                          <TableRow key={user.id} sx={{ height: '50px' }}>
+                            <TableCell>{user.username}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              {(user.roleName === "Superadmin" || user.username === username) ? (
+                                user.roleName
+                              ) : (
+                                <Select
+                                  value={selectedUserForRoleUpdate && selectedUserForRoleUpdate.id === user.id ? newRole : user.roleName}
+                                  onChange={(e) => handleRoleChange(user, e)}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    '.MuiOutlinedInput-notchedOutline': {
+                                      borderColor: '#ffffff'
+                                    },
+                                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                                      borderColor: '#75ea81'
+                                    },
+                                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                      borderColor: '#75ea81'
+                                    }
+                                  }}
+                                >
+                                  <MenuItem value="Viewer">Viewer</MenuItem>
+                                  <MenuItem value="Admin">Admin</MenuItem>
+                                </Select>
+                              )}
+                            </TableCell>
+                            <TableCell sx={{ display: "", justifyContent: "", alignItems: "" }}>
+                              {user.roleName !== "Superadmin" && user.username !== username ? (
+                                <>
+                                  <Button
+                                    id={hasEligibleUsers && !users.some((u, i) => i < index && u.roleName !== "Superadmin" && u.username !== username) ? `reset-password` : undefined}
+                                    onClick={() => {setTarget(user.username);setOpenResetPasswordConfirm(true)}}
+                                    style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}
+                                  >
+                                    <IconButton aria-label="reset-password" style={{ marginRight: '8px' }}>
+                                      <LuClipboardPenLine />
+                                    </IconButton>
+                                  </Button>
+                                  <Button
+                                    id={hasEligibleUsers && !users.some((u, i) => i < index && u.roleName !== "Superadmin" && u.username !== username) ? `delete-user` : undefined}
+                                    onClick={() => {setTarget(user.username);setOpenDeleteConfirm(true)}}
+                                    style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}
+                                  >
+                                    <IconButton aria-label="delete" color="error">
+                                      <FaTrashAlt />
+                                    </IconButton>
+                                  </Button>
+                                </>
+                              ) : (
+                                <Box sx={{ height: '50px', visibility: 'hidden' }} />
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <TablePagination
+                      rowsPerPageOptions={[5, 10, 25]}
+                      component="div"
+                      count={filteredUsers.length}
+                      rowsPerPage={rowsPerPage}
+                      page={page}
+                      onPageChange={handleChangePage}
+                      onRowsPerPageChange={handleChangeRowsPerPage}
+                    />
+                  </TableContainer>
+                  <Dialog
+                    open={openRoleConfirm}
+                    onClose={handleRoleUpdateCancel}
+                    aria-labelledby="role-dialog-title"
+                    aria-describedby="role-dialog-description"
+                  >
+                    <DialogTitle id="role-dialog-title">{"Confirm Role Change"}</DialogTitle>
+                    <DialogContent>
+                      <DialogContentText id="role-dialog-description">
+                        Are you sure you want to change the role for {selectedUserForRoleUpdate ? selectedUserForRoleUpdate.username : ''} to {newRole}?
+                      </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                      <Button variant="outlined" onClick={handleRoleUpdateCancel}
+                        sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+                        Cancel
+                      </Button>
+                      <Button variant="outlined" onClick={() => {handleRoleUpdateConfirm(selectedUserForRoleUpdate, newRole)}}
+                        sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
+                        Confirm
+                      </Button>
+                    </DialogActions>
+                  </Dialog>
+
+                  <Dialog
+                    open={displayStatusModal}
+                    onClose={handleCloseStatusModal}
+                    aria-labelledby="role-dialog-title"
+                    aria-describedby="role-dialog-description"
+                  >
+                    <DialogTitle id="role-dialog-title">{statusModalTitle}</DialogTitle>
+                    <DialogContent>
+                      <DialogContentText id="role-dialog-description">
+                        {statusModalMessage}
+                      </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                      <Button variant="outlined" onClick={handleCloseStatusModal}
+                        sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+                        Close
+                      </Button>
+                    </DialogActions>
+                  </Dialog>
+                </Box>
+              </Grid>
             </Grid>
-          </Grid>
-        </Container>
+          </Container>
+        </Box>
       </Box>
-    </Box>
+
+      {/* Password Reset Modal */}
+      <Dialog
+        open={openResetPasswordConfirm}
+        onClose={() => setOpenResetPasswordConfirm(false)}
+        aria-labelledby="reset-password-dialog-title"
+        aria-describedby="reset-password-dialog-description"
+      >
+        <DialogTitle id="reset-password-dialog-title">{"Confirm Password Reset"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="reset-password-dialog-description">
+            Are you sure you want to reset the password for this user? {target}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={() => setOpenResetPasswordConfirm(false)}
+            sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }} >
+            Cancel
+          </Button>
+          <Button variant="outlined" onClick={() => {
+            handleResetPasswordConfirm(target);
+          }} sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
+            Reset Password
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={openResetPasswordSuccess}
+        onClose={() => setOpenResetPasswordSuccess(false)}
+        aria-labelledby="reset-password-success-title"
+        aria-describedby="reset-password-success-description"
+      >
+        <DialogTitle id="reset-password-success-title">Password Reset</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="reset-password-success-description">
+            The password for the user has been successfully reset. 
+          </DialogContentText>
+          <TextField 
+            id="outlined-read-only-input"
+            label="Password"
+            value={displayedPassword}
+            InputProps={{
+              readOnly: true,
+              style: { width: displayedPassword?.length ? `${displayedPassword.length + 1}ch` : '100px' }
+            }}
+            sx={{ mt: 2 }}
+          />
+
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={() => setOpenResetPasswordSuccess(false)} sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete User Modal */}
+      <Dialog
+          open={openDeleteConfirm}
+          onClose={() => setOpenDeleteConfirm(false)}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">{"Confirm Delete"}</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+              Are you sure you want to delete this user? {target}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button variant="outlined" onClick={() => setOpenDeleteConfirm(false)}
+              sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+              Cancel
+            </Button>
+            <Button variant="outlined" onClick={() => {
+              handleDeleteUserConfirm(target);
+            }} sx={{ bgcolor: 'background.paper', color: 'error.main', borderColor: 'error.main', '&:hover': { bgcolor: 'error.main', color: '#1d1d1d' } }} autoFocus>
+              Delete
+            </Button>
+          </DialogActions>
+      </Dialog>
+      <Dialog
+        open={openDeleteSuccess}
+        onClose={() => setOpenDeleteSuccess(false)}
+        aria-labelledby="simple-dialog-title"
+        aria-describedby="simple-dialog-description"
+      >
+        <DialogTitle id="simple-dialog-title">User Deleted</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="simple-dialog-description">
+            The user has been successfully deleted.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={() => setOpenDeleteSuccess(false)} sx={{ bgcolor: 'background.paper', color: '#75ea81', borderColor: '#75ea81', '&:hover': { bgcolor: '#75ea81', color: '#1d1d1d' } }}>
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

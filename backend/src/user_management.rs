@@ -9,6 +9,8 @@ use rocket::Route;
 use serde_json::json;
 //for our db connection
 use rusqlite::{Connection, Result, OptionalExtension};
+//to convert a object to a sql object
+use rusqlite::ToSql;
 // for thread-safe access
 use std::sync::{Arc, Mutex}; 
 
@@ -58,6 +60,24 @@ use crate::SessionGuard;
 #[get("/api/user/search/all")]
 fn user_all(_session_id: SessionGuard, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let session_id = _session_id.0; //getting their session id
+    //checking their role
+    let actor = session_to_user(session_id, &conn); // going from session to user_id
+    if actor == "" {
+        return Err(Status::BadRequest);
+    }
+    let actor = user_name_search(actor, &conn); // going from session to username for user_role_search
+    if actor == "" {
+        return Err(Status::BadRequest);
+    }
+    let actor_role = user_role_search(actor.clone(), &conn); //going from username to rolename
+    if actor_role == "" {
+        return Err(Status::BadRequest);
+    }
+    let actor_role: i32 = actor_role.parse().expect("Not a valid number"); //going from rolename to role_id holy s*** this is a lot of work
+    if actor_role == 3 {// they are a view
+        return Err(Status::Unauthorized);
+    }
 
     let mut stmt = conn.prepare("SELECT U.id, U.username, U.email, R.roleName FROM User U JOIN UserRoles UR ON U.id = UR.userID JOIN Roles R ON UR.roleID = R.roleID;").unwrap(); // Prepare your query
     let mut rows = stmt.query([]).unwrap(); // Execute the query with no parameters
@@ -207,7 +227,7 @@ fn user_info(_session_id: SessionGuard, db: &rocket::State<Arc<DB>>) -> Result<J
     tag = "User Management",
     responses(
         (status = 200, description = "Session is valid"),
-        (status = 401, description = "Unauthorized")
+        (status = 440, description = "Invalid Session")
     ),
     params(
     ),
@@ -290,6 +310,7 @@ fn user_register(_session_id: SessionGuard, user_data: Json<UserInit>, db: &rock
     let actor_role = user_role_search(actor.clone(), &conn);
     let actor_role: i32 = actor_role.parse().expect("Not a valid number");
     let target_role: i32 = user_data.role.parse().expect("Not a valid number");
+    let password = generate_passphrase();
 
     if actor == "" {
         return Err(Status::BadRequest);
@@ -312,7 +333,7 @@ fn user_register(_session_id: SessionGuard, user_data: Json<UserInit>, db: &rock
     }
 
     let id = Uuid::new_v4().to_string(); // Generate a unique user ID
-    let pass_hash = hash(user_data.password.clone(), DEFAULT_COST).unwrap(); // Hash the password
+    let pass_hash = hash(password.clone(), DEFAULT_COST).unwrap(); // Hash the password
 
     // Prepare the SQL INSERT query
     let query = "INSERT INTO User (id, username, pass_hash, email) VALUES (?1, ?2, ?3, ?4)";
@@ -332,9 +353,20 @@ fn user_register(_session_id: SessionGuard, user_data: Json<UserInit>, db: &rock
     let result = conn.execute(query, &[&id, &user_data.role]);
     match result {
         Ok(_) => {
+            let log_data = json!({
+                "actor": actor,
+                "user": user_data.username,
+            });
+        
+            if let Err(e) = insert_system_log("User Registered", &log_data, &conn) {
+                eprintln!("Failed to log application addition: {}", e);
+            }
+
             Ok(Json(json!({
                 "status": "success",
                 "message": "User registered successfully",
+                "password": password.clone(),
+                "username": user_data.username.clone(),
                 "user_id": id
             })))
         }
@@ -390,8 +422,7 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
             return Err(Status::BadRequest);
         }
         Err(_) => {
-            // Querying error, return 500 Internal Server Error // any sort of errors
-            return Err(Status::InternalServerError);
+            return Err(Status::InternalServerError); // Return 500 for any database errors
         }
     }
 
@@ -405,6 +436,14 @@ fn user_login(user_data: Json<Login>, db: &rocket::State<Arc<DB>>) -> Result<Jso
 
     match result { // switch statement
         Ok(_) => { // if its ok, then we return success
+            let log_data = json!({
+                "username": user_data.username,
+            });
+    
+            if let Err(e) = insert_system_log("Login", &log_data, &conn) {
+                eprintln!("Failed to log user login: {}", e);
+            }
+    
             // Successfully added user, return 200 OK with a success message
             Ok(Json(json!({
                 "status": "success",
@@ -467,33 +506,37 @@ fn user_logout(_session_id: SessionGuard, db: &rocket::State<Arc<DB>>) -> Result
         (status = 200, description = "Updates user info"),
         (status = 404, description = "User not found")
     ),
-    request_body = ResetPasswordForm,
+    request_body = ModifyUserForm,
     security(
         ("session_id" = [])
     ),
     )]
 #[put("/api/password/reset", data = "<user_data>")]
-fn reset_password(_session_id: SessionGuard, user_data: Json<ResetPasswordForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+fn reset_password(_session_id: SessionGuard, user_data: Json<ModifyUserForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
     let target = &user_data.target;
-    let password = &user_data.password;
     let session_id = &_session_id.0;
+    let mut password = generate_passphrase(); // Generate a new password
 
     if !user_exists(target, &conn) {
         return Err(Status::NotFound);
     }
     
-    let pass_hash = hash(password, DEFAULT_COST).unwrap(); // Hash the password
+    let pass_hash = hash(password.clone(), DEFAULT_COST).unwrap(); // Hash the password
 
     //session is that of the actor
     let actor = session_to_user(session_id.clone(), &conn);
-    let actor = user_name_search(actor, &conn);
+    let actor = user_name_search(actor.clone(), &conn);
 
     if actor == "" {
         return Err(Status::NotFound);
     }
 
-    else if !compare_roles(actor, target.clone(), &conn) {
+    if &actor == target { //cannot reset own password like this
+        return Err(Status::BadRequest);
+    }
+
+    else if !compare_roles(actor.clone(), target.clone(), &conn) {
         return Err(Status::Unauthorized);
     }
 
@@ -507,9 +550,19 @@ fn reset_password(_session_id: SessionGuard, user_data: Json<ResetPasswordForm>,
         }
         Ok(_) => {
             // Successfully updated the user, return 200 OK with a success message
+            let log_data = json!({
+                "actor": actor,
+                "target": target,
+            });
+        
+            if let Err(e) = insert_system_log("Changed Password", &log_data, &conn) {
+                eprintln!("Failed to log application addition: {}", e);
+            }
+
             Ok(Json(json!({
                 "status": "success",
-                "message": "Password updated successfully"
+                "message": "Password updated successfully",
+                "password": password.clone(),
             })))
         }
         Err(_) => {
@@ -576,28 +629,55 @@ fn set_password(
 
 #[utoipa::path(
     delete,
-    path = "/api/user/delete/{username}",
+    path = "/api/user/delete",
     tag = "User Management",
     responses(
         (status = 200, description = "Deletes a user"),
         (status = 404, description = "User not found")
     ),
-    params(
-        ("username", description = "name of person you want to delete")
+    request_body = ModifyUserForm,
+    security(
+        ("session_id" = [])
     )
     )]
-#[delete("/api/user/delete/<username>")]
-fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+#[delete("/api/user/delete", data = "<deleteForm>")]
+fn user_delete(_session_id: SessionGuard, deleteForm: Json<ModifyUserForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
     let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let target = &deleteForm.target;
+    let session_id = &_session_id.0;
 
     // Check if the user exists
-    if !user_exists(&username, &conn) {
+    if !user_exists(&target, &conn) {
+        println!("su not found for some reason too");
         return Err(Status::NotFound); // 404 Not Found if user doesn't exist
+    }
+
+    //session is that of the actor
+    let actor = session_to_user(session_id.clone(), &conn);
+    let actor = user_name_search(actor.clone(), &conn);
+    let actor_role = user_role_search(actor.clone(), &conn);
+    let target_role = user_role_search(target.clone(), &conn);
+
+    if actor == "" {
+        return Err(Status::NotFound);
+    }
+    if target_role == "1" { //cannot delete superadmin
+        return Err(Status::NotFound);
+    }
+    if actor_role == "3" { //if they are a viewer
+        return Err(Status::Unauthorized);
+    }
+    if &actor == target { //cannot delete yourself like this, honestly shouldnt be able to delete yourself at all
+        return Err(Status::BadRequest);
+    }
+
+    else if !compare_roles(actor.clone(), target.clone(), &conn) {
+        return Err(Status::Unauthorized);
     }
 
     // Prepare the SQL DELETE query
     let query = "DELETE FROM User WHERE username = ?1";
-    let result = conn.execute(query, &[&username]);
+    let result = conn.execute(query, &[&target.clone()]);
 
     match result {
         Ok(0) => {
@@ -605,6 +685,15 @@ fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<ser
             Err(Status::NotFound)
         }
         Ok(_) => {
+            let log_data = json!({
+                "actor": actor,
+                "user": target,
+            });
+        
+            if let Err(e) = insert_system_log("User Deleted", &log_data, &conn) {
+                eprintln!("Failed to log application addition: {}", e);
+            }
+
             // Successfully deleted the user, return 200 OK with a success message
             Ok(Json(json!({
                 "status": "success",
@@ -618,9 +707,136 @@ fn user_delete(username: String, db: &rocket::State<Arc<DB>>) -> Result<Json<ser
     }
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/role/",
+    tag = "User Management",
+    responses(
+        (status = 200, description = "Demotes/Promotes a user"),
+        (status = 404, description = "User not found")
+    ),
+    request_body = RoleChangeForm,
+    security(
+        ("session_id" = [])
+    ),
+    )]
+#[put("/api/role", data = "<role_change_data>")]
+fn role_change(_session_id: SessionGuard, role_change_data: Json<RoleChangeForm>, db: &rocket::State<Arc<DB>>) -> Result<Json<serde_json::Value>, Status> {
+    let conn = db.conn.lock().unwrap(); // Lock the mutex to access the connection
+    let target = &role_change_data.target;
+    let role = &role_change_data.role;
+    let session_id = &_session_id.0;
+
+    if role != "Viewer" && role != "Admin" && role != "Superadmin" { //need to submit a proper role
+        return Err(Status::BadRequest);
+    }
+
+    if role == "Superadmin" {
+        return Err(Status::BadRequest);//only 1 superadmin
+    }
+
+    let mut role_id: i32;
+    match role.as_str() {
+        "Viewer" => {
+            role_id = 3;
+        }
+        "Admin" => {
+            role_id = 2;
+        }
+        &_ => {
+            return Err(Status::BadRequest)
+        }
+    }
+
+    if !user_exists(target, &conn) {//not found
+        return Err(Status::NotFound);
+    }
+    
+    //session is that of the actor
+    let actor_id = session_to_user(session_id.clone(), &conn); //returns user_id
+    let actor = user_name_search(actor_id.clone(), &conn);
+
+    if actor == "" {//for any error if the actor is ot found
+        return Err(Status::NotFound);
+    }
+
+    if &actor == target { //cannot change your own role
+        return Err(Status::BadRequest);
+    }
+
+    let actor_role: i32 = user_role_search(actor.clone(), &conn).parse().expect("Not a valid number");
+    let target_role: i32 = user_role_search(target.clone(), &conn).parse().expect("Not a valid number");
+
+    if target_role == 1 { //cannot mutate superadmin
+        return Err(Status::BadRequest);
+    }
+
+    if actor_role == 3 { //viewer cannot mutate anyone
+        return Err(Status::BadRequest)
+    }
+
+    // good if actor_role is 1
+
+    //obviously with proper permissions to do so
+    // if they try to promote a user from viewer to admin with proper permissions, then its fine
+    // check if they are going from viewer to admin
+    //if target_role == 3 && role == "Admin" no checking should actually be done for this
+
+    // only the superadmin can demote a admin to a viewer
+    // check if they are going from admin to viewer and the actor isnt the superadmin
+    if target_role == 2 && role == "Viewer" && actor_role != 1 {
+        return Err(Status::Unauthorized)
+    }
+
+    /* that function was not worth making
+    else if !compare_roles(actor.clone(), target.clone(), &conn) {
+        return Err(Status::Unauthorized);
+    }
+    */
+
+    let query = 
+    "
+        UPDATE UserRoles
+        SET roleId = ?1
+        FROM User
+        WHERE UserRoles.userId = User.id
+            AND User.username = ?2
+    ";
+    let result = conn.execute(query, &[&role_id as &dyn ToSql, target as &dyn ToSql]);
+
+    match result {
+        Ok(0) => {
+            // If no rows were affected, return 404 Not Found
+            Err(Status::NotFound)
+        }
+        Ok(_) => {
+            // Successfully updated the user, return 200 OK with a success message
+            let log_data = json!({
+                "actor": actor,
+                "target": target,
+            });
+        
+            if let Err(e) = insert_system_log("Role Change", &log_data, &conn) {
+                eprintln!("Failed to log role change: {}", e);
+            }
+
+            Ok(Json(json!({
+                "status": "success",
+                "message": "User role changed successfully.",
+            })))
+        }
+        Err(_) => {
+            // Database error, return 500 Internal Server Error
+            Err(Status::InternalServerError)
+        }
+    }
+
+}
+
+
 // Export the routes
 pub fn user_management_routes() -> Vec<Route> {
-    routes![session_validate_api, user_all, user_search, user_info, user_role_search_api, user_register, user_login, user_logout, reset_password, set_password, user_delete]
+    routes![session_validate_api, user_all, user_search, user_info, user_role_search_api, user_register, user_login, user_logout, reset_password, set_password, user_delete, role_change]
 }
 
 pub struct UserSearchPaths;

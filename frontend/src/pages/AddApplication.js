@@ -227,14 +227,28 @@ const AddApplication = () => {
             sx={{ py: 1.5, mt: 2 }}
             disabled={loading}
           >
-            {loading ? <CircularProgress size={24} /> : <IconButton><FaPlus /></IconButton>}
+            {loading ? (
+              <CircularProgress size={24} sx={{ color: 'white' }} />
+            ) : (
+              <FaPlus />
+            )}
           </Button>
         </form>
         <Box sx={{ mt: 3 }}>
           <Link to="/applications">
-            <Button variant="outlined" color="secondary">
-              <IconButton><IoReturnDownBackSharp /></IconButton>
-            </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            component={Link}
+            to="/applications"
+            sx={{ px: 2, py: 1, minWidth: 'auto', color: 'primary' }} // removes excess width
+            aria-label="Back to applications"
+          >
+            <IoReturnDownBackSharp />
+          </Button>
+
+
+            
           </Link>
         </Box>
       </Box>

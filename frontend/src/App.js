@@ -1,16 +1,17 @@
 import { useState, useEffect, useContext } from 'react';
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Route, Routes, useLocation } from 'react-router-dom'; //may have to switch to hash router
 import HomePage from './pages/HomePage';
 import Application from './pages/Application';
 import RoleManagement from './pages/RoleManagement';
 import Login from './pages/login';
 import ViewApplication from './pages/ViewApplication';
 import AddApplication from './pages/AddApplication';
-import RegisterUser from './pages/RegisterUser'; // ✅ Import RegisterUser.js
+import EditApplication from './pages/EditApplication';
+import RegisterUser from './pages/RegisterUser'; 
 import { checkSession } from './utils/authUtils';
 import { ThemeProvider } from '@mui/material/styles';
-import { ThemeContext } from './context/themecontext'; // ✅ Import ThemeContext
-import { lightTheme, darkTheme } from './theme'; // ✅ Import light and dark themes
+import { ThemeContext } from './context/themecontext'; 
+import { lightTheme, darkTheme, defaultTheme } from './theme';
 import Profile from './pages/Profile';
 import "intro.js/minified/introjs.min.css";
 import ProtectedRoute from './components/ProtectedRoute';
@@ -18,8 +19,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 function App() {
   const [atLogin, setAtLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const location = useLocation(); // Hook to get the current location/pathname
-  const { mode } = useContext(ThemeContext); // ✅ Access current theme mode (light or dark)
+  const location = useLocation();
+  const { mode } = useContext(ThemeContext); 
 
   // Checking auth every minute
   useEffect(() => {
@@ -47,9 +48,11 @@ function App() {
           <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
           <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
           <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
-          <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} /> {/* ✅ New Route */}
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/edit-application/:id" element={<ProtectedRoute element={<EditApplication />} />} />
+          <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} />
+          <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
           <Route path="login" element={<Login />} />
+          <Route path="*" element={<ProtectedRoute element={<>404</>} />} />
         </Routes>
       </div>
     </div>
@@ -59,9 +62,12 @@ function App() {
 // Wrap the App component with the Router and ThemeProvider
 export default function WrappedApp() {
   const { mode } = useContext(ThemeContext); // Get the current theme mode (light or dark)
-
   return (
-    <ThemeProvider theme={mode === 'dark' ? darkTheme : lightTheme}> {/* Use the correct theme */}
+    <ThemeProvider theme={
+      mode === 'dark' ? darkTheme :
+      mode === 'light' ? lightTheme :
+      defaultTheme
+    }>
       <Router>
         <App />
       </Router>
