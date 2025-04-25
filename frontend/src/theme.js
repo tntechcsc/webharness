@@ -1,7 +1,7 @@
 import { createTheme } from '@mui/material/styles';
 
-// Define light theme
-const lightTheme = createTheme({
+
+const lightTheme = createTheme({      // Defines the light theme
   palette: {
     mode: "light",
     primary: {
@@ -41,7 +41,7 @@ const lightTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          backgroundColor: "#ffffff", // Card body color
+          backgroundColor: "#ffffff", 
           borderRadius: "12px",
           boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.3)",
           transition: "all 0.3s ease-in-out",
@@ -123,7 +123,7 @@ const lightTheme = createTheme({
 });
 
 
-const defaultTheme = createTheme({                            // Default
+const defaultTheme = createTheme({                            // Defines the Default theme
   palette: {
     mode: "light",
     primary: {
@@ -185,10 +185,10 @@ const defaultTheme = createTheme({                            // Default
         root: {
           backgroundColor: "#132060",
           borderRadius: "12px",
-          boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.3)", // ✅ Add shadow
+          boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.3)",
           transition: "all 0.3s ease-in-out",
           "&:hover": {
-            boxShadow: "0px 12px 24px rgba(0, 0, 0, 0.5)", // ✅ Optional hover effect
+            boxShadow: "0px 12px 24px rgba(0, 0, 0, 0.5)",
           },
         },
       },
@@ -233,10 +233,10 @@ const defaultTheme = createTheme({                            // Default
 
 
 
-// Define dark theme
-const darkTheme = createTheme({
+
+const darkTheme = createTheme({              // Defines the Dark Theme
   palette: {
-    mode: "light", // Intentional override due to navbar compatibility
+    mode: "light", 
     primary: {
       main: "#2a2a2a",
       light: "#2a2a2a"
@@ -346,7 +346,7 @@ const darkTheme = createTheme({
         },
       },
     },
-    // ✅ Add shadow styles for Card in dark mode
+    
     MuiCard: {
       styleOverrides: {
         root: {

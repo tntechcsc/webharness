@@ -1,27 +1,10 @@
+// Core React + MUI imports
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Topbar from "../components/Topbar";
-import {
-  Box,
-  Container,
-  Button,
-  Typography,
-  Divider,
-  Grid,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  TextField,
-  IconButton,
-  TablePagination,
-  TableSortLabel,
-  Modal,
-} from "@mui/material";
+import {Box,
+  Container, Button, Typography, Divider, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, IconButton, TablePagination, TableSortLabel, Modal,} from "@mui/material";
 import { FaPlay, FaEye, FaPlus, FaStop, FaTags } from "react-icons/fa";
 import { useTheme } from "@mui/material/styles";
 import Swal from 'sweetalert2';
@@ -32,6 +15,7 @@ import { useContext } from "react";
 const baseURL = window.location.origin;
 
 function Application() {
+  // Main state variables
   const [applications, setApplications] = useState([]);
   const [statusMessage, setStatusMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,6 +32,7 @@ function Application() {
   const [categories, setCategories] = useState([]);
   const { mode } = useContext(ThemeContext);
 
+  // Fetch applications and reconnect WebSocket sessions when the page loads
   useEffect(() => {
     fetchApplications();
 
@@ -141,7 +126,7 @@ function Application() {
       });
     }
   };
-
+ // Fetch all categories
   const fetchCategories = async () => {
     try {
       let session_id = sessionStorage.getItem('session_id');
@@ -168,7 +153,7 @@ function Application() {
       console.error('Error fetching categories:', error);
     }
   };
-
+// Add a new category
   const handleAddCategory = async () => {
     try {
       let session_id = sessionStorage.getItem('session_id');
@@ -257,6 +242,7 @@ function Application() {
     }
   };
 
+    // Start an application
   const runApplication = async (appId, appName) => {
     setStatusMessage("Starting application...");
 
@@ -312,6 +298,8 @@ function Application() {
     }
   };
 
+
+ // Stop a running application
   const stopApplication = async (appId, appName) => {
     setStatusMessage("Stopping application...");
 

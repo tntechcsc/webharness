@@ -1,3 +1,4 @@
+// React core imports and MUI component imports
 import React, { useState, useEffect } from 'react';
 import { Box, Container, Button, Typography, Grid, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, TablePagination, TableSortLabel, IconButton, Select, MenuItem } from '@mui/material';
 import { Link } from 'react-router-dom';
@@ -8,6 +9,8 @@ import Navbar from '../components/Navbar';
 import Topbar from '../components/Topbar';
 import Swal from 'sweetalert2';
 import { fetchRole } from "./../utils/authUtils.js";
+
+// MUI Dialogs for confirmations
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -16,10 +19,11 @@ import DialogTitle from '@mui/material/DialogTitle';
 import { useContext } from "react";
 import { ThemeContext } from "../context/themecontext"; // adjust path if needed
 
-
+// Base URL for API calls
 const baseURL = window.location.origin;
 
 const RoleManagement = () => {
+   // State for user, role, search, pagination, and UI control
   const [userRole, setUserRole] = useState("Viewer");
   const [username, setUsername] = useState("");
   const [target, setTarget] = useState("");
@@ -33,10 +37,13 @@ const RoleManagement = () => {
   const [displayedPassword, setDisplayedPassword] = useState("");
   const theme = useTheme();
   const { mode } = useContext(ThemeContext);
+
+   // Dialog state for various modals
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [openDeleteSuccess, setOpenDeleteSuccess] = useState(false);
   const [openResetPasswordConfirm, setOpenResetPasswordConfirm] = useState(false);
   const [openResetPasswordSuccess, setOpenResetPasswordSuccess] = useState(false);
+
   // New state for role update confirmation
   const [openRoleConfirm, setOpenRoleConfirm] = useState(false);
   const [selectedUserForRoleUpdate, setSelectedUserForRoleUpdate] = useState(null);
@@ -46,24 +53,23 @@ const RoleManagement = () => {
   const [statusModalTitle, setStatusModalTitle] = useState();
   const [statusModalMessage, setStatusModalMessage] = useState();
 
+   // Delete user and confirm
   const handleDeleteUserConfirm = (username) => {
-    // Implement the delete user functionality here, then open the success dialog
-    /*
-    console.log(`Deleting user ${username}`);
-    console.log(`User ${username} deleted`);
-    setOpenDeleteConfirm(false); // Close the confirm dialog
-    setOpenDeleteSuccess(true); // Open the success dialog
-    */
+  
     handleDeleteUser(username).then(() => {
       setOpenDeleteConfirm(false); // Close the confirm dialog
       setOpenDeleteSuccess(true); // Open the success dialog
-    }); // may have to add error handling if we arent going to user swal
+    }); 
   };
 
+
+  
+  // Copies the reset password to clipboard
   const copyPasswordToClipboard = () => {
     navigator.clipboard.writeText(displayedPassword);
   };
 
+  // Confirms and triggers password reset
   const handleResetPasswordConfirm = (username) => {
     // Implement the reset password functionality here, then open the success dialog
     handleResetPassword(username); // for displaying the password that is reset this sets it after a success
@@ -71,6 +77,8 @@ const RoleManagement = () => {
     setOpenResetPasswordSuccess(true); // Open the success dialog
   };
 
+
+// Fetches user list from the API
   const fetchUsers = async () => {
     try {
       let session_id = sessionStorage.getItem('session_id');
@@ -93,12 +101,14 @@ const RoleManagement = () => {
     }
   };
 
+
+ // Sorting functionality
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
   };
-
+// Pagination controls
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
@@ -107,13 +117,14 @@ const RoleManagement = () => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
-
+// Filters users by username/email/role based on search
   const filteredUsers = users.filter((user) =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.roleName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+   // Sorts users based on column and order
   const sortedUsers = filteredUsers.sort((a, b) => {
     if (orderBy === 'username') {
       return order === 'asc'
@@ -133,6 +144,7 @@ const RoleManagement = () => {
     return 0;
   });
 
+ // Sends API call to delete a user
   const handleDeleteUser = async (username) => {
     try {
       const response = await fetch(`${baseURL}:3000/api/user/delete`, {
@@ -154,6 +166,7 @@ const RoleManagement = () => {
     }
   };
 
+  // Sends API call to reset a user's password
   const handleResetPassword = async (username) => {
     try {
       const response = await fetch(`${baseURL}:3000/api/password/reset`, {
@@ -185,6 +198,7 @@ const RoleManagement = () => {
     }
   };
 
+  // Confirms role update and sends API call
   const handleRoleUpdateConfirm = async (user, role) => {
     try {
       const response = await fetch(`${baseURL}:3000/api/role`, {
@@ -199,7 +213,6 @@ const RoleManagement = () => {
         setOpenRoleConfirm(false);
         setSelectedUserForRoleUpdate(null);
         setNewRole("");
-        //fetchUsers(); //this is the only way i can tell that will properly handle role changing all of them
         users.forEach(changedUser => {
           if (changedUser.username == user.username) {
             changedUser.roleName = role;
@@ -239,6 +252,7 @@ const RoleManagement = () => {
     setDisplayStatusModal(false);
   }
 
+  // Gets currently logged-in user's username
   const fetchUsername = async () => {
     try {
       const uri = `${baseURL}:3000/api/user/info`;
@@ -283,7 +297,7 @@ const RoleManagement = () => {
       </>
     );
   }
-
+// Check if there are any users that can be managed
   const hasEligibleUsers = users.some(
     (user) => user.roleName !== "Superadmin" && user.username !== username
   );
@@ -312,15 +326,17 @@ const RoleManagement = () => {
                   <Divider sx={{ my: 2 }} />
 
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    
                     <Button
-                      id="register-user"
+                      id="register-user"              // Register Button
                       variant="contained"
                       color="primary"
                       component={Link}
                       to="/register-user"
                       style={{ backgroundColor: '#75ea81', padding: '2px 0px', transform: "scale(0.75)" }}
-                      aria-label="Register a new user"
+                      aria-label="Register a new user" 
                     >
+                      
                       <IconButton aria-label="Add user icon">
                         <FaPlus />
                       </IconButton>

@@ -1,3 +1,4 @@
+// Import React and MUI core components
 import React, { useState, useEffect } from "react";
 import { 
   Box, Container, Typography, TextField, Button, Avatar, Paper, Dialog, DialogTitle, 
@@ -6,6 +7,8 @@ import {
 import Navbar from "../components/Navbar";
 import Topbar from "../components/Topbar";
 import { useTheme } from "@mui/material/styles";
+
+// Import icons and other UI elements
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
@@ -17,12 +20,15 @@ import Checkbox from '@mui/material/Checkbox';
 import { useContext } from "react";
 import { ThemeContext } from "../context/themecontext";
 
-
+// Set base API URL
 const baseURL = window.location.origin;
 
 const Profile = () => {
+  // Theme and mode for styling
   const theme = useTheme();
   const { mode } = useContext(ThemeContext);
+
+   // Profile and password management state variables
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profilePic, setProfilePic] = useState(null);
@@ -33,17 +39,19 @@ const Profile = () => {
   const [showPassword, setShowPassword] = React.useState(false);
   const [capsLockEnabled, setCapsLockEnabled] = React.useState(false);
 
+   // Toggle password visibility
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
 
+   // Detect if Caps Lock is enabled when typing
   const handleCapsLock = (e) => {
     const capsLockOn = e.getModifierState("CapsLock");
     setCapsLockEnabled(capsLockOn);
   };
 
 
-
+ // Fetch user profile data when component mounts
   useEffect(() => {
     const fetchProfile = async () => {
       let session_id = sessionStorage.getItem("session_id");
@@ -74,7 +82,7 @@ const Profile = () => {
 
     fetchProfile();
   }, []);
-
+// Password validation: must meet specific security criteria
   const validatePassword = (password) => {
     const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&^#])[A-Za-z\d@$!%*?&^#]{8,}$/;
     return regex.test(password);
@@ -114,6 +122,7 @@ const Profile = () => {
         text: "Your password has been updated successfully!",
         icon: "success",
       });      
+        // Reset states after successful password change
       setPasswordDialogOpen(false);
       setNewPassword("");
       setConfirmPassword("");
@@ -123,7 +132,7 @@ const Profile = () => {
       setPasswordError("Failed to update password. Please try again.");
     }
   };
-
+  // Show loading state while profile is fetching
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
@@ -143,16 +152,14 @@ const Profile = () => {
             : theme.palette.background.default,
       }}
     >
-
+  {/* Sidebar and Topbar Layout */} 
       <Navbar />
-
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", height: "100vh" }}>
         <Topbar />
-
+         {/* Profile details container */}
         <Container sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
-          {/* Profile Picture */}
           <Paper sx={{ p: 4, maxWidth: 600, width: "100%", textAlign: "center", backgroundColor: theme.palette.background.paper, borderRadius: "20px",
-             boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.3)", // 🔥 shadow like HomePage cards
+             boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.3)", // shadow like HomePage cards
              transition: "all 0.3s ease-in-out",
              "&:hover": {
              boxShadow: "0px 12px 24px rgba(0, 0, 0, 0.5)", // stronger on hover

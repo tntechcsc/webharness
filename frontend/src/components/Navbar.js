@@ -45,8 +45,8 @@ const Navbar = () => {
           transition: "width 0.3s ease-in-out, background-color 0.3s ease-in-out",
           overflowX: "hidden",
           backgroundColor: "#12255f",
-          borderRight: "2px solid #ffffff", // White border on the right
-          boxShadow: "2px 0px 10px rgba(0, 0, 0, 0.2)", // Subtle shadow
+          borderRight: "2px solid #ffffff", 
+          boxShadow: "2px 0px 10px rgba(0, 0, 0, 0.2)", 
         },
       }}
     >

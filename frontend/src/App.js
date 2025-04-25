@@ -7,10 +7,10 @@ import Login from './pages/login';
 import ViewApplication from './pages/ViewApplication';
 import AddApplication from './pages/AddApplication';
 import EditApplication from './pages/EditApplication';
-import RegisterUser from './pages/RegisterUser'; // ✅ Import RegisterUser.js
+import RegisterUser from './pages/RegisterUser'; 
 import { checkSession } from './utils/authUtils';
 import { ThemeProvider } from '@mui/material/styles';
-import { ThemeContext } from './context/themecontext'; // ✅ Import ThemeContext
+import { ThemeContext } from './context/themecontext'; 
 import { lightTheme, darkTheme, defaultTheme } from './theme';
 import Profile from './pages/Profile';
 import "intro.js/minified/introjs.min.css";
@@ -19,8 +19,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 function App() {
   const [atLogin, setAtLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const location = useLocation(); // Hook to get the current location/pathname
-  const { mode } = useContext(ThemeContext); // ✅ Access current theme mode (light or dark)
+  const location = useLocation();
+  const { mode } = useContext(ThemeContext); 
 
   // Checking auth every minute
   useEffect(() => {

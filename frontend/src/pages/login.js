@@ -133,10 +133,10 @@ const Login = () => {
                   borderRadius: "5px",
                 },
                 "& .MuiInputBase-input": {
-                  color: "black", // ✅ input text color
+                  color: "black", 
                 },
                 "& ::placeholder": {
-                  color: "gray", // ✅ placeholder color (optional)
+                  color: "gray", 
                   opacity: 1,
                 },
               }}
