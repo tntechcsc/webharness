@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { HashRouter as Router, Route, Routes, useLocation } from 'react-router-dom'; //may have to switch to hash router
+import { HashRouter as Router, Route, Routes, useLocation, useNavigate } from 'react-router-dom'; //may have to switch to hash router
 import HomePage from './pages/HomePage';
 import Application from './pages/Application';
 import RoleManagement from './pages/RoleManagement';
@@ -21,6 +21,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
   const { mode } = useContext(ThemeContext); 
+  const navigate = useNavigate();
 
   // Checking auth every minute
   useEffect(() => {
@@ -29,7 +30,7 @@ function App() {
       const validateSession = async () => {
         const isValid = await checkSession(); // Check if their session is valid
         if (!isValid) {
-          window.location.href = "/login";
+          navigate("login")
           sessionStorage.removeItem("session_id");
         }
       };
