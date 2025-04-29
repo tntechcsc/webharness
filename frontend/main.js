@@ -36,7 +36,7 @@ function createWindow () {
   })
 
   // Check if we're in development or production
-  const isDev = process.env.NODE_ENV !== 'production';
+  const isDev = !app.isPackaged;
 
   if (isDev) {
     // In development, load from React dev server
@@ -45,7 +45,8 @@ function createWindow () {
     win.webContents.openDevTools();
   } else {
     // In production, load the built React app
-    win.loadFile(path.join(__dirname, '../build/index.html'));
+    console.log("Packaging application:")
+    win.loadFile(path.join(__dirname, 'build', 'index.html'));  
   }
 }
 
