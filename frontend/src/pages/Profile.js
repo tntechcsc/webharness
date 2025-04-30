@@ -21,7 +21,7 @@ import { useContext } from "react";
 import { ThemeContext } from "../context/themecontext";
 
 // Set base API URL
-const baseURL = window.location.origin;
+const baseURL = "http://localhost";
 
 const Profile = () => {
   // Theme and mode for styling

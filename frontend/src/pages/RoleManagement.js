@@ -20,7 +20,7 @@ import { useContext } from "react";
 import { ThemeContext } from "../context/themecontext"; // adjust path if needed
 
 // Base URL for API calls
-const baseURL = window.location.origin;
+const baseURL = "http://localhost";
 
 const RoleManagement = () => {
    // State for user, role, search, pagination, and UI control

@@ -3,13 +3,14 @@ import { Box, TextField, Button, Typography, Container, Paper, Alert, IconButton
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import KeyboardCapslockIcon from '@mui/icons-material/KeyboardCapslock';
 import axios from "axios";
-
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [showPassword, setShowPassword] = React.useState(false);
   const [capsLockEnabled, setCapsLockEnabled] = React.useState(false);
   const [loginError, setLoginError] = React.useState("");
   const [loginSuccess, setLoginSuccess] = React.useState("");
+  const navigate = useNavigate();
 
   const togglePasswordVisibility = () => {
     setShowPassword((prev) => !prev);
@@ -29,7 +30,7 @@ const Login = () => {
     const username = formData.get("username");
     const password = formData.get("password");
 
-    const baseURL = window.location.origin;
+    const baseURL = "http://localhost";
 
     axios
       .post(`${baseURL}:3000/api/user/login`, { username, password })
@@ -37,7 +38,7 @@ const Login = () => {
         sessionStorage.setItem("session_id", response.data.session_id);
         setLoginSuccess("Login successful!");
         setLoginError("");
-        window.location.href = "/";
+        navigate("/");
       })
       .catch((error) => {
         console.error("Login error:", error);

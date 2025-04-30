@@ -6,16 +6,16 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 import { ThemeContext } from "../context/themecontext";
 import logo from "../assets/LogoHarness.jpeg";
-import { handleLogout } from "../utils/authUtils";
-import { setHashLocation } from "../utils/utils.js";
+import { HandleLogout } from "../utils/authUtils";
+import { useNavigate } from "react-router-dom";
 
 const Topbar = () => {
   const { mode, toggleTheme } = useContext(ThemeContext);
-
+  const navigate = useNavigate();
   const [username, setUsername] = useState(null);
   const [role, setRole] = useState(null);
   const [profilePic, setProfilePic] = useState(null);
-  const baseURL = window.location.origin;
+  const baseURL = "http://localhost";
   const [anchorEl, setAnchorEl] = useState(null);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
@@ -100,7 +100,7 @@ const Topbar = () => {
                 </Box>
 
                 <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} sx={{ mt: 1 }}>
-                  <MenuItem onClick={() => setHashLocation("profile")}>View Profile</MenuItem>
+                  <MenuItem onClick={() => navigate("profile")}>View Profile</MenuItem>
                   <MenuItem
                     onClick={() => {
                       handleMenuClose();
@@ -133,12 +133,17 @@ const Topbar = () => {
             Cancel
           </Button>
           <Button
-            onClick={() => {
+            onClick={async () => {
               setLogoutDialogOpen(false);
-              handleLogout().then(() => {
+              const response = await HandleLogout();
+
+              if (response === true) {
                 sessionStorage.clear();
-                window.location.href = "/login";
-              });
+                navigate("/login");
+                console.log("logging them out")
+              } else {
+                //dont know what to do
+              }
             }}
             variant="contained"
             color="primary"

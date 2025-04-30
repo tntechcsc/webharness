@@ -1,7 +1,6 @@
 // React and related library imports
 import React, { useState, useEffect } from "react";
-import { useParams, Link as RouterLink } from "react-router-dom";
-
+import { useParams, Link as RouterLink, useNavigate } from "react-router-dom";
 
 // MUI components for styling and layout
 import { Box, Container, Typography, Table, TableBody, TableCell, TableContainer, TableRow, Button, CircularProgress, IconButton } from "@mui/material";
@@ -18,7 +17,7 @@ import { LuClipboardPenLine } from "react-icons/lu";
 
 
 // Get the origin of the current window (base URL)
-const baseURL = window.location.origin;
+const baseURL = "http://localhost";
 
 // Main component
 const ViewApplication = () => {
@@ -30,7 +29,8 @@ const ViewApplication = () => {
   const [instructions, setInstructions] = useState({ path: "", arguments: "" });
   const [statusMessage, setStatusMessage] = useState("Loading application details...");
   const [loading, setLoading] = useState(false);
-  
+  const navigate = useNavigate();
+
 // Run fetch when component mounts
   useEffect(() => {
     fetchApplication();
@@ -137,7 +137,7 @@ const ViewApplication = () => {
           icon: "success",
            // Redirect to application list after deletion
         }).then(() => {           
-          window.location.href = "/applications";
+          navigate("/applications");
         });
       } else {
         withReactContent(Swal).fire({

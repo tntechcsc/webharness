@@ -40,18 +40,23 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    console.log("window href: ", window.location.href)
+    console.log("current path: ", location)
+  }, [location])
+
   return (
     <div className="d-flex min-vh-100 bg-dark text-light">
       <div className="flex-grow-1">
         <Routes>
-          <Route path="/" element={<ProtectedRoute element={<HomePage />} />} />
+          <Route path="" element={<ProtectedRoute element={<HomePage />} />} />
           <Route path="role-management" element={<ProtectedRoute element={<RoleManagement />} />} />
           <Route path="applications" element={<ProtectedRoute element={<Application />} />} />
-          <Route path="/view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
-          <Route path="/add-application" element={<ProtectedRoute element={<AddApplication />} />} />
-          <Route path="/edit-application/:id" element={<ProtectedRoute element={<EditApplication />} />} />
-          <Route path="/register-user" element={<ProtectedRoute element={<RegisterUser />} />} />
-          <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
+          <Route path="view-application/:id" element={<ProtectedRoute element={<ViewApplication />} />} /> 
+          <Route path="add-application" element={<ProtectedRoute element={<AddApplication />} />} />
+          <Route path="edit-application/:id" element={<ProtectedRoute element={<EditApplication />} />} />
+          <Route path="register-user" element={<ProtectedRoute element={<RegisterUser />} />} />
+          <Route path="profile" element={<ProtectedRoute element={<Profile />} />} />
           <Route path="login" element={<Login />} />
           <Route path="*" element={<ProtectedRoute element={<>404</>} />} />
         </Routes>
