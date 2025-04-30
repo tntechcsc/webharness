@@ -12,7 +12,7 @@ import withReactContent from 'sweetalert2-react-content';
 import { ThemeContext } from "../context/themecontext";
 import { useContext } from "react";
 
-const baseURL = window.location.origin;
+const baseURL = "http://localhost";
 
 function Application() {
   // Main state variables
@@ -362,7 +362,7 @@ function Application() {
     }
   
     // Establish WebSocket connection
-    const wsUrl = `ws://${window.location.hostname}:3000/ws/process/${processId}`;
+    const wsUrl = `ws://${baseURL}:3000/ws/process/${processId}`;
     const ws = new WebSocket(wsUrl);
   
     ws.appId = appId;

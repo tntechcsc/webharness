@@ -1,10 +1,12 @@
 import { useEffect, autoRefreshTime } from 'react';
 import { checkSession } from "../utils/authUtils"
-
+import { useNavigate } from "react-router-dom";
 
 //maybe use bootstrap instead of all this css
 
 const Layout = ({ children, title }) => {
+  const navigate = useNavigate();
+
   // checking auth every minute
   useEffect(() => {
     const interval = setInterval(() => {
@@ -12,7 +14,7 @@ const Layout = ({ children, title }) => {
       const validateSession = async () => {
         const isValid = await checkSession(); // check if their session is valid
         if (!isValid) {
-          window.location.href = "/login"
+          navigate("/login");
           sessionStorage.removeItem("session_id");
         }
       };
