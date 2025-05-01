@@ -1,6 +1,9 @@
 const { app, BrowserWindow } = require('electron');
 const path = require("path");
 const { spawn } = require('child_process');
+const fs = require('fs');
+
+const logStream = fs.createWriteStream(path.join(__dirname, 'backend.log'), { flags: 'a' });
 
 // Path to your Rust executable
 const rocketServer = process.platform === 'win32' 
@@ -10,7 +13,10 @@ const rocketServer = process.platform === 'win32'
 let rocketProcess = null;
 
 function startRocketServer() {
-  rocketProcess = spawn(rocketServer);
+  rocketProcess = spawn(rocketServer, [], { stdio: ['ignore', 'pipe', 'pipe'] });
+
+  rocketProcess.stdout.pipe(logStream);
+  rocketProcess.stderr.pipe(logStream);
 
   rocketProcess.stdout.on('data', (data) => {
     console.log(`Backend stdout: ${data}`);
