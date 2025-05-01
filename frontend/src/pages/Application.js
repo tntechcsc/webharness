@@ -362,7 +362,7 @@ function Application() {
     }
   
     // Establish WebSocket connection
-    const wsUrl = `ws://${baseURL}:3000/ws/process/${processId}`;
+    const wsUrl = `ws://localhost:3000/ws/process/${processId}`;
     const ws = new WebSocket(wsUrl);
   
     ws.appId = appId;

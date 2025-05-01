@@ -123,7 +123,7 @@ const ResourceUtilizationCharts = ({ selectedApp }) => {
   }, [selectedApp]);
 
   useEffect(() => {
-    const wsUrl = `ws://${baseURL}:3000/ws/resource_util`;
+    const wsUrl = `ws://localhost:3000/ws/resource_util`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
@@ -323,7 +323,7 @@ const HomePage = () => {
 
   // A single effect that also listens for resource data (just to track process names)
   useEffect(() => {
-    const wsUrl = `ws://${baseURL}:3000/ws/resource_util`;
+    const wsUrl = `ws://localhost:3000/ws/resource_util`;
     const ws = new WebSocket(wsUrl);
     let processMap = {};
 
@@ -461,7 +461,7 @@ const HomePage = () => {
 
   // WebSocket for active application count
   useEffect(() => {
-    const wsUrl = `ws://${baseURL}:3000/ws/process_count`;
+    const wsUrl = `ws://localhost:3000/ws/process_count`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
